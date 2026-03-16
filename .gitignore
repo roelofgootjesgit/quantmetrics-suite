@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+.env
+*.egg-info/
+dist/
+build/
+data/market_cache/
+data/news_cache/
+data/state.json
+logs/
+*.parquet
+.cursor/
+decision.json
+reports/

@@ -1,0 +1,24 @@
+# Quantbuild E1 v1 — Default Configuration
+
+symbol: XAUUSD
+timeframes:
+  - 15m
+  - 1h
+
+data:
+  base_path: data/market_cache
+  cache_ttl_hours: 24
+
+backtest:
+  default_period_days: 60
+  tp_r: 2.0
+  sl_r: 1.0
+
+risk:
+  max_position_pct: 0.02
+  max_daily_loss_r: 3.0
+
+logging:
+  level: INFO
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file_path: logs/quantbuild.log
