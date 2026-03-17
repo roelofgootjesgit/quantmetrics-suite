@@ -62,6 +62,26 @@ def save_parquet(base_path: Path, symbol: str, timeframe: str, data: pd.DataFram
     data.to_parquet(p, compression="snappy")
 
 
+def _get_dukascopy_instrument(symbol: str):
+    """Map our symbol names to Dukascopy instrument constants."""
+    import dukascopy_python.instruments as inst
+    mapping = {
+        "XAUUSD": inst.INSTRUMENT_FX_METALS_XAU_USD,
+        "XAGUSD": inst.INSTRUMENT_FX_METALS_XAG_USD,
+        "EURUSD": inst.INSTRUMENT_FX_MAJORS_EUR_USD,
+        "GBPUSD": inst.INSTRUMENT_FX_MAJORS_GBP_USD,
+        "USDJPY": inst.INSTRUMENT_FX_MAJORS_USD_JPY,
+        "AUDUSD": inst.INSTRUMENT_FX_MAJORS_AUD_USD,
+        "USDCHF": inst.INSTRUMENT_FX_MAJORS_USD_CHF,
+        "USDCAD": inst.INSTRUMENT_FX_MAJORS_USD_CAD,
+        "NZDUSD": inst.INSTRUMENT_FX_MAJORS_NZD_USD,
+        "EURJPY": inst.INSTRUMENT_FX_CROSSES_EUR_JPY,
+        "GBPJPY": inst.INSTRUMENT_FX_CROSSES_GBP_JPY,
+        "EURGBP": inst.INSTRUMENT_FX_CROSSES_EUR_GBP,
+    }
+    return mapping.get(symbol.upper())
+
+
 def _fetch_dukascopy(
     symbol: str,
     timeframe: str,
@@ -70,7 +90,6 @@ def _fetch_dukascopy(
 ) -> pd.DataFrame:
     """Fetch OHLCV data from Dukascopy (free, multi-year history)."""
     import dukascopy_python as duka
-    from dukascopy_python.instruments import INSTRUMENT_FX_METALS_XAU_USD
 
     interval_map = {
         "5m": duka.INTERVAL_MIN_5,
@@ -81,7 +100,7 @@ def _fetch_dukascopy(
     if interval is None:
         raise ValueError(f"Dukascopy: unsupported timeframe '{timeframe}'")
 
-    instrument = INSTRUMENT_FX_METALS_XAU_USD if symbol.upper() == "XAUUSD" else None
+    instrument = _get_dukascopy_instrument(symbol)
     if instrument is None:
         raise ValueError(f"Dukascopy: unsupported symbol '{symbol}'")
 

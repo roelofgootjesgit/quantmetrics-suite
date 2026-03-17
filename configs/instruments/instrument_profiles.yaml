@@ -1,0 +1,108 @@
+# ============================================================
+# Instrument Execution Profiles
+# ============================================================
+# Universal kernel: regime + SQE + news gate + dynamic exits
+# Per-instrument: execution envelope constraints
+#
+# Strategy logic is constant.
+# Execution guardrails adapt per market.
+# ============================================================
+
+instruments:
+
+  XAUUSD:
+    label: "Gold"
+    asset_class: "metals"
+    dukascopy_symbol: "XAUUSD"
+    oanda_instrument: "XAU_USD"
+    # Execution constraints
+    max_spread_pips: 4.0
+    max_slippage_r: 0.15
+    pip_value: 0.01
+    # Session behavior
+    primary_sessions: ["London", "Overlap", "New York"]
+    session_mode: "extended"
+    # Risk
+    risk_multiplier: 1.0
+    max_concurrent: 2
+    # ATR characteristics
+    typical_atr_15m: 4.0
+    min_atr_for_entry: 1.5
+
+  XAGUSD:
+    label: "Silver"
+    asset_class: "metals"
+    dukascopy_symbol: "XAGUSD"
+    oanda_instrument: "XAG_USD"
+    max_spread_pips: 3.0
+    max_slippage_r: 0.15
+    pip_value: 0.001
+    primary_sessions: ["London", "Overlap", "New York"]
+    session_mode: "extended"
+    risk_multiplier: 0.85
+    max_concurrent: 2
+    typical_atr_15m: 0.10
+    min_atr_for_entry: 0.03
+
+  EURUSD:
+    label: "Euro"
+    asset_class: "fx_major"
+    dukascopy_symbol: "EURUSD"
+    oanda_instrument: "EUR_USD"
+    max_spread_pips: 1.5
+    max_slippage_r: 0.10
+    pip_value: 0.0001
+    primary_sessions: ["London", "Overlap", "New York"]
+    session_mode: "extended"
+    risk_multiplier: 0.7
+    max_concurrent: 2
+    typical_atr_15m: 0.0015
+    min_atr_for_entry: 0.0005
+
+  GBPUSD:
+    label: "Cable"
+    asset_class: "fx_major"
+    dukascopy_symbol: "GBPUSD"
+    oanda_instrument: "GBP_USD"
+    max_spread_pips: 2.0
+    max_slippage_r: 0.10
+    pip_value: 0.0001
+    primary_sessions: ["London", "Overlap", "New York"]
+    session_mode: "extended"
+    risk_multiplier: 0.75
+    max_concurrent: 2
+    typical_atr_15m: 0.0018
+    min_atr_for_entry: 0.0006
+
+  USDJPY:
+    label: "Yen"
+    asset_class: "fx_major"
+    dukascopy_symbol: "USDJPY"
+    oanda_instrument: "USD_JPY"
+    max_spread_pips: 1.5
+    max_slippage_r: 0.10
+    pip_value: 0.01
+    primary_sessions: ["London", "Overlap", "New York"]
+    session_mode: "extended"
+    risk_multiplier: 0.7
+    max_concurrent: 2
+    typical_atr_15m: 0.15
+    min_atr_for_entry: 0.05
+
+# ============================================================
+# Promotion Rubric Thresholds
+# ============================================================
+promotion:
+  promote:
+    min_expectancy_r: 0.15
+    min_profit_factor: 1.2
+    max_drawdown_r: -35
+    min_trades: 50
+    min_rdd: 1.0
+    dynamic_exit_improvement: true
+  watchlist:
+    min_expectancy_r: 0.05
+    min_profit_factor: 1.0
+    max_drawdown_r: -50
+    min_trades: 30
+  # Anything below watchlist thresholds = REJECT
