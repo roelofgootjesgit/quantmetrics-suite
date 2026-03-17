@@ -14,6 +14,7 @@ from typing import Any, Dict, List, Optional
 import numpy as np
 import pandas as pd
 
+from src.quantbuild.indicators.atr import atr as compute_atr
 from src.quantbuild.models.trade import Trade, calculate_rr
 from src.quantbuild.data.sessions import session_from_timestamp, ENTRY_SESSIONS
 from src.quantbuild.io.parquet_loader import load_parquet, ensure_data
@@ -58,7 +59,7 @@ def _prepare_sim_cache(data: pd.DataFrame) -> dict:
         "close": data["close"].values.astype(np.float64),
         "high": data["high"].values.astype(np.float64),
         "low": data["low"].values.astype(np.float64),
-        "atr": (data["high"] - data["low"]).rolling(14, min_periods=1).mean().values.astype(np.float64),
+        "atr": compute_atr(data, period=14).values.astype(np.float64),
         "ts": data.index,
     }
 

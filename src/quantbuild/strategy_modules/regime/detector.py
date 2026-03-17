@@ -15,6 +15,7 @@ from typing import Any, Dict, Optional
 import numpy as np
 import pandas as pd
 
+from src.quantbuild.indicators.atr import atr_ratio as compute_atr_ratio
 from src.quantbuild.strategy_modules.ict.structure_context import add_structure_context
 from src.quantbuild.strategy_modules.ict.structure_labels import RANGE
 
@@ -52,10 +53,7 @@ class RegimeDetector:
         """
         df = data.copy()
 
-        true_range = df["high"] - df["low"]
-        atr = true_range.rolling(self._atr_period, min_periods=1).mean()
-        atr_sma = atr.rolling(self._atr_sma_period, min_periods=1).mean()
-        atr_ratio = (atr / atr_sma).replace([np.inf, -np.inf], 1.0).fillna(1.0)
+        ratio = compute_atr_ratio(df, atr_period=self._atr_period, sma_period=self._atr_sma_period)
 
         struct_cfg = {
             "lookback": self._structure_lookback,
@@ -73,9 +71,9 @@ class RegimeDetector:
         structure = structure.fillna(RANGE)
 
         regimes = pd.Series(REGIME_TREND, index=df.index, dtype=object)
-        regimes[atr_ratio > self._expansion_threshold] = REGIME_EXPANSION
-        is_compression = (atr_ratio < self._compression_threshold) | (structure == RANGE)
-        regimes[is_compression & (atr_ratio <= self._expansion_threshold)] = REGIME_COMPRESSION
+        regimes[ratio > self._expansion_threshold] = REGIME_EXPANSION
+        is_compression = (ratio < self._compression_threshold) | (structure == RANGE)
+        regimes[is_compression & (ratio <= self._expansion_threshold)] = REGIME_COMPRESSION
 
         counts = regimes.value_counts()
         total = len(regimes)

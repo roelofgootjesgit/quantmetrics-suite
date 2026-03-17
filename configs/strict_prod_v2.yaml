@@ -207,6 +207,16 @@ news:
     check_interval_seconds: 60
     exit_threshold: 0.8
 
+# ---- Execution Guards ----
+execution_guards:
+  max_spread_pips: 4.0
+  max_slippage_r: 0.15
+  max_open_positions: 3
+
+execution:
+  check_interval_seconds: 60
+  regime_update_seconds: 900
+
 # ---- Broker ----
 broker:
   provider: oanda
