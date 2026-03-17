@@ -9,30 +9,27 @@
 
 instruments:
 
+  # ── PROMOTED (data-validated edge) ──────────────────────────
+
   XAUUSD:
     label: "Gold"
     asset_class: "metals"
     status: "PROMOTE"
     dukascopy_symbol: "XAUUSD"
     oanda_instrument: "XAU_USD"
-    # Regime gates (data-driven)
     regimes:
       trend: true       # 201 trades, PF 1.41, exp +0.208R
       expansion: true   # 53 trades, PF 2.82, exp +0.755R (best cluster)
       compression: false
-    # Expansion restricted to NY/Overlap 10+ UTC
     expansion_sessions: ["New York", "Overlap"]
     expansion_min_hour_utc: 10
-    # Execution constraints
     max_spread_pips: 4.0
     max_slippage_r: 0.15
     pip_value: 0.01
     primary_sessions: ["London", "Overlap", "New York"]
     session_mode: "extended"
-    # Risk
     risk_multiplier: 1.0
     max_concurrent: 2
-    # Backtest stats
     _5yr_exp: 0.322
     _5yr_pf: 1.65
     _5yr_rdd: 4.18
@@ -43,21 +40,17 @@ instruments:
     status: "PROMOTE"
     dukascopy_symbol: "GBPUSD"
     oanda_instrument: "GBP_USD"
-    # Regime gates — EXPANSION OFF (0% WR, -1R/trade)
     regimes:
-      trend: true       # 46 trades, PF 4.23, exp +1.123R (strongest)
+      trend: true       # 46 trades, PF 4.23, exp +1.123R
       expansion: false   # 15 trades, 0% WR — kills edge
       compression: false
-    # Execution constraints
     max_spread_pips: 2.0
     max_slippage_r: 0.10
     pip_value: 0.0001
     primary_sessions: ["London", "Overlap", "New York"]
     session_mode: "extended"
-    # Risk
     risk_multiplier: 1.0
     max_concurrent: 2
-    # Backtest stats
     _5yr_exp: 0.601
     _5yr_pf: 2.18
     _5yr_rdd: 3.06
@@ -68,24 +61,129 @@ instruments:
     status: "PROMOTE"
     dukascopy_symbol: "USDJPY"
     oanda_instrument: "USD_JPY"
-    # Regime gates — both TREND and EXPANSION work
     regimes:
       trend: true       # 113 trades, PF 1.67, exp +0.331R
       expansion: true   # 29 trades, PF 1.62, exp +0.345R
       compression: false
-    # Execution constraints
     max_spread_pips: 1.5
     max_slippage_r: 0.10
     pip_value: 0.01
     primary_sessions: ["London", "Overlap", "New York"]
     session_mode: "extended"
-    # Risk
     risk_multiplier: 1.0
     max_concurrent: 2
-    # Backtest stats
     _5yr_exp: 0.334
     _5yr_pf: 1.66
     _5yr_rdd: 2.94
+
+  # ── CANDIDATE (needs cross-instrument validation) ───────────
+
+  # ── WATCHLIST (partial edge, needs filtering) ────────────────
+
+  NAS100:
+    label: "Nasdaq 100"
+    asset_class: "index_us"
+    status: "WATCHLIST"
+    dukascopy_symbol: "NAS100"
+    oanda_instrument: "NAS100_USD"
+    regimes:
+      trend: true       # 956 trades, PF ~1.2, exp +0.106R, total +101R
+      expansion: false   # 57 trades, exp -0.211R — kills edge (same pattern as GBPUSD)
+      compression: false
+    max_spread_pips: 3.0
+    max_slippage_r: 0.20
+    pip_value: 0.1
+    primary_sessions: ["New York", "Overlap"]
+    session_mode: "standard"
+    risk_multiplier: 0.75
+    max_concurrent: 1
+    _5yr_trend_only_exp: 0.106
+    _5yr_trend_only_total: 101.3
+    _5yr_trend_trades: 956
+    _notes: "HUGE trade frequency (+191/yr TREND only). Expansion destroys edge. TREND-only = viable add. R/DD too low for full PROMOTE yet — needs slippage validation."
+
+  SPX500:
+    label: "S&P 500"
+    asset_class: "index_us"
+    status: "WATCHLIST"
+    dukascopy_symbol: "SPX500"
+    oanda_instrument: "SPX500_USD"
+    regimes:
+      trend: true       # 500 trades, PF ~1.1, exp +0.058R, total +29R
+      expansion: false   # 24 trades, exp 0.0R — no edge
+      compression: false
+    max_spread_pips: 1.5
+    max_slippage_r: 0.15
+    pip_value: 0.1
+    primary_sessions: ["New York", "Overlap"]
+    session_mode: "standard"
+    risk_multiplier: 0.8
+    max_concurrent: 1
+    _notes: "Marginal edge. High correlation with NAS100 (0.92) — pick one, not both."
+
+  # ── REJECTED (no viable edge) ──────────────────────────────
+
+  US30:
+    label: "Dow Jones"
+    asset_class: "index_us"
+    status: "REJECT"
+    dukascopy_symbol: "US30"
+    oanda_instrument: "US30_USD"
+    regimes:
+      trend: false
+      expansion: false
+      compression: false
+    _reject_reason: "Negative expectancy -0.011R overall. TREND shows slight positive (+0.046R/trade) but high MAE (7.3R) and deep DD (-48R). Too noisy."
+
+  GER40:
+    label: "DAX 40"
+    asset_class: "index_eu"
+    status: "REJECT"
+    dukascopy_symbol: "GER40"
+    oanda_instrument: "DE30_EUR"
+    regimes:
+      trend: false
+      expansion: false
+      compression: false
+    _reject_reason: "Negative expectancy across all regimes. TREND -0.053R/trade, PF 0.91. ICT structure does not produce clean signals on DAX."
+
+  UK100:
+    label: "FTSE 100"
+    asset_class: "index_eu"
+    status: "CANDIDATE"
+    dukascopy_symbol: "UK100"
+    oanda_instrument: "UK100_GBP"
+    regimes:
+      trend: true
+      expansion: false
+      compression: false
+    max_spread_pips: 2.0
+    max_slippage_r: 0.15
+    pip_value: 0.1
+    primary_sessions: ["London", "Overlap"]
+    session_mode: "standard"
+    risk_multiplier: 0.8
+    max_concurrent: 1
+    _notes: "Not yet tested. Queue for next validation round."
+
+  JP225:
+    label: "Nikkei 225"
+    asset_class: "index_asia"
+    status: "CANDIDATE"
+    dukascopy_symbol: "JP225"
+    oanda_instrument: "JP225_USD"
+    regimes:
+      trend: true
+      expansion: false
+      compression: false
+    max_spread_pips: 15.0
+    max_slippage_r: 0.20
+    pip_value: 1.0
+    primary_sessions: ["Asia", "London"]
+    session_mode: "standard"
+    risk_multiplier: 0.7
+    max_concurrent: 1
+    _notes: "Not yet tested. Queue for next validation round."
 
   # ── REJECTED / WATCHLIST ──────────────────────────────────
 
@@ -154,3 +252,35 @@ modes:
     max_portfolio_heat_pct: 3.0
     max_correlated_exposure: 2
     instruments: ["XAUUSD", "GBPUSD", "USDJPY"]
+
+# ============================================================
+# Pass Acceleration (FTMO Challenge Optimizer)
+# ============================================================
+pass_accelerator:
+  target_pct: 10.0
+  max_daily_loss_pct: 5.0
+  max_total_dd_pct: 10.0
+  challenge_days: 30
+  attack_until_day: 10
+  secure_at_pct: 7.0
+  coast_at_pct: 9.0
+  dd_danger_zone_pct: 3.0
+
+# ============================================================
+# Correlation Matrix (empirical, 2021-2026)
+# ============================================================
+correlations:
+  XAUUSD_GBPUSD: -0.03
+  XAUUSD_USDJPY: -0.001
+  GBPUSD_USDJPY: -0.001
+  XAUUSD_US30: 0.10
+  XAUUSD_SPX500: 0.08
+  XAUUSD_NAS100: 0.05
+  GBPUSD_GER40: 0.20
+  GBPUSD_UK100: 0.35
+  US30_SPX500: 0.95
+  US30_NAS100: 0.88
+  SPX500_NAS100: 0.92
+  GER40_UK100: 0.70
+  US30_GER40: 0.55
+  _note: "US indices are highly correlated — max_correlated_exposure limits concurrent positions"

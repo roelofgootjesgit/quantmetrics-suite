@@ -38,9 +38,11 @@ MODE_PROFILES = {
         "description": "Equity healthy, momentum positive — push harder",
     },
     "BASE": {
-        "risk_multiplier": 1.0,
-        "heat_multiplier": 1.0,
-        "description": "Normal operation",
+        # BASE acts as a cautious default: slightly below full risk
+        # to avoid negative expectancy in "no-signal" equity states.
+        "risk_multiplier": 0.85,
+        "heat_multiplier": 0.9,
+        "description": "Default cautious — no momentum signal",
     },
     "DEFENSIVE": {
         "risk_multiplier": 0.6,

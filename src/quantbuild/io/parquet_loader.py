@@ -66,8 +66,10 @@ def _get_dukascopy_instrument(symbol: str):
     """Map our symbol names to Dukascopy instrument constants."""
     import dukascopy_python.instruments as inst
     mapping = {
+        # FX Metals
         "XAUUSD": inst.INSTRUMENT_FX_METALS_XAU_USD,
         "XAGUSD": inst.INSTRUMENT_FX_METALS_XAG_USD,
+        # FX Majors
         "EURUSD": inst.INSTRUMENT_FX_MAJORS_EUR_USD,
         "GBPUSD": inst.INSTRUMENT_FX_MAJORS_GBP_USD,
         "USDJPY": inst.INSTRUMENT_FX_MAJORS_USD_JPY,
@@ -75,9 +77,23 @@ def _get_dukascopy_instrument(symbol: str):
         "USDCHF": inst.INSTRUMENT_FX_MAJORS_USD_CHF,
         "USDCAD": inst.INSTRUMENT_FX_MAJORS_USD_CAD,
         "NZDUSD": inst.INSTRUMENT_FX_MAJORS_NZD_USD,
+        # FX Crosses
         "EURJPY": inst.INSTRUMENT_FX_CROSSES_EUR_JPY,
         "GBPJPY": inst.INSTRUMENT_FX_CROSSES_GBP_JPY,
         "EURGBP": inst.INSTRUMENT_FX_CROSSES_EUR_GBP,
+        # Indices
+        "US30": inst.INSTRUMENT_IDX_AMERICA_E_D_J_IND,
+        "SPX500": inst.INSTRUMENT_IDX_AMERICA_E_SANDP_500,
+        "NAS100": inst.INSTRUMENT_IDX_AMERICA_E_NQ_100,
+        "GER40": inst.INSTRUMENT_IDX_EUROPE_E_DAAX,
+        "UK100": inst.INSTRUMENT_IDX_EUROPE_E_FUTSEE_100,
+        "FRA40": inst.INSTRUMENT_IDX_EUROPE_E_CAAC_40,
+        "JP225": inst.INSTRUMENT_IDX_ASIA_E_N225JAP,
+        "HK50": inst.INSTRUMENT_IDX_ASIA_E_H_KONG,
+        "AUS200": inst.INSTRUMENT_IDX_ASIA_E_XJO_ASX,
+        # Energy
+        "BRENT": inst.INSTRUMENT_CMD_ENERGY_E_BRENT,
+        "NGAS": inst.INSTRUMENT_CMD_ENERGY_GAS_CMD_USD,
     }
     return mapping.get(symbol.upper())
 
