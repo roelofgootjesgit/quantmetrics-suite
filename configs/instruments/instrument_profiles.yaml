@@ -1,20 +1,34 @@
 # ============================================================
-# Instrument Execution Profiles — Data-Validated
+# Instrument Execution Profiles — Dual-Book Architecture
 # ============================================================
-# Universal kernel: regime + SQE + news gate + dynamic exits
-# Per-instrument: regime gates + execution constraints
 #
-# Validated by cross_instrument_runner.py on 5yr data (2021-2026)
+# ARCHITECTURE:
+#   Book 1 (CORE_PROMOTE) -> Funded survival + stable compounding
+#   Book 2 (CHALLENGE_CANDIDATE) -> FTMO pass speed + throughput
+#
+# CLASSIFICATION:
+#   CORE_PROMOTE         = validated edge, challenge + funded
+#   CHALLENGE_CANDIDATE  = throughput-viable, challenge only (not funded base book)
+#   REGIME_FILTER        = no direct trading edge, used as market state input
+#   WATCHLIST            = partial edge, not yet deployable
+#   REJECT               = no viable edge
+#
+# Universal kernel: regime + SQE + news gate + dynamic exits
+# Per-instrument: regime gates + execution constraints + portfolio role
+#
+# Validated by cross_instrument_runner.py + candidate_instrument_test.py
+# on 5yr data (2021-2026)
 # ============================================================
 
 instruments:
 
-  # ── PROMOTED (data-validated edge) ──────────────────────────
+  # ── BOOK 1: CORE QUALITY (funded + challenge) ─────────────
 
   XAUUSD:
     label: "Gold"
     asset_class: "metals"
-    status: "PROMOTE"
+    status: "CORE_PROMOTE"
+    book: "core"
     dukascopy_symbol: "XAUUSD"
     oanda_instrument: "XAU_USD"
     regimes:
@@ -30,6 +44,7 @@ instruments:
     session_mode: "extended"
     risk_multiplier: 1.0
     max_concurrent: 2
+    max_trades_per_day: 4
     _5yr_exp: 0.322
     _5yr_pf: 1.65
     _5yr_rdd: 4.18
@@ -37,7 +52,8 @@ instruments:
   GBPUSD:
     label: "Cable"
     asset_class: "fx_major"
-    status: "PROMOTE"
+    status: "CORE_PROMOTE"
+    book: "core"
     dukascopy_symbol: "GBPUSD"
     oanda_instrument: "GBP_USD"
     regimes:
@@ -51,6 +67,7 @@ instruments:
     session_mode: "extended"
     risk_multiplier: 1.0
     max_concurrent: 2
+    max_trades_per_day: 3
     _5yr_exp: 0.601
     _5yr_pf: 2.18
     _5yr_rdd: 3.06
@@ -58,7 +75,8 @@ instruments:
   USDJPY:
     label: "Yen"
     asset_class: "fx_major"
-    status: "PROMOTE"
+    status: "CORE_PROMOTE"
+    book: "core"
     dukascopy_symbol: "USDJPY"
     oanda_instrument: "USD_JPY"
     regimes:
@@ -72,35 +90,57 @@ instruments:
     session_mode: "extended"
     risk_multiplier: 1.0
     max_concurrent: 2
+    max_trades_per_day: 3
     _5yr_exp: 0.334
     _5yr_pf: 1.66
     _5yr_rdd: 2.94
 
-  # ── CANDIDATE (needs cross-instrument validation) ───────────
-
-  # ── WATCHLIST (partial edge, needs filtering) ────────────────
+  # ── BOOK 2: CHALLENGE THROUGHPUT (challenge only) ──────────
 
   NAS100:
     label: "Nasdaq 100"
     asset_class: "index_us"
-    status: "WATCHLIST"
+    status: "CHALLENGE_CANDIDATE"
+    book: "throughput"
     dukascopy_symbol: "NAS100"
     oanda_instrument: "NAS100_USD"
     regimes:
-      trend: true       # 956 trades, PF ~1.2, exp +0.106R, total +101R
-      expansion: false   # 57 trades, exp -0.211R — kills edge (same pattern as GBPUSD)
+      trend: true       # 956 trades, exp +0.106R, total +101R
+      expansion: false   # 57 trades, exp -0.211R — kills edge
       compression: false
     max_spread_pips: 3.0
     max_slippage_r: 0.20
     pip_value: 0.1
     primary_sessions: ["New York", "Overlap"]
     session_mode: "standard"
-    risk_multiplier: 0.75
+    # Stricter risk than core: throughput role, not quality role
+    risk_multiplier: 0.6
     max_concurrent: 1
+    max_trades_per_day: 2
+    max_instrument_heat_pct: 1.5
     _5yr_trend_only_exp: 0.106
     _5yr_trend_only_total: 101.3
     _5yr_trend_trades: 956
-    _notes: "HUGE trade frequency (+191/yr TREND only). Expansion destroys edge. TREND-only = viable add. R/DD too low for full PROMOTE yet — needs slippage validation."
+    _notes: "Throughput engine for challenge clock. TREND only. Lower risk cap to prevent portfolio skew."
+
+  # ── REGIME FILTER (no trading, market state input) ─────────
+
+  EURUSD:
+    label: "Euro"
+    asset_class: "fx_major"
+    status: "REGIME_FILTER"
+    book: "filter"
+    dukascopy_symbol: "EURUSD"
+    oanda_instrument: "EUR_USD"
+    regimes:
+      trend: false
+      expansion: false
+      compression: false
+    role: "regime_filter"
+    _role_description: "EURUSD chop/trend state used as confidence modifier for core instruments"
+    _diagnostic: "49 trades in 5yr, negative expectancy as trend system. Mean-reversion profile detected."
+
+  # ── WATCHLIST ──────────────────────────────────────────────
 
   SPX500:
     label: "S&P 500"
@@ -109,43 +149,12 @@ instruments:
     dukascopy_symbol: "SPX500"
     oanda_instrument: "SPX500_USD"
     regimes:
-      trend: true       # 500 trades, PF ~1.1, exp +0.058R, total +29R
-      expansion: false   # 24 trades, exp 0.0R — no edge
+      trend: true
+      expansion: false
       compression: false
-    max_spread_pips: 1.5
-    max_slippage_r: 0.15
-    pip_value: 0.1
-    primary_sessions: ["New York", "Overlap"]
-    session_mode: "standard"
     risk_multiplier: 0.8
     max_concurrent: 1
-    _notes: "Marginal edge. High correlation with NAS100 (0.92) — pick one, not both."
-
-  # ── REJECTED (no viable edge) ──────────────────────────────
-
-  US30:
-    label: "Dow Jones"
-    asset_class: "index_us"
-    status: "REJECT"
-    dukascopy_symbol: "US30"
-    oanda_instrument: "US30_USD"
-    regimes:
-      trend: false
-      expansion: false
-      compression: false
-    _reject_reason: "Negative expectancy -0.011R overall. TREND shows slight positive (+0.046R/trade) but high MAE (7.3R) and deep DD (-48R). Too noisy."
-
-  GER40:
-    label: "DAX 40"
-    asset_class: "index_eu"
-    status: "REJECT"
-    dukascopy_symbol: "GER40"
-    oanda_instrument: "DE30_EUR"
-    regimes:
-      trend: false
-      expansion: false
-      compression: false
-    _reject_reason: "Negative expectancy across all regimes. TREND -0.053R/trade, PF 0.91. ICT structure does not produce clean signals on DAX."
+    _notes: "Marginal edge +0.058R. 92% correlated with NAS100 — pick one, not both."
 
   UK100:
     label: "FTSE 100"
@@ -157,13 +166,6 @@ instruments:
       trend: true
       expansion: false
       compression: false
-    max_spread_pips: 2.0
-    max_slippage_r: 0.15
-    pip_value: 0.1
-    primary_sessions: ["London", "Overlap"]
-    session_mode: "standard"
-    risk_multiplier: 0.8
-    max_concurrent: 1
     _notes: "Not yet tested. Queue for next validation round."
 
   JP225:
@@ -176,16 +178,9 @@ instruments:
       trend: true
       expansion: false
       compression: false
-    max_spread_pips: 15.0
-    max_slippage_r: 0.20
-    pip_value: 1.0
-    primary_sessions: ["Asia", "London"]
-    session_mode: "standard"
-    risk_multiplier: 0.7
-    max_concurrent: 1
     _notes: "Not yet tested. Queue for next validation round."
 
-  # ── REJECTED / WATCHLIST ──────────────────────────────────
+  # ── REJECTED ───────────────────────────────────────────────
 
   XAGUSD:
     label: "Silver"
@@ -193,35 +188,44 @@ instruments:
     status: "REJECT"
     dukascopy_symbol: "XAGUSD"
     oanda_instrument: "XAG_USD"
-    regimes:
-      trend: false
-      expansion: false
-      compression: false
+    regimes: { trend: false, expansion: false, compression: false }
     _reject_reason: "Noisy microstructure, negative expectancy despite high MFE"
 
-  EURUSD:
-    label: "Euro"
-    asset_class: "fx_major"
-    status: "WATCHLIST"
-    dukascopy_symbol: "EURUSD"
-    oanda_instrument: "EUR_USD"
-    regimes:
-      trend: false
-      expansion: false
-      compression: false
-    _watchlist_reason: "Only 49 trades in 5yr, strategy too strict for low vol. Revisit with lighter filters."
+  US30:
+    label: "Dow Jones"
+    asset_class: "index_us"
+    status: "REJECT"
+    dukascopy_symbol: "US30"
+    oanda_instrument: "US30_USD"
+    regimes: { trend: false, expansion: false, compression: false }
+    _reject_reason: "Negative expectancy. TREND +0.046R but MAE 7.3R, DD -48R. Too noisy."
+
+  GER40:
+    label: "DAX 40"
+    asset_class: "index_eu"
+    status: "REJECT"
+    dukascopy_symbol: "GER40"
+    oanda_instrument: "DE30_EUR"
+    regimes: { trend: false, expansion: false, compression: false }
+    _reject_reason: "Negative expectancy all regimes. ICT structure does not produce clean signals on DAX."
 
 # ============================================================
 # Promotion Rubric Thresholds
 # ============================================================
 promotion:
-  promote:
+  core_promote:
     min_expectancy_r: 0.15
     min_profit_factor: 1.2
     max_drawdown_r: -35
     min_trades: 50
     min_rdd: 1.0
     dynamic_exit_improvement: true
+  challenge_candidate:
+    min_expectancy_r: 0.05
+    min_profit_factor: 1.05
+    min_trades: 100
+    min_rdd: 0.5
+    _notes: "Lower bar than core, but must provide meaningful trade frequency"
   watchlist:
     min_expectancy_r: 0.05
     min_profit_factor: 1.0
@@ -229,29 +233,33 @@ promotion:
     min_trades: 30
 
 # ============================================================
-# Trading Modes
+# Dual-Book Trading Modes
 # ============================================================
 modes:
 
   challenge:
-    description: "FTMO Challenge — 10% target, 5% max DD, 30 days"
+    description: "FTMO Challenge — Core + Throughput book"
     target_pct: 10.0
     max_daily_loss_pct: 5.0
     max_total_dd_pct: 10.0
     risk_per_trade_pct: 1.5
     max_portfolio_heat_pct: 6.0
     max_correlated_exposure: 2
-    instruments: ["XAUUSD", "GBPUSD", "USDJPY"]
+    books: ["core", "throughput"]
+    core_instruments: ["XAUUSD", "GBPUSD", "USDJPY"]
+    throughput_instruments: ["NAS100"]
 
-  consistent:
-    description: "Consistent Mode — 3-6% monthly, minimal drawdown"
+  funded:
+    description: "Funded Account — Core book only, capital preservation"
     target_pct_monthly: 4.0
     max_daily_loss_pct: 2.0
     max_total_dd_pct: 6.0
     risk_per_trade_pct: 0.75
     max_portfolio_heat_pct: 3.0
     max_correlated_exposure: 2
-    instruments: ["XAUUSD", "GBPUSD", "USDJPY"]
+    books: ["core"]
+    core_instruments: ["XAUUSD", "GBPUSD", "USDJPY"]
+    throughput_instruments: []
 
 # ============================================================
 # Pass Acceleration (FTMO Challenge Optimizer)
@@ -273,14 +281,16 @@ correlations:
   XAUUSD_GBPUSD: -0.03
   XAUUSD_USDJPY: -0.001
   GBPUSD_USDJPY: -0.001
+  XAUUSD_NAS100: 0.05
   XAUUSD_US30: 0.10
   XAUUSD_SPX500: 0.08
-  XAUUSD_NAS100: 0.05
   GBPUSD_GER40: 0.20
   GBPUSD_UK100: 0.35
+  NAS100_XAUUSD: 0.05
+  NAS100_GBPUSD: 0.02
+  NAS100_USDJPY: -0.10
   US30_SPX500: 0.95
   US30_NAS100: 0.88
   SPX500_NAS100: 0.92
   GER40_UK100: 0.70
   US30_GER40: 0.55
-  _note: "US indices are highly correlated — max_correlated_exposure limits concurrent positions"
