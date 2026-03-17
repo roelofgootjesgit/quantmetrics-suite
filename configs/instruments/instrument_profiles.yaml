@@ -1,11 +1,10 @@
 # ============================================================
-# Instrument Execution Profiles
+# Instrument Execution Profiles — Data-Validated
 # ============================================================
 # Universal kernel: regime + SQE + news gate + dynamic exits
-# Per-instrument: execution envelope constraints
+# Per-instrument: regime gates + execution constraints
 #
-# Strategy logic is constant.
-# Execution guardrails adapt per market.
+# Validated by cross_instrument_runner.py on 5yr data (2021-2026)
 # ============================================================
 
 instruments:
@@ -13,81 +12,106 @@ instruments:
   XAUUSD:
     label: "Gold"
     asset_class: "metals"
+    status: "PROMOTE"
     dukascopy_symbol: "XAUUSD"
     oanda_instrument: "XAU_USD"
+    # Regime gates (data-driven)
+    regimes:
+      trend: true       # 201 trades, PF 1.41, exp +0.208R
+      expansion: true   # 53 trades, PF 2.82, exp +0.755R (best cluster)
+      compression: false
+    # Expansion restricted to NY/Overlap 10+ UTC
+    expansion_sessions: ["New York", "Overlap"]
+    expansion_min_hour_utc: 10
     # Execution constraints
     max_spread_pips: 4.0
     max_slippage_r: 0.15
     pip_value: 0.01
-    # Session behavior
     primary_sessions: ["London", "Overlap", "New York"]
     session_mode: "extended"
     # Risk
     risk_multiplier: 1.0
     max_concurrent: 2
-    # ATR characteristics
-    typical_atr_15m: 4.0
-    min_atr_for_entry: 1.5
-
-  XAGUSD:
-    label: "Silver"
-    asset_class: "metals"
-    dukascopy_symbol: "XAGUSD"
-    oanda_instrument: "XAG_USD"
-    max_spread_pips: 3.0
-    max_slippage_r: 0.15
-    pip_value: 0.001
-    primary_sessions: ["London", "Overlap", "New York"]
-    session_mode: "extended"
-    risk_multiplier: 0.85
-    max_concurrent: 2
-    typical_atr_15m: 0.10
-    min_atr_for_entry: 0.03
-
-  EURUSD:
-    label: "Euro"
-    asset_class: "fx_major"
-    dukascopy_symbol: "EURUSD"
-    oanda_instrument: "EUR_USD"
-    max_spread_pips: 1.5
-    max_slippage_r: 0.10
-    pip_value: 0.0001
-    primary_sessions: ["London", "Overlap", "New York"]
-    session_mode: "extended"
-    risk_multiplier: 0.7
-    max_concurrent: 2
-    typical_atr_15m: 0.0015
-    min_atr_for_entry: 0.0005
+    # Backtest stats
+    _5yr_exp: 0.322
+    _5yr_pf: 1.65
+    _5yr_rdd: 4.18
 
   GBPUSD:
     label: "Cable"
     asset_class: "fx_major"
+    status: "PROMOTE"
     dukascopy_symbol: "GBPUSD"
     oanda_instrument: "GBP_USD"
+    # Regime gates — EXPANSION OFF (0% WR, -1R/trade)
+    regimes:
+      trend: true       # 46 trades, PF 4.23, exp +1.123R (strongest)
+      expansion: false   # 15 trades, 0% WR — kills edge
+      compression: false
+    # Execution constraints
     max_spread_pips: 2.0
     max_slippage_r: 0.10
     pip_value: 0.0001
     primary_sessions: ["London", "Overlap", "New York"]
     session_mode: "extended"
-    risk_multiplier: 0.75
+    # Risk
+    risk_multiplier: 1.0
     max_concurrent: 2
-    typical_atr_15m: 0.0018
-    min_atr_for_entry: 0.0006
+    # Backtest stats
+    _5yr_exp: 0.601
+    _5yr_pf: 2.18
+    _5yr_rdd: 3.06
 
   USDJPY:
     label: "Yen"
     asset_class: "fx_major"
+    status: "PROMOTE"
     dukascopy_symbol: "USDJPY"
     oanda_instrument: "USD_JPY"
+    # Regime gates — both TREND and EXPANSION work
+    regimes:
+      trend: true       # 113 trades, PF 1.67, exp +0.331R
+      expansion: true   # 29 trades, PF 1.62, exp +0.345R
+      compression: false
+    # Execution constraints
     max_spread_pips: 1.5
     max_slippage_r: 0.10
     pip_value: 0.01
     primary_sessions: ["London", "Overlap", "New York"]
     session_mode: "extended"
-    risk_multiplier: 0.7
+    # Risk
+    risk_multiplier: 1.0
     max_concurrent: 2
-    typical_atr_15m: 0.15
-    min_atr_for_entry: 0.05
+    # Backtest stats
+    _5yr_exp: 0.334
+    _5yr_pf: 1.66
+    _5yr_rdd: 2.94
+
+  # ── REJECTED / WATCHLIST ──────────────────────────────────
+
+  XAGUSD:
+    label: "Silver"
+    asset_class: "metals"
+    status: "REJECT"
+    dukascopy_symbol: "XAGUSD"
+    oanda_instrument: "XAG_USD"
+    regimes:
+      trend: false
+      expansion: false
+      compression: false
+    _reject_reason: "Noisy microstructure, negative expectancy despite high MFE"
+
+  EURUSD:
+    label: "Euro"
+    asset_class: "fx_major"
+    status: "WATCHLIST"
+    dukascopy_symbol: "EURUSD"
+    oanda_instrument: "EUR_USD"
+    regimes:
+      trend: false
+      expansion: false
+      compression: false
+    _watchlist_reason: "Only 49 trades in 5yr, strategy too strict for low vol. Revisit with lighter filters."
 
 # ============================================================
 # Promotion Rubric Thresholds
@@ -105,4 +129,28 @@ promotion:
     min_profit_factor: 1.0
     max_drawdown_r: -50
     min_trades: 30
-  # Anything below watchlist thresholds = REJECT
+
+# ============================================================
+# Trading Modes
+# ============================================================
+modes:
+
+  challenge:
+    description: "FTMO Challenge — 10% target, 5% max DD, 30 days"
+    target_pct: 10.0
+    max_daily_loss_pct: 5.0
+    max_total_dd_pct: 10.0
+    risk_per_trade_pct: 1.5
+    max_portfolio_heat_pct: 6.0
+    max_correlated_exposure: 2
+    instruments: ["XAUUSD", "GBPUSD", "USDJPY"]
+
+  consistent:
+    description: "Consistent Mode — 3-6% monthly, minimal drawdown"
+    target_pct_monthly: 4.0
+    max_daily_loss_pct: 2.0
+    max_total_dd_pct: 6.0
+    risk_per_trade_pct: 0.75
+    max_portfolio_heat_pct: 3.0
+    max_correlated_exposure: 2
+    instruments: ["XAUUSD", "GBPUSD", "USDJPY"]
