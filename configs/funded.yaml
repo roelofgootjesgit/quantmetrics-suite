@@ -127,6 +127,22 @@ instruments:
     max_spread_pips: 1.5
     max_concurrent: 2
 
+  USDCHF:
+    enabled: true
+    engine: "sqe_trend"
+    regimes: { trend: true, expansion: true, compression: false }
+    risk_multiplier: 1.0
+    max_spread_pips: 1.5
+    max_concurrent: 2
+
+  NZDUSD:
+    enabled: true
+    engine: "sqe_trend"
+    regimes: { trend: true, expansion: false, compression: false }
+    risk_multiplier: 1.0
+    max_spread_pips: 2.0
+    max_concurrent: 2
+
   EURUSD:
     enabled: true
     engine: "mean_reversion"
@@ -140,6 +156,14 @@ instruments:
       time_stop_bars: 10
       range_lookback: 30
       min_bars_between_trades: 8
+
+  AUDUSD:
+    enabled: false
+    _notes: "WATCHLIST — slippage fragile, SHORT-only bias, 2024 drawdown"
+
+  USDCAD:
+    enabled: false
+    _notes: "WATCHLIST — no trend/MR edge yet"
 
   NAS100:
     enabled: false

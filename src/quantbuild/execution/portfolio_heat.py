@@ -16,20 +16,36 @@ logger = logging.getLogger(__name__)
 # Empirical daily return correlations (2021-2026 backtest data)
 # Updated from cross_instrument_runner.py results
 DEFAULT_CORRELATION_MATRIX = {
+    # Self
     ("XAUUSD", "XAUUSD"): 1.00,
+    ("GBPUSD", "GBPUSD"): 1.00,
+    ("USDJPY", "USDJPY"): 1.00,
+    ("NAS100", "NAS100"): 1.00,
+    ("EURUSD", "EURUSD"): 1.00,
+    ("USDCHF", "USDCHF"): 1.00,
+    ("NZDUSD", "NZDUSD"): 1.00,
+    # Core cross-correlations
     ("XAUUSD", "GBPUSD"): -0.03,
     ("XAUUSD", "USDJPY"): -0.001,
-    ("XAUUSD", "NAS100"): 0.05,
-    ("GBPUSD", "GBPUSD"): 1.00,
-    ("GBPUSD", "USDJPY"): -0.001,
-    ("GBPUSD", "NAS100"): 0.02,
-    ("USDJPY", "USDJPY"): 1.00,
-    ("USDJPY", "NAS100"): -0.10,
-    ("NAS100", "NAS100"): 1.00,
+    ("XAUUSD", "USDCHF"): -0.15,
+    ("XAUUSD", "NZDUSD"): 0.10,
     ("XAUUSD", "EURUSD"): 0.15,
+    ("GBPUSD", "USDJPY"): -0.001,
+    ("GBPUSD", "USDCHF"): -0.55,
+    ("GBPUSD", "NZDUSD"): 0.60,
     ("GBPUSD", "EURUSD"): 0.55,
+    ("USDJPY", "USDCHF"): 0.50,
+    ("USDJPY", "NZDUSD"): -0.30,
     ("USDJPY", "EURUSD"): -0.25,
-    ("EURUSD", "EURUSD"): 1.00,
+    ("USDCHF", "NZDUSD"): -0.55,
+    ("USDCHF", "EURUSD"): -0.85,
+    ("NZDUSD", "EURUSD"): 0.55,
+    # Throughput
+    ("XAUUSD", "NAS100"): 0.05,
+    ("GBPUSD", "NAS100"): 0.02,
+    ("USDJPY", "NAS100"): -0.10,
+    ("USDCHF", "NAS100"): -0.05,
+    ("NZDUSD", "NAS100"): 0.10,
 }
 
 

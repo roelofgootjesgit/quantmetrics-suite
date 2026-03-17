@@ -139,6 +139,22 @@ instruments:
     max_spread_pips: 1.5
     max_concurrent: 2
 
+  USDCHF:
+    enabled: true
+    engine: "sqe_trend"
+    regimes: { trend: true, expansion: true, compression: false }
+    risk_multiplier: 1.0
+    max_spread_pips: 1.5
+    max_concurrent: 2
+
+  NZDUSD:
+    enabled: true
+    engine: "sqe_trend"
+    regimes: { trend: true, expansion: false, compression: false }
+    risk_multiplier: 1.0
+    max_spread_pips: 2.0
+    max_concurrent: 2
+
   NAS100:
     enabled: true
     engine: "sqe_trend"
