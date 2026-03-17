@@ -1,11 +1,11 @@
 # ============================================================
 # CHALLENGE MODE — Ticket Generator
 # ============================================================
-# Core trend + NAS100 throughput + pass accelerator
-# Aggressive risk, FTMO pass speed focus
-# NAS100 capped: lower risk, max 2/day, 1 concurrent
+# Core(5) only + pass accelerator
+# NAS100 OFF by default — Core(5) achieves 65.4% pass rate
+# Enable NAS100 manually only if challenge clock running behind
 #
-# Expected: ~423 trades/yr, 55% FTMO pass rate, 9-10 day avg
+# Expected: ~178 trades/yr, 65.4% FTMO pass rate
 # ============================================================
 
 mode: "challenge"
@@ -104,12 +104,32 @@ pass_accelerator:
   coast_at_pct: 9.0
   dd_danger_zone_pct: 3.0
 
-# ── Portfolio Heat ───────────────────────────────────────────
+# ── Portfolio Heat + Cluster Risk ────────────────────────────
 portfolio_heat:
   max_portfolio_heat_pct: 6.0
   max_instrument_heat_pct: 3.0
   max_correlated_exposure: 2
   max_same_direction: 4
+
+clusters:
+  risk_on_fx:
+    instruments: ["GBPUSD", "NZDUSD"]
+    max_concurrent: 2
+    max_heat_pct: 1.5
+    sizing_penalty: 0.7
+  usd_bloc:
+    instruments: ["USDJPY", "USDCHF"]
+    max_concurrent: 2
+    max_heat_pct: 1.5
+    sizing_penalty: 0.8
+
+instrument_priority:
+  XAUUSD: 100
+  GBPUSD: 80
+  NZDUSD: 70
+  USDJPY: 60
+  USDCHF: 50
+  NAS100: 30
 
 # ── Instruments ──────────────────────────────────────────────
 instruments:
@@ -156,7 +176,7 @@ instruments:
     max_concurrent: 2
 
   NAS100:
-    enabled: true
+    enabled: false
     engine: "sqe_trend"
     book: "throughput"
     regimes: { trend: true, expansion: false, compression: false }
@@ -165,6 +185,7 @@ instruments:
     max_concurrent: 1
     max_trades_per_day: 2
     max_instrument_heat_pct: 1.5
+    _notes: "OFF by default. Enable only if challenge is behind schedule after day 15."
 
   EURUSD:
     enabled: false

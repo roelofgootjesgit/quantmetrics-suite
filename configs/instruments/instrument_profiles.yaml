@@ -1,22 +1,32 @@
 # ============================================================
-# Instrument Execution Profiles — Dual-Book Architecture
+# Instrument Execution Profiles — Cluster-Aware Architecture
 # ============================================================
 #
 # ARCHITECTURE:
-#   Book 1 (CORE_PROMOTE) -> Funded survival + stable compounding
-#   Book 2 (CHALLENGE_CANDIDATE) -> FTMO pass speed + throughput
+#   Core(5) = self-sufficient engine (challenge + funded)
+#   NAS100  = OPTIONAL throughput tool (challenge only, off by default)
+#   EURUSD  = Mean Reversion module (funded only)
 #
 # CLASSIFICATION:
 #   CORE_PROMOTE         = validated edge, challenge + funded
-#   CHALLENGE_CANDIDATE  = throughput-viable, challenge only (not funded base book)
+#   OPTIONAL_TOOL        = useful in specific scenarios, not default
 #   REGIME_FILTER        = no direct trading edge, used as market state input
 #   WATCHLIST            = partial edge, not yet deployable
 #   REJECT               = no viable edge
 #
-# Universal kernel: regime + SQE + news gate + dynamic exits
-# Per-instrument: regime gates + execution constraints + portfolio role
+# CLUSTER RISK:
+#   risk_on_fx      = GBP+NZD (corr +0.60) — max 2 concurrent, 1.5% heat cap
+#   usd_bloc        = JPY+CHF (corr +0.50) — max 2 concurrent, 1.5% heat cap
+#   chf_eur_inverse = CHF+EUR (corr -0.85) — max 1 concurrent, 1.0% heat cap
 #
-# Validated by cross_instrument_runner.py + candidate_instrument_test.py
+# INSTRUMENT ROLES:
+#   XAUUSD = ALPHA (highest priority, primary profit driver)
+#   GBPUSD = HIGH_QUALITY (low freq, high exp, expansion off)
+#   NZDUSD = THROUGHPUT_CORE (highest trade count, balanced)
+#   USDJPY = STABILIZER (consistent, low correlation)
+#   USDCHF = EXPANSION_SPECIALIST (expansion regime edge)
+#
+# Validated by cross_instrument_runner.py + portfolio_optimization_v2.py
 # on 5yr data (2021-2026)
 # ============================================================
 
@@ -28,6 +38,8 @@ instruments:
     label: "Gold"
     asset_class: "metals"
     status: "CORE_PROMOTE"
+    role: "ALPHA"
+    priority: 100
     book: "core"
     dukascopy_symbol: "XAUUSD"
     oanda_instrument: "XAU_USD"
@@ -53,6 +65,8 @@ instruments:
     label: "Cable"
     asset_class: "fx_major"
     status: "CORE_PROMOTE"
+    role: "HIGH_QUALITY"
+    priority: 80
     book: "core"
     dukascopy_symbol: "GBPUSD"
     oanda_instrument: "GBP_USD"
@@ -68,6 +82,7 @@ instruments:
     risk_multiplier: 1.0
     max_concurrent: 2
     max_trades_per_day: 3
+    cluster: "risk_on_fx"
     _5yr_exp: 0.601
     _5yr_pf: 2.18
     _5yr_rdd: 3.06
@@ -76,6 +91,8 @@ instruments:
     label: "Yen"
     asset_class: "fx_major"
     status: "CORE_PROMOTE"
+    role: "STABILIZER"
+    priority: 60
     book: "core"
     dukascopy_symbol: "USDJPY"
     oanda_instrument: "USD_JPY"
@@ -91,16 +108,19 @@ instruments:
     risk_multiplier: 1.0
     max_concurrent: 2
     max_trades_per_day: 3
+    cluster: "usd_bloc"
     _5yr_exp: 0.334
     _5yr_pf: 1.66
     _5yr_rdd: 2.94
 
-  # ── BOOK 2: CHALLENGE THROUGHPUT (challenge only) ──────────
+  # ── OPTIONAL TOOL (not in default stack) ──────────────────
 
   NAS100:
     label: "Nasdaq 100"
     asset_class: "index_us"
-    status: "CHALLENGE_CANDIDATE"
+    status: "OPTIONAL_TOOL"
+    role: "THROUGHPUT_OPTIONAL"
+    priority: 30
     book: "throughput"
     dukascopy_symbol: "NAS100"
     oanda_instrument: "NAS100_USD"
@@ -113,15 +133,15 @@ instruments:
     pip_value: 0.1
     primary_sessions: ["New York", "Overlap"]
     session_mode: "standard"
-    # Stricter risk than core: throughput role, not quality role
-    risk_multiplier: 0.6
+    risk_multiplier: 0.5
     max_concurrent: 1
     max_trades_per_day: 2
     max_instrument_heat_pct: 1.5
     _5yr_trend_only_exp: 0.106
     _5yr_trend_only_total: 101.3
     _5yr_trend_trades: 956
-    _notes: "Throughput engine for challenge clock. TREND only. Lower risk cap to prevent portfolio skew."
+    _downgrade_reason: "Core(5) achieves 65.4% pass rate. NAS100 adds throughput but increases DD failures, netting LOWER pass rate (56.8%). Use only under specific challenge pressure."
+    _notes: "OFF by default. Enable manually when challenge clock is running behind schedule."
 
   # ── REGIME FILTER (no trading, market state input) ─────────
 
@@ -146,6 +166,8 @@ instruments:
     label: "Swissie"
     asset_class: "fx_major"
     status: "CORE_PROMOTE"
+    role: "EXPANSION_SPECIALIST"
+    priority: 50
     book: "core"
     dukascopy_symbol: "USDCHF"
     oanda_instrument: "USD_CHF"
@@ -161,17 +183,20 @@ instruments:
     risk_multiplier: 1.0
     max_concurrent: 2
     max_trades_per_day: 3
+    cluster: "usd_bloc"
     _5yr_exp: 0.220
     _5yr_pf: 1.56
     _5yr_rdd: 4.51
     _5yr_trades: 132
     _5yr_total_r: 29.0
-    _notes: "Strong R/DD (4.51). Dynamic exits triple total R. London session strongest."
+    _notes: "Strong R/DD (4.51). Expansion works here (unique among FX). London session strongest."
 
   NZDUSD:
     label: "Kiwi"
     asset_class: "fx_major"
     status: "CORE_PROMOTE"
+    role: "THROUGHPUT_CORE"
+    priority: 70
     book: "core"
     dukascopy_symbol: "NZDUSD"
     oanda_instrument: "NZD_USD"
@@ -187,6 +212,7 @@ instruments:
     risk_multiplier: 1.0
     max_concurrent: 2
     max_trades_per_day: 3
+    cluster: "risk_on_fx"
     _5yr_exp: 0.202
     _5yr_pf: 1.44
     _5yr_rdd: 2.79
@@ -324,24 +350,25 @@ promotion:
     min_trades: 30
 
 # ============================================================
-# Dual-Book Trading Modes
+# Trading Modes — Core(5) Self-Sufficient
 # ============================================================
 modes:
 
   challenge:
-    description: "FTMO Challenge — Core + Throughput book"
+    description: "FTMO Challenge — Core(5) only, 65.4% pass rate"
     target_pct: 10.0
     max_daily_loss_pct: 5.0
     max_total_dd_pct: 10.0
     risk_per_trade_pct: 1.5
     max_portfolio_heat_pct: 6.0
     max_correlated_exposure: 2
-    books: ["core", "throughput"]
+    books: ["core"]
     core_instruments: ["XAUUSD", "GBPUSD", "USDJPY", "USDCHF", "NZDUSD"]
-    throughput_instruments: ["NAS100"]
+    optional_instruments: ["NAS100"]
+    _notes: "NAS100 OFF by default. Only enable if challenge clock running behind."
 
   funded:
-    description: "Funded Account — Core book only, capital preservation"
+    description: "Funded Account — Core(5) + EURUSD MR, +3.22%/mo"
     target_pct_monthly: 4.0
     max_daily_loss_pct: 2.0
     max_total_dd_pct: 6.0
@@ -350,7 +377,7 @@ modes:
     max_correlated_exposure: 2
     books: ["core"]
     core_instruments: ["XAUUSD", "GBPUSD", "USDJPY", "USDCHF", "NZDUSD"]
-    throughput_instruments: []
+    supplemental_instruments: ["EURUSD"]
 
 # ============================================================
 # Pass Acceleration (FTMO Challenge Optimizer)
@@ -364,6 +391,44 @@ pass_accelerator:
   secure_at_pct: 7.0
   coast_at_pct: 9.0
   dd_danger_zone_pct: 3.0
+
+# ============================================================
+# Cluster Risk Rules
+# ============================================================
+clusters:
+
+  risk_on_fx:
+    instruments: ["GBPUSD", "NZDUSD"]
+    max_concurrent: 2
+    max_heat_pct: 1.5
+    sizing_penalty: 0.7
+    reason: "GBP+NZD corr +0.60 — risk-on commodity FX, same flow direction"
+
+  usd_bloc:
+    instruments: ["USDJPY", "USDCHF"]
+    max_concurrent: 2
+    max_heat_pct: 1.5
+    sizing_penalty: 0.8
+    reason: "JPY+CHF corr +0.50 — USD strength cluster"
+
+  chf_eur_inverse:
+    instruments: ["USDCHF", "EURUSD"]
+    max_concurrent: 1
+    max_heat_pct: 1.0
+    sizing_penalty: 0.6
+    reason: "CHF+EUR corr -0.85 — near-mirror pair, don't trade both simultaneously"
+
+# ============================================================
+# Instrument Priority (conflict resolution)
+# ============================================================
+instrument_priority:
+  XAUUSD: 100
+  GBPUSD: 80
+  NZDUSD: 70
+  USDJPY: 60
+  USDCHF: 50
+  EURUSD: 40
+  NAS100: 30
 
 # ============================================================
 # Correlation Matrix (empirical, 2021-2026)

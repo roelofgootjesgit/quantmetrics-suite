@@ -1,11 +1,10 @@
 # ============================================================
 # FUNDED MODE — Income Engine
 # ============================================================
-# Core trend + EURUSD mean reversion
-# Conservative risk, capital preservation focus
-# NAS100 disabled — stability over throughput
+# Core(5) + EURUSD mean reversion
+# Cluster-aware risk, capital preservation focus
 #
-# Expected: ~232 trades/yr, +4.0%/mo at 0.5% risk, R/DD 10.4
+# Expected: ~232 trades/yr, +3.22%/mo, R/DD 12.47, max DD 3.09%
 # ============================================================
 
 mode: "funded"
@@ -92,12 +91,37 @@ adaptive_mode:
   lockdown_losing_streak: 5
   recovery_wins: 3
 
-# ── Portfolio Heat ───────────────────────────────────────────
+# ── Portfolio Heat + Cluster Risk ────────────────────────────
 portfolio_heat:
   max_portfolio_heat_pct: 3.0
   max_instrument_heat_pct: 1.5
   max_correlated_exposure: 2
   max_same_direction: 3
+
+clusters:
+  risk_on_fx:
+    instruments: ["GBPUSD", "NZDUSD"]
+    max_concurrent: 2
+    max_heat_pct: 1.0
+    sizing_penalty: 0.7
+  usd_bloc:
+    instruments: ["USDJPY", "USDCHF"]
+    max_concurrent: 2
+    max_heat_pct: 1.0
+    sizing_penalty: 0.8
+  chf_eur_inverse:
+    instruments: ["USDCHF", "EURUSD"]
+    max_concurrent: 1
+    max_heat_pct: 0.75
+    sizing_penalty: 0.6
+
+instrument_priority:
+  XAUUSD: 100
+  GBPUSD: 80
+  NZDUSD: 70
+  USDJPY: 60
+  USDCHF: 50
+  EURUSD: 40
 
 # ── Instruments ──────────────────────────────────────────────
 instruments:
