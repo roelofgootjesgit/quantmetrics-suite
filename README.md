@@ -29,6 +29,7 @@ Implemented now:
 - startup recovery + state registry
 - state validator + reconciliation actions
 - runtime control loop (continuous sync + failsafe pause)
+- order lifecycle manager (submit/fill/protection validation)
 
 Partially implemented:
 - cTrader Open API connect/auth + basic request flows
@@ -49,6 +50,7 @@ scripts/
   ctrader_smoke.py
   recover_execution_state.py
   run_runtime_control.py
+  run_order_lifecycle_check.py
 src/quantbridge/
   execution/
     broker_contract.py
@@ -100,6 +102,15 @@ python scripts/run_runtime_control.py --config configs/ctrader_icmarkets_demo.ya
 Optional Telegram alerts:
 - set `TELEGRAM_BOT_TOKEN`
 - set `TELEGRAM_CHAT_ID`
+
+7) Run order lifecycle validation (submit -> confirm fill -> protection check):
+
+```bash
+python scripts/run_order_lifecycle_check.py --config configs/ctrader_icmarkets_demo.yaml --mode mock --direction BUY --sl 2495 --tp 2510 --close-after
+```
+
+OpenAPI note:
+- if your broker/account rejects SL/TP values on market submit, run lifecycle check without `--sl/--tp` and keep runtime failsafe active.
 
 Auth help:
 - `docs/AUTH_SETUP.md`

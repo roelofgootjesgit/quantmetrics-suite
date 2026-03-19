@@ -132,6 +132,10 @@ class RuntimeControlLoop:
         self._write_pause_marker(reason=reason)
         self._alert(f"[runtime] trading paused reason={reason}")
 
+    def trigger_external_failsafe(self, reason: str, instrument: Optional[str] = None) -> None:
+        """Allow order lifecycle layer to trigger the same runtime failsafe."""
+        self._trigger_failsafe(instrument=instrument, reason=reason)
+
     def run_step(self, instrument: Optional[str] = None, strategy: str = "unknown") -> RuntimeStepResult:
         now = _utc_now_iso()
         if self._paused:
