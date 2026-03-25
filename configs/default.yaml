@@ -18,6 +18,17 @@ risk:
   max_position_pct: 0.02
   max_daily_loss_r: 3.0
 
+broker:
+  provider: ctrader
+  environment: demo
+  account_id: ""
+  access_token: ""
+  instrument: XAUUSD
+  mock_mode: true
+  mock_spread: 0.2
+  mock_price: 2500.0
+  initial_balance: 10000
+
 logging:
   level: INFO
   format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"

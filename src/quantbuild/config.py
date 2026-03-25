@@ -35,6 +35,21 @@ def load_config(path: str | Path | None = None) -> Dict[str, Any]:
     if os.getenv("CACHE_TTL_HOURS"):
         merged.setdefault("data", {})["cache_ttl_hours"] = int(os.getenv("CACHE_TTL_HOURS", "24"))
 
+    # Broker env overrides (safe for both oanda and ctrader profiles)
+    broker = merged.setdefault("broker", {})
+    if os.getenv("OANDA_ACCOUNT_ID"):
+        broker["account_id"] = os.getenv("OANDA_ACCOUNT_ID")
+    if os.getenv("OANDA_TOKEN"):
+        broker["token"] = os.getenv("OANDA_TOKEN")
+    if os.getenv("CTRADER_ACCOUNT_ID"):
+        broker["account_id"] = os.getenv("CTRADER_ACCOUNT_ID")
+    if os.getenv("CTRADER_ACCESS_TOKEN"):
+        broker["access_token"] = os.getenv("CTRADER_ACCESS_TOKEN")
+    if os.getenv("CTRADER_CLIENT_ID"):
+        broker["client_id"] = os.getenv("CTRADER_CLIENT_ID")
+    if os.getenv("CTRADER_CLIENT_SECRET"):
+        broker["client_secret"] = os.getenv("CTRADER_CLIENT_SECRET")
+
     return merged
 
 

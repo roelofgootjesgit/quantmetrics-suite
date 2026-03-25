@@ -20,11 +20,20 @@ import pandas as pd
 
 from src.quantbuild.config import load_config
 from src.quantbuild.data.sessions import session_from_timestamp, ENTRY_SESSIONS
-from src.quantbuild.execution.broker_oanda import OandaBroker, OandaPosition
+from src.quantbuild.execution.broker_factory import create_broker
 from src.quantbuild.execution.order_manager import OrderManager
 from src.quantbuild.execution.position_monitor import PositionMonitor
+from src.quantbuild.execution.quantbridge import (
+    BasicRiskValidator,
+    CTraderAdapter,
+    ExecutionRequest,
+    JsonExecutionLogger,
+    OandaAdapter,
+    QuantBridgeEngine,
+    StaticRouter,
+)
 from src.quantbuild.indicators.atr import atr as compute_atr, atr_ratio as compute_atr_ratio
-from src.quantbuild.io.parquet_loader import load_parquet
+from src.quantbuild.io.parquet_loader import load_parquet, ensure_live_data
 from src.quantbuild.models.trade import Position
 from src.quantbuild.strategies.sqe_xauusd import (
     get_sqe_default_config, _compute_modules_once, run_sqe_conditions,
@@ -45,18 +54,29 @@ class LiveRunner:
         self.cfg = cfg
         self.dry_run = dry_run
         self._running = False
+        self._broker_provider = str(cfg.get("broker", {}).get("provider", "ctrader")).lower()
+        self._account_id: str = cfg.get("broker", {}).get("account_id", "") or f"{self._broker_provider}-default"
 
-        self.broker = OandaBroker(
-            account_id=cfg.get("broker", {}).get("account_id", ""),
-            token=cfg.get("broker", {}).get("token", ""),
-            environment=cfg.get("broker", {}).get("environment", "practice"),
-            instrument=cfg.get("broker", {}).get("instrument", "XAU_USD"),
-        )
+        self.broker = create_broker(cfg)
         self.order_manager = OrderManager(
             broker=self.broker if not dry_run else None,
             config=cfg.get("order_management"),
         )
         self.position_monitor = PositionMonitor(cfg)
+        adapter = self._build_quantbridge_adapter()
+
+        max_risk_pct = float(cfg.get("risk", {}).get("max_position_pct", 1.0))
+        if max_risk_pct <= 0:
+            max_risk_pct = 1.0
+        self.quantbridge = QuantBridgeEngine(
+            risk_validator=BasicRiskValidator(max_risk_percent=max(max_risk_pct, 2.0)),
+            router=StaticRouter(
+                account_adapters={
+                    self._account_id: adapter,
+                },
+            ),
+            logger_=JsonExecutionLogger(),
+        )
 
         self._regime_detector = RegimeDetector(config=cfg.get("regime", {}))
         self._current_regime: Optional[str] = None
@@ -87,6 +107,13 @@ class LiveRunner:
 
         if cfg.get("news", {}).get("enabled", False):
             self._setup_news_layer()
+
+    def _build_quantbridge_adapter(self):
+        if self._broker_provider == "ctrader":
+            return CTraderAdapter(self.broker)
+        if self._broker_provider == "oanda":
+            return OandaAdapter(self.broker)
+        raise ValueError(f"Unsupported broker provider: {self._broker_provider}")
 
     # ── News Layer Setup ──────────────────────────────────────────────
 
@@ -140,17 +167,60 @@ class LiveRunner:
     # ── Data Loading ──────────────────────────────────────────────────
 
     def _load_recent_data(self, tf: str = "15m", bars: int = 300) -> pd.DataFrame:
-        """Load recent OHLC bars from cache or broker."""
+        """Load recent OHLC bars, fetching from Dukascopy if cache is stale."""
         symbol = self.cfg.get("symbol", "XAUUSD")
         base_path = Path(self.cfg.get("data", {}).get("base_path", "data/market_cache"))
-        end = datetime.now(timezone.utc)
-        days = max(5, bars // 96 + 2)  # 96 bars per day for 15m
-        start = end - timedelta(days=days)
+        stale_limit = 60 if tf == "1h" else 30
 
-        data = load_parquet(base_path, symbol, tf, start=start, end=end)
+        data = ensure_live_data(
+            symbol=symbol,
+            timeframe=tf,
+            base_path=base_path,
+            min_bars=bars,
+            max_stale_minutes=stale_limit,
+        )
         if not data.empty:
             data = data.sort_index().tail(bars)
         return data
+
+    def _bootstrap_market_data(self) -> bool:
+        """Fetch initial bar history at startup. Returns False on failure."""
+        symbol = self.cfg.get("symbol", "XAUUSD")
+        timeframes = self.cfg.get("data", {}).get("timeframes", ["15m", "1h"])
+
+        logger.info("=== MARKET DATA BOOTSTRAP ===")
+        logger.info("symbol=%s timeframes=%s source=dukascopy", symbol, timeframes)
+
+        all_ok = True
+        for tf in timeframes:
+            data = self._load_recent_data(tf, bars=300)
+            bar_count = len(data)
+            last_ts = str(data.index[-1]) if not data.empty else "None"
+            first_ts = str(data.index[0]) if not data.empty else "None"
+
+            logger.info(
+                "warmup_check symbol=%s timeframe=%s required=%d received=%d "
+                "first_ts=%s last_ts=%s",
+                symbol, tf, MIN_BARS_FOR_SIGNAL, bar_count, first_ts, last_ts,
+            )
+
+            if bar_count < MIN_BARS_FOR_SIGNAL:
+                logger.error(
+                    "BOOTSTRAP FAILED: %s %s — got %d bars, need %d. "
+                    "Signal engine will not fire.",
+                    symbol, tf, bar_count, MIN_BARS_FOR_SIGNAL,
+                )
+                all_ok = False
+            else:
+                sample = data.iloc[-1]
+                logger.info(
+                    "warmup_sample symbol=%s tf=%s O=%.2f H=%.2f L=%.2f C=%.2f",
+                    symbol, tf, sample["open"], sample["high"],
+                    sample["low"], sample["close"],
+                )
+
+        logger.info("=== BOOTSTRAP %s ===", "OK" if all_ok else "FAILED")
+        return all_ok
 
     # ── Execution Guardrails ──────────────────────────────────────────
 
@@ -262,7 +332,13 @@ class LiveRunner:
         # Load data and compute signals
         data_15m = self._load_recent_data("15m", bars=300)
         if data_15m.empty or len(data_15m) < MIN_BARS_FOR_SIGNAL:
-            logger.warning("Insufficient data for signals (%d bars)", len(data_15m))
+            symbol = self.cfg.get("symbol", "XAUUSD")
+            last_ts = str(data_15m.index[-1]) if not data_15m.empty else "None"
+            logger.warning(
+                "signal_warmup_check symbol=%s timeframe=15m required=%d "
+                "received=%d last_ts=%s source=dukascopy_cache",
+                symbol, MIN_BARS_FOR_SIGNAL, len(data_15m), last_ts,
+            )
             return
 
         # Detect if we're on a new bar
@@ -370,16 +446,30 @@ class LiveRunner:
             trade_id = f"DRY_{now.strftime('%Y%m%d_%H%M%S')}_{direction}"
             fill_price = entry_price
         else:
-            oanda_dir = "BUY" if direction == "LONG" else "SELL"
-            result = self.broker.submit_market_order(
-                direction=oanda_dir, units=units, sl=sl, tp=tp,
+            request = ExecutionRequest(
+                symbol=self.cfg.get("broker", {}).get("instrument", "XAU_USD"),
+                side=direction,
+                entry=entry_price,
+                stop_loss=sl,
+                take_profit=tp,
+                risk_percent=risk_pct * size_mult,
+                account_id=self._account_id,
+                units=units,
                 comment=f"SQE_{direction}_{regime or 'NA'}",
             )
-            if not result.success:
-                logger.error("Order failed: %s", result.message)
+
+            try:
+                exec_result = self.quantbridge.execute(request)
+            except Exception as e:
+                logger.error("QuantBridge execution failed: %s", e)
                 return
-            trade_id = result.trade_id or f"UNK_{now.strftime('%H%M%S')}"
-            fill_price = result.fill_price or entry_price
+
+            if exec_result.status != "filled":
+                logger.error("Order failed via QuantBridge: %s", exec_result.message)
+                return
+
+            trade_id = exec_result.broker_order_id or f"UNK_{now.strftime('%H%M%S')}"
+            fill_price = exec_result.filled_price or entry_price
 
             # Slippage check
             slippage = abs(fill_price - entry_price)
@@ -527,7 +617,7 @@ class LiveRunner:
     # ── Main Loop ─────────────────────────────────────────────────────
 
     def run(self):
-        """Main loop: connect, update regime, check signals, manage positions."""
+        """Main loop: connect, bootstrap data, update regime, check signals, manage positions."""
         mode = "DRY RUN" if self.dry_run else "LIVE"
         logger.info("Starting LiveRunner in %s mode", mode)
 
@@ -535,6 +625,15 @@ class LiveRunner:
             if not self.broker.connect():
                 logger.error("Cannot connect to broker. Exiting.")
                 return
+
+        if not self._bootstrap_market_data():
+            logger.error(
+                "market_data_bootstrap_failed — no point running with 0 bars. "
+                "Check symbol mapping, Dukascopy availability, and data/market_cache path."
+            )
+            if not self.dry_run and self.broker.is_connected:
+                self.broker.disconnect()
+            return
 
         self.order_manager.load_state()
         self._running = True

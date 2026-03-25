@@ -190,11 +190,14 @@ news:
 
 # ---- Broker (Fase 4) ----
 broker:
-  provider: oanda
-  environment: practice
+  provider: ctrader
+  environment: demo
   account_id: ""
-  token: ""
-  instrument: XAU_USD
+  access_token: ""
+  instrument: XAUUSD
+  mock_mode: true
+  mock_spread: 0.2
+  mock_price: 2500.0
   initial_balance: 10000
   leverage: 100
   margin_rate: 0.05

@@ -280,6 +280,24 @@ python scripts/validation_protocol.py
 python -m src.quantbuild.app --config configs/strict_prod_v2.yaml live --dry-run
 ```
 
+### cTrader Demo via QuantBridge Bridge
+
+Use this when you want QuantBuild to execute through `quantBridge-v.1` OpenAPI transport.
+
+```bash
+# Optional when quantBridge-v.1 is not in sibling folder:
+set QUANTBRIDGE_SRC_PATH=C:\path\to\quantBridge-v.1\src
+
+# Smoke test: connect -> price -> place -> close
+python scripts/ctrader_smoke.py --config configs/ctrader_quantbridge_openapi.yaml --units 100
+
+# Safe launch (preflight + optional recovery + heartbeat + timeout)
+python scripts/launch_live_safe.py --config configs/ctrader_quantbridge_openapi.yaml --max-runtime-seconds 1800 --heartbeat-seconds 30
+
+# Preflight only (no live process)
+python scripts/launch_live_safe.py --config configs/ctrader_quantbridge_openapi.yaml --dry-launch
+```
+
 ---
 
 ## Deployment Roadmap

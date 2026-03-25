@@ -83,6 +83,9 @@ class OandaBroker:
     def is_connected(self) -> bool:
         return self._connected and self._client is not None
 
+    def health_check(self) -> bool:
+        return self.get_account_info() is not None
+
     def get_account_info(self) -> Optional[AccountInfo]:
         if not self._client:
             return None
@@ -100,6 +103,9 @@ class OandaBroker:
         except Exception as e:
             logger.error("Account info failed: %s", e)
             return None
+
+    def get_account_state(self) -> Optional[AccountInfo]:
+        return self.get_account_info()
 
     def get_current_price(self, instrument: Optional[str] = None) -> Optional[Dict[str, float]]:
         if not self._client:
@@ -206,6 +212,9 @@ class OandaBroker:
         except Exception as e:
             logger.error("Get trades failed: %s", e)
             return []
+
+    def sync_positions(self, instrument: Optional[str] = None) -> List[OandaPosition]:
+        return self.get_open_trades(instrument=instrument)
 
     def close_all_positions(self, instrument: Optional[str] = None) -> int:
         trades = self.get_open_trades(instrument or self.instrument)

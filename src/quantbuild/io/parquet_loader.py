@@ -43,11 +43,15 @@ def load_parquet(
         start_ts = pd.Timestamp(start)
         if df.index.tz is not None and start_ts.tz is None:
             start_ts = start_ts.tz_localize("UTC")
+        elif df.index.tz is None and start_ts.tz is not None:
+            start_ts = start_ts.tz_convert("UTC").tz_localize(None)
         df = df[df.index >= start_ts]
     if end is not None:
         end_ts = pd.Timestamp(end)
         if df.index.tz is not None and end_ts.tz is None:
             end_ts = end_ts.tz_localize("UTC")
+        elif df.index.tz is None and end_ts.tz is not None:
+            end_ts = end_ts.tz_convert("UTC").tz_localize(None)
         df = df[df.index <= end_ts]
     return df
 
@@ -192,7 +196,7 @@ def ensure_data(
     period_days: int = 60,
 ) -> pd.DataFrame:
     """
-    Ensure data exists. Fetch priority: Dukascopy → yfinance.
+    Ensure data exists. Fetch priority: Dukascopy -> yfinance.
     Dukascopy supports years of free intraday data.
     """
     end = datetime.now()
@@ -226,3 +230,71 @@ def ensure_data(
         logger.warning("yfinance fetch failed: %s", e)
 
     return existing
+
+
+def ensure_live_data(
+    symbol: str,
+    timeframe: str,
+    base_path: Path,
+    min_bars: int = 200,
+    max_stale_minutes: int = 30,
+) -> pd.DataFrame:
+    """Ensure fresh data for live trading. Refetches from Dukascopy if cache is
+    stale or too small.
+
+    Returns DataFrame with at least ``min_bars`` rows if data is available,
+    empty DataFrame on total failure.
+    """
+    base_path = Path(base_path)
+    now = datetime.now(timezone.utc)
+    period_days = max(10, min_bars // 96 + 3)
+    start = now - timedelta(days=period_days)
+
+    existing = load_parquet(base_path, symbol, timeframe, start=start, end=now)
+
+    needs_refresh = False
+    if existing.empty or len(existing) < min_bars:
+        needs_refresh = True
+        logger.info(
+            "live_data_refresh: %s %s cache has %d bars (need %d)",
+            symbol, timeframe, len(existing), min_bars,
+        )
+    else:
+        last_bar = existing.index[-1]
+        if hasattr(last_bar, "tz") and last_bar.tz is None:
+            last_bar = last_bar.tz_localize("UTC")
+        age_minutes = (now - last_bar).total_seconds() / 60
+        if age_minutes > max_stale_minutes:
+            needs_refresh = True
+            logger.info(
+                "live_data_refresh: %s %s last bar %.0f min old (max %d)",
+                symbol, timeframe, age_minutes, max_stale_minutes,
+            )
+
+    if not needs_refresh:
+        return existing.tail(min_bars)
+
+    try:
+        data = _fetch_dukascopy(symbol, timeframe, start, now)
+        if not data.empty and len(data) >= min_bars:
+            save_parquet(base_path, symbol, timeframe, data)
+            logger.info(
+                "live_data_refresh: Dukascopy OK — %d bars for %s %s (last: %s)",
+                len(data), symbol, timeframe, data.index[-1],
+            )
+            return data.tail(min_bars)
+        elif not data.empty:
+            save_parquet(base_path, symbol, timeframe, data)
+            logger.warning(
+                "live_data_refresh: Dukascopy partial — %d bars (need %d)",
+                len(data), min_bars,
+            )
+            return data
+    except Exception as e:
+        logger.error("live_data_refresh: Dukascopy failed for %s %s: %s", symbol, timeframe, e)
+
+    if not existing.empty:
+        logger.warning("live_data_refresh: falling back to stale cache (%d bars)", len(existing))
+        return existing.tail(min_bars)
+
+    return pd.DataFrame()
