@@ -280,23 +280,58 @@ python scripts/validation_protocol.py
 python -m src.quantbuild.app --config configs/strict_prod_v2.yaml live --dry-run
 ```
 
-### cTrader Demo via QuantBridge Bridge
+### cTrader Live via QuantBridge
 
-Use this when you want QuantBuild to execute through `quantBridge-v.1` OpenAPI transport.
+QuantBuild executes through `quantBridge-v.1` OpenAPI transport on your IC Markets cTrader demo.
 
-```bash
-# Optional when quantBridge-v.1 is not in sibling folder:
-set QUANTBRIDGE_SRC_PATH=C:\path\to\quantBridge-v.1\src
+```powershell
+# 1. Market data smoke test (verify Dukascopy feed works)
+python scripts/market_data_smoke.py --symbol XAUUSD --timeframe 15m --count 200
 
-# Smoke test: connect -> price -> place -> close
+# 2. Smoke test: connect -> price -> place -> close
 python scripts/ctrader_smoke.py --config configs/ctrader_quantbridge_openapi.yaml --units 100
 
-# Safe launch (preflight + optional recovery + heartbeat + timeout)
-python scripts/launch_live_safe.py --config configs/ctrader_quantbridge_openapi.yaml --max-runtime-seconds 1800 --heartbeat-seconds 30
+# 3. Preflight only (check credentials + bridge, no launch)
+python scripts/launch_live_safe.py --config configs/ctrader_quantbridge_openapi.yaml --dry-launch --skip-recovery
 
-# Preflight only (no live process)
-python scripts/launch_live_safe.py --config configs/ctrader_quantbridge_openapi.yaml --dry-launch
+# 4. Start bot for 4 hours
+python scripts/launch_live_safe.py --config configs/ctrader_quantbridge_openapi.yaml --max-runtime-seconds 14400 --skip-recovery --heartbeat-seconds 60
+
+# 5. Monitor dashboard (open in a SECOND terminal)
+cd C:\Users\Gebruiker\quantbuild_e1_v1
+.\scripts\monitor_live.ps1
+
+# Monitor with faster refresh (every 5 seconds)
+.\scripts\monitor_live.ps1 -RefreshSeconds 5
+
+# Quick log tail (one-shot, no dashboard)
+Get-Content logs\safe_live_launch_*.log -Tail 30
 ```
+
+The monitor dashboard shows: bootstrap status, signals, trades, regime updates, guard blocks (news/spread/position limit), errors, and last events. Auto-refreshes every 15 seconds.
+
+### Market Data Source Switching
+
+Market data is configurable via `data.source` in your YAML config:
+
+```yaml
+data:
+  source: auto      # auto | ctrader | dukascopy | yfinance
+  base_path: data/market_cache
+```
+
+Routing behavior:
+
+- `ctrader`: use cTrader/QuantBridge OHLCV only (if supported by adapter)
+- `dukascopy`: force Dukascopy candles
+- `yfinance`: force yfinance candles
+- `auto` (recommended for live): try `ctrader -> dukascopy -> yfinance`
+
+Notes:
+
+- Execution provider (`broker.provider`) and market data source (`data.source`) are independent.
+- For lowest live drift, use `data.source: ctrader` or `auto` with cTrader first.
+- If your cTrader adapter has no candle endpoint, `auto` safely falls back to Dukascopy.
 
 ---
 
