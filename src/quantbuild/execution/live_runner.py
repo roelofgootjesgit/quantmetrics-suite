@@ -121,9 +121,13 @@ class LiveRunner:
         self._llm_advisor = None
         self._recent_news_events: list = []
         sentiment_cfg = cfg.get("news", {}).get("sentiment", {})
+        news_tg_cfg = cfg.get("news", {}).get("telegram", {})
         self._news_max_events_per_poll: int = int(sentiment_cfg.get("max_events_per_poll", 12))
         self._news_max_source_tier_for_llm: int = int(sentiment_cfg.get("max_source_tier_for_llm", 2))
         self._news_max_event_age_minutes: int = int(sentiment_cfg.get("max_event_age_minutes", 20))
+        self._news_telegram_enabled: bool = bool(news_tg_cfg.get("enabled", True))
+        self._news_telegram_min_abs_impact: float = float(news_tg_cfg.get("min_abs_impact", 0.45))
+        self._news_telegram_max_alerts_per_poll: int = int(news_tg_cfg.get("max_alerts_per_poll", 3))
 
         if cfg.get("news", {}).get("enabled", False):
             self._setup_news_layer()
@@ -833,6 +837,7 @@ class LiveRunner:
             if self._relevance_filter:
                 events = self._relevance_filter.filter_batch(events)
             events = self._select_news_events_for_processing(events, datetime.now(timezone.utc))
+            alerts_sent = 0
 
             for event in events:
                 self._recent_news_events.append(event)
@@ -844,6 +849,26 @@ class LiveRunner:
                     else None
                 )
                 sentiment = self._analyze_sentiment_with_budget(event)
+
+                if (
+                    self._news_telegram_enabled
+                    and sentiment
+                    and self._telegram.enabled
+                    and alerts_sent < self._news_telegram_max_alerts_per_poll
+                    and abs(float(sentiment.impact_on_gold)) >= self._news_telegram_min_abs_impact
+                ):
+                    cls_text = ""
+                    if classification:
+                        cls_text = f"{classification.niche}/{classification.event_type}"
+                    sent_ok = self._telegram.alert_news_event(
+                        headline=event.headline,
+                        source=event.source_name,
+                        sentiment=sentiment.direction,
+                        impact=float(sentiment.impact_on_gold),
+                        classification=cls_text,
+                    )
+                    if sent_ok:
+                        alerts_sent += 1
 
                 if self._news_gate and sentiment:
                     self._news_gate.add_news_event(event, sentiment)

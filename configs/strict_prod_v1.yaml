@@ -205,6 +205,10 @@ news:
     enabled: true
     check_interval_seconds: 60
     exit_threshold: 0.8
+  telegram:
+    enabled: true
+    min_abs_impact: 0.45
+    max_alerts_per_poll: 3
 
 # ---- Broker ----
 broker:

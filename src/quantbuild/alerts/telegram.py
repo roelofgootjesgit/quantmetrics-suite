@@ -95,13 +95,22 @@ class TelegramAlerter:
             emoji = "🟡⬆️"
         elif sentiment == "bearish":
             emoji = "🟡⬇️"
+        abs_impact = abs(impact)
+        if abs_impact >= 0.75:
+            impact_label = "HIGH"
+        elif abs_impact >= 0.5:
+            impact_label = "MEDIUM"
+        else:
+            impact_label = "LOW"
         text = (
-            f"{emoji} <b>NEWS EVENT</b>\n"
+            f"{emoji} <b>NEWS IMPACT</b>\n"
             f"<b>{headline[:100]}</b>\n"
-            f"Source: {source} | Sentiment: {sentiment} ({impact:+.2f})\n"
+            f"Source: {source}\n"
+            f"Sentiment: {sentiment} | Impact: {impact:+.2f} ({impact_label})\n"
         )
         if classification:
             text += f"Type: {classification}\n"
+        text += f"Time: {datetime.now(timezone.utc).strftime('%H:%M UTC')}"
         return self._send(text)
 
     def alert_counter_news(self, trade_id: str, direction: str,
