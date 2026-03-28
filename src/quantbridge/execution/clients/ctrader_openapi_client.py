@@ -128,12 +128,16 @@ class CTraderOpenApiClient:
             type(message).__name__,
             self.account_id,
         )
-        deferred = self._client.send(
-            message,
-            clientMsgId=request_id,
-            responseTimeoutInSeconds=self.request_timeout_seconds,
-        )
-        response = self._to_blocking(deferred, timeout=self.request_timeout_seconds + 1.0)
+        from twisted.internet.threads import blockingCallFromThread
+
+        def _send_and_wait():
+            return self._client.send(
+                message,
+                clientMsgId=request_id,
+                responseTimeoutInSeconds=self.request_timeout_seconds,
+            )
+
+        response = blockingCallFromThread(self._reactor, _send_and_wait)
         response = self._extract_payload(response)
         logger.info(
             "ctrader.response action=recv request_id=%s payload=%s",
@@ -202,11 +206,19 @@ class CTraderOpenApiClient:
 
         host = EndPoints.PROTOBUF_DEMO_HOST if self.environment.lower() == "demo" else EndPoints.PROTOBUF_LIVE_HOST
         try:
+            from twisted.internet.threads import blockingCallFromThread
+
             self._client = Client(host, EndPoints.PROTOBUF_PORT, TcpProtocol)
             self._client.setMessageReceivedCallback(self._on_message)
-            self._client.startService()
-            connected_deferred = self._client.whenConnected(failAfterFailures=1)
-            self._to_blocking(connected_deferred, timeout=self.request_timeout_seconds)
+
+            def _start_and_wait():
+                self._client.startService()
+                return self._client.whenConnected(failAfterFailures=1)
+
+            blockingCallFromThread(
+                self._reactor,
+                _start_and_wait,
+            )
         except Exception as e:
             self._set_error(f"session_connect_failed: {e}")
             return False
