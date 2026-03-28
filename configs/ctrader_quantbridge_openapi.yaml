@@ -2,7 +2,7 @@
 symbol: XAUUSD
 
 data:
-  source: ctrader   # strict live source: ctrader only
+  source: auto   # strict live source: ctrader only
   base_path: data/market_cache
 
 broker:
