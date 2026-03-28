@@ -61,6 +61,8 @@ def load_config(path: str | Path | None = None) -> Dict[str, Any]:
         telegram["bot_token"] = os.getenv("TELEGRAM_BOT_TOKEN")
     if os.getenv("TELEGRAM_CHAT_ID"):
         telegram["chat_id"] = os.getenv("TELEGRAM_CHAT_ID")
+    if os.getenv("TELEGRAM_INSTANCE_LABEL"):
+        telegram["instance_label"] = os.getenv("TELEGRAM_INSTANCE_LABEL")
     if os.getenv("TELEGRAM_REPORT_INTERVAL_SECONDS"):
         telegram.setdefault("report", {})["interval_seconds"] = int(
             os.getenv("TELEGRAM_REPORT_INTERVAL_SECONDS", "3600")

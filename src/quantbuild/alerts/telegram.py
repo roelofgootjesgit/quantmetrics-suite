@@ -14,6 +14,7 @@ class TelegramAlerter:
         self._enabled = tg_cfg.get("enabled", False)
         self._bot_token = tg_cfg.get("bot_token", "")
         self._chat_id = tg_cfg.get("chat_id", "")
+        self._instance_label = str(tg_cfg.get("instance_label", "")).strip()
         self._alerts_cfg = tg_cfg.get("alerts", {})
         self._report_cfg = tg_cfg.get("report", {})
         self._bot = None
@@ -40,6 +41,8 @@ class TelegramAlerter:
         self._ensure_bot()
         if not self._bot:
             return False
+        if self._instance_label:
+            text = f"🏷️ <b>{self._instance_label}</b>\n{text}"
         try:
             resp = self._bot.post("/sendMessage", json={
                 "chat_id": self._chat_id,
