@@ -1,7 +1,7 @@
-"""Telegram alerts for trade events, news events, and daily summaries."""
+"""Telegram alerts for trade events, reports, and operational events."""
 import logging
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +15,7 @@ class TelegramAlerter:
         self._bot_token = tg_cfg.get("bot_token", "")
         self._chat_id = tg_cfg.get("chat_id", "")
         self._alerts_cfg = tg_cfg.get("alerts", {})
+        self._report_cfg = tg_cfg.get("report", {})
         self._bot = None
 
     @property
@@ -120,6 +121,48 @@ class TelegramAlerter:
             f"Trades: {trades_today} | P&L: {pnl_r:+.2f}R\n"
             f"Open positions: {open_positions}\n"
             f"News events processed: {news_events}\n"
+            f"Time: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}"
+        )
+        return self._send(text)
+
+    def report_interval_seconds(self, default_seconds: int = 3600) -> int:
+        raw = self._report_cfg.get("interval_seconds", default_seconds)
+        try:
+            value = int(raw)
+        except (TypeError, ValueError):
+            return default_seconds
+        return max(60, value)
+
+    def startup_report_enabled(self) -> bool:
+        return bool(self._report_cfg.get("on_startup", True))
+
+    def shutdown_report_enabled(self) -> bool:
+        return bool(self._report_cfg.get("on_shutdown", True))
+
+    def status_report_enabled(self) -> bool:
+        return bool(self._alerts_cfg.get("status_report", True))
+
+    def alert_status_report(
+        self,
+        symbol: str,
+        mode: str,
+        regime: str,
+        trades_today: int,
+        pnl_r: float,
+        open_positions: int,
+        source: str = "unknown",
+    ) -> bool:
+        if not self.status_report_enabled():
+            return False
+        text = (
+            f"📡 <b>STATUS REPORT</b>\n"
+            f"Symbol: {symbol}\n"
+            f"Mode: {mode}\n"
+            f"Regime: {regime}\n"
+            f"Trades today: {trades_today}\n"
+            f"P&L today: {pnl_r:+.2f}R\n"
+            f"Open positions: {open_positions}\n"
+            f"Data source: {source}\n"
             f"Time: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}"
         )
         return self._send(text)

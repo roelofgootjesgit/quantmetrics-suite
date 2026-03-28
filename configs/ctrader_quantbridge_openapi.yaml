@@ -1,6 +1,10 @@
 # QuantBuild live-demo profile using QuantBridge cTrader OpenAPI adapter
 symbol: XAUUSD
 
+data:
+  source: ctrader   # strict live source: ctrader only
+  base_path: data/market_cache
+
 broker:
   provider: ctrader
   environment: demo

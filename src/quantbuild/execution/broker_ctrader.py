@@ -411,3 +411,41 @@ class CTraderBroker:
 
     def sync_positions(self, instrument: Optional[str] = None) -> List[OandaPosition]:
         return self.get_open_trades(instrument=instrument)
+
+    def fetch_ohlcv(
+        self,
+        timeframe: str,
+        start: datetime,
+        end: datetime,
+        instrument: Optional[str] = None,
+    ):
+        """Best-effort OHLCV fetch from QuantBridge, if adapter supports it.
+
+        Returns a pandas DataFrame when available, otherwise ``None``.
+        Kept intentionally permissive to support different adapter method names.
+        """
+        if self.mock_mode or not self.is_connected or self._real_bridge is None:
+            return None
+
+        symbol = instrument or self.instrument
+        call_specs = (
+            ("fetch_ohlcv", {"instrument": symbol, "timeframe": timeframe, "start": start, "end": end}),
+            ("get_ohlcv", {"instrument": symbol, "timeframe": timeframe, "start": start, "end": end}),
+            ("get_candles", {"instrument": symbol, "timeframe": timeframe, "start": start, "end": end}),
+            ("get_trendbars", {"instrument": symbol, "timeframe": timeframe, "start": start, "end": end}),
+        )
+        for method_name, kwargs in call_specs:
+            method = getattr(self._real_bridge, method_name, None)
+            if method is None:
+                continue
+            try:
+                return method(**kwargs)
+            except TypeError:
+                # Adapter signature may differ; try positional fallback.
+                try:
+                    return method(symbol, timeframe, start, end)
+                except Exception:
+                    continue
+            except Exception:
+                continue
+        return None

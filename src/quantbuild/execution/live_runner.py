@@ -20,6 +20,7 @@ import pandas as pd
 
 from src.quantbuild.config import load_config
 from src.quantbuild.data.sessions import session_from_timestamp, ENTRY_SESSIONS
+from src.quantbuild.alerts.telegram import TelegramAlerter
 from src.quantbuild.execution.broker_factory import create_broker
 from src.quantbuild.execution.order_manager import OrderManager
 from src.quantbuild.execution.position_monitor import PositionMonitor
@@ -96,6 +97,14 @@ class LiveRunner:
         self._daily_pnl_r: float = 0.0
         self._daily_date: Optional[str] = None
         self._daily_trade_count: int = 0
+        self._decision_cycle_n: int = 0
+        self._report_interval_seconds: int = 3600
+        self._last_status_report: datetime = datetime.min.replace(tzinfo=timezone.utc)
+        self._last_data_source: str = "unknown"
+
+        # Alerts/monitoring
+        self._telegram = TelegramAlerter(cfg)
+        self._report_interval_seconds = self._telegram.report_interval_seconds(default_seconds=3600)
 
         # News layer
         self._news_poller = None
@@ -166,10 +175,16 @@ class LiveRunner:
 
     # ── Data Loading ──────────────────────────────────────────────────
 
-    def _load_recent_data(self, tf: str = "15m", bars: int = 300) -> pd.DataFrame:
-        """Load recent OHLC bars, fetching from Dukascopy if cache is stale."""
+    def _load_recent_data(
+        self,
+        tf: str = "15m",
+        bars: int = 300,
+        source_override: Optional[str] = None,
+    ) -> tuple[pd.DataFrame, str]:
+        """Load recent OHLC bars using configured market data source."""
         symbol = self.cfg.get("symbol", "XAUUSD")
         base_path = Path(self.cfg.get("data", {}).get("base_path", "data/market_cache"))
+        data_source = str(source_override or self.cfg.get("data", {}).get("source", "auto")).lower()
         stale_limit = 60 if tf == "1h" else 30
 
         data = ensure_live_data(
@@ -178,33 +193,47 @@ class LiveRunner:
             base_path=base_path,
             min_bars=bars,
             max_stale_minutes=stale_limit,
+            source=data_source,
+            broker=self.broker,
         )
+        source_actual = str(data.attrs.get("source_actual", "unknown"))
         if not data.empty:
             data = data.sort_index().tail(bars)
-        return data
+        self._last_data_source = source_actual
+        return data, source_actual
 
     def _bootstrap_market_data(self) -> bool:
         """Fetch initial bar history at startup. Returns False on failure."""
         symbol = self.cfg.get("symbol", "XAUUSD")
         timeframes = self.cfg.get("data", {}).get("timeframes", ["15m", "1h"])
+        data_source = str(self.cfg.get("data", {}).get("source", "auto")).lower()
 
         logger.info("=== MARKET DATA BOOTSTRAP ===")
-        logger.info("symbol=%s timeframes=%s source=dukascopy", symbol, timeframes)
+        logger.info("symbol=%s timeframes=%s source=%s", symbol, timeframes, data_source)
 
         all_ok = True
+        coherent_source: Optional[str] = None
+        tf_sources: Dict[str, str] = {}
         for tf in timeframes:
-            data = self._load_recent_data(tf, bars=300)
+            source_override = coherent_source if data_source == "auto" and coherent_source else None
+            data, source_actual = self._load_recent_data(tf, bars=300, source_override=source_override)
+            tf_sources[tf] = source_actual
             bar_count = len(data)
             last_ts = str(data.index[-1]) if not data.empty else "None"
             first_ts = str(data.index[0]) if not data.empty else "None"
 
             logger.info(
-                "warmup_check symbol=%s timeframe=%s required=%d received=%d "
+                "warmup_check symbol=%s timeframe=%s required=%d received=%d source_actual=%s "
                 "first_ts=%s last_ts=%s",
-                symbol, tf, MIN_BARS_FOR_SIGNAL, bar_count, first_ts, last_ts,
+                symbol, tf, MIN_BARS_FOR_SIGNAL, bar_count, source_actual, first_ts, last_ts,
             )
 
             if bar_count < MIN_BARS_FOR_SIGNAL:
+                logger.error(
+                    "bootstrap_tf_fail symbol=%s timeframe=%s source_actual=%s bars=%d need=%d "
+                    "message='Signal engine will not fire.'",
+                    symbol, tf, source_actual, bar_count, MIN_BARS_FOR_SIGNAL,
+                )
                 logger.error(
                     "BOOTSTRAP FAILED: %s %s — got %d bars, need %d. "
                     "Signal engine will not fire.",
@@ -212,12 +241,28 @@ class LiveRunner:
                 )
                 all_ok = False
             else:
+                if data_source == "auto" and coherent_source is None and source_actual in {"ctrader", "dukascopy"}:
+                    coherent_source = source_actual
                 sample = data.iloc[-1]
                 logger.info(
                     "warmup_sample symbol=%s tf=%s O=%.2f H=%.2f L=%.2f C=%.2f",
                     symbol, tf, sample["open"], sample["high"],
                     sample["low"], sample["close"],
                 )
+                logger.info(
+                    "bootstrap_tf_success symbol=%s timeframe=%s source_actual=%s bars=%d first_ts=%s last_ts=%s",
+                    symbol, tf, source_actual, bar_count, first_ts, last_ts,
+                )
+
+        unique_sources = {s for s in tf_sources.values() if s and s != "unknown"}
+        if len(unique_sources) > 1:
+            logger.warning(
+                "bootstrap_source_coherence_warning symbol=%s sources=%s tf_sources=%s",
+                symbol, sorted(unique_sources), tf_sources,
+            )
+        elif unique_sources:
+            only = next(iter(unique_sources))
+            logger.info("bootstrap_source_coherence_ok symbol=%s source=%s tf_sources=%s", symbol, only, tf_sources)
 
         logger.info("=== BOOTSTRAP %s ===", "OK" if all_ok else "FAILED")
         return all_ok
@@ -294,56 +339,162 @@ class LiveRunner:
 
     # ── Signal Evaluation ─────────────────────────────────────────────
 
+    def _log_decision_cycle(
+        self,
+        now: datetime,
+        action: str,
+        reason: str,
+        regime: Optional[str],
+        killzone: str,
+        source_actual: str = "unknown",
+        bias: str = "none",
+        bars_ok: Optional[bool] = None,
+        long_signal: Optional[bool] = None,
+        short_signal: Optional[bool] = None,
+        position_ok: Optional[bool] = None,
+        daily_loss_ok: Optional[bool] = None,
+    ) -> None:
+        self._decision_cycle_n += 1
+        logger.info(
+            "decision_cycle n=%d symbol=%s ts=%s regime=%s killzone=%s source=%s "
+            "bars_ok=%s long_signal=%s short_signal=%s position_ok=%s daily_loss_ok=%s "
+            "bias=%s action=%s reason=%s",
+            self._decision_cycle_n,
+            self.cfg.get("symbol", "XAUUSD"),
+            now.isoformat(),
+            regime or "none",
+            killzone,
+            source_actual,
+            bars_ok if bars_ok is not None else "na",
+            long_signal if long_signal is not None else "na",
+            short_signal if short_signal is not None else "na",
+            position_ok if position_ok is not None else "na",
+            daily_loss_ok if daily_loss_ok is not None else "na",
+            bias,
+            action,
+            reason,
+        )
+
     def _check_signals(self, now: datetime):
         """Evaluate SQE entry signals and submit orders when criteria are met."""
         regime = self.get_effective_regime()
         regime_profiles = self.cfg.get("regime_profiles", {})
         session_mode = self.cfg.get("backtest", {}).get("session_mode", "killzone")
+        current_session = session_from_timestamp(now, mode=session_mode)
+        position_ok = self._check_position_limit()
+        daily_loss_ok = self._check_daily_loss_limit()
 
         # Regime skip
         if regime:
             rp = regime_profiles.get(regime, {})
             if rp.get("skip", False):
                 logger.debug("Regime %s -> skip", regime)
+                self._log_decision_cycle(
+                    now=now,
+                    action="no_trade",
+                    reason="regime_block",
+                    regime=regime,
+                    killzone=current_session,
+                    position_ok=position_ok,
+                    daily_loss_ok=daily_loss_ok,
+                )
                 return
 
             # Per-regime session/time filter
-            current_session = session_from_timestamp(now, mode=session_mode)
             allowed_sessions = rp.get("allowed_sessions")
             if allowed_sessions and current_session not in allowed_sessions:
                 logger.debug("Regime %s session %s not allowed", regime, current_session)
+                self._log_decision_cycle(
+                    now=now,
+                    action="no_trade",
+                    reason="outside_killzone",
+                    regime=regime,
+                    killzone=current_session,
+                    position_ok=position_ok,
+                    daily_loss_ok=daily_loss_ok,
+                )
                 return
 
             min_hour = rp.get("min_hour_utc")
             if min_hour is not None and now.hour < min_hour:
                 logger.debug("Regime %s hour %d < min %d", regime, now.hour, min_hour)
+                self._log_decision_cycle(
+                    now=now,
+                    action="no_trade",
+                    reason="time_filter_block",
+                    regime=regime,
+                    killzone=current_session,
+                    position_ok=position_ok,
+                    daily_loss_ok=daily_loss_ok,
+                )
                 return
 
         # Position limit
-        if not self._check_position_limit():
+        if not position_ok:
             logger.debug("Position limit reached (%d)", self._max_open_positions)
+            self._log_decision_cycle(
+                now=now,
+                action="no_trade",
+                reason="position_limit_block",
+                regime=regime,
+                killzone=current_session,
+                position_ok=position_ok,
+                daily_loss_ok=daily_loss_ok,
+            )
             return
 
         # Daily loss limit
-        if not self._check_daily_loss_limit():
+        if not daily_loss_ok:
             logger.warning("Daily loss limit reached (%.2fR)", self._daily_pnl_r)
+            self._log_decision_cycle(
+                now=now,
+                action="no_trade",
+                reason="daily_loss_block",
+                regime=regime,
+                killzone=current_session,
+                position_ok=position_ok,
+                daily_loss_ok=daily_loss_ok,
+            )
             return
 
         # Load data and compute signals
-        data_15m = self._load_recent_data("15m", bars=300)
+        data_15m, source_actual = self._load_recent_data("15m", bars=300)
         if data_15m.empty or len(data_15m) < MIN_BARS_FOR_SIGNAL:
             symbol = self.cfg.get("symbol", "XAUUSD")
             last_ts = str(data_15m.index[-1]) if not data_15m.empty else "None"
             logger.warning(
                 "signal_warmup_check symbol=%s timeframe=15m required=%d "
-                "received=%d last_ts=%s source=dukascopy_cache",
+                "received=%d last_ts=%s source=%s_cache",
                 symbol, MIN_BARS_FOR_SIGNAL, len(data_15m), last_ts,
+                source_actual,
+            )
+            self._log_decision_cycle(
+                now=now,
+                action="no_trade",
+                reason="bars_missing",
+                regime=regime,
+                killzone=current_session,
+                source_actual=source_actual,
+                bars_ok=False,
+                position_ok=position_ok,
+                daily_loss_ok=daily_loss_ok,
             )
             return
 
         # Detect if we're on a new bar
         latest_ts = data_15m.index[-1]
         if self._last_bar_ts is not None and latest_ts <= self._last_bar_ts:
+            self._log_decision_cycle(
+                now=now,
+                action="no_trade",
+                reason="same_bar_already_processed",
+                regime=regime,
+                killzone=current_session,
+                source_actual=source_actual,
+                bars_ok=True,
+                position_ok=position_ok,
+                daily_loss_ok=daily_loss_ok,
+            )
             return  # Already processed this bar
         self._last_bar_ts = latest_ts
 
@@ -365,17 +516,46 @@ class LiveRunner:
             signals_to_check.append("LONG")
         if short_entries.iloc[last_idx]:
             signals_to_check.append("SHORT")
+        long_signal = bool(long_entries.iloc[last_idx])
+        short_signal = bool(short_entries.iloc[last_idx])
 
         if not signals_to_check:
             logger.debug("No entry signals at %s", now.strftime("%H:%M"))
+            self._log_decision_cycle(
+                now=now,
+                action="no_trade",
+                reason="no_entry_signal",
+                regime=regime,
+                killzone=current_session,
+                source_actual=source_actual,
+                bars_ok=True,
+                long_signal=long_signal,
+                short_signal=short_signal,
+                position_ok=position_ok,
+                daily_loss_ok=daily_loss_ok,
+            )
             return
 
         for direction in signals_to_check:
-            self._evaluate_and_execute(direction, data_15m, now, regime)
+            action, reason = self._evaluate_and_execute(direction, data_15m, now, regime)
+            self._log_decision_cycle(
+                now=now,
+                action=action,
+                reason=reason,
+                regime=regime,
+                killzone=current_session,
+                source_actual=source_actual,
+                bias=direction.lower(),
+                bars_ok=True,
+                long_signal=long_signal,
+                short_signal=short_signal,
+                position_ok=position_ok,
+                daily_loss_ok=daily_loss_ok,
+            )
 
     def _evaluate_and_execute(
         self, direction: str, data: pd.DataFrame, now: datetime, regime: Optional[str],
-    ):
+    ) -> tuple[str, str]:
         """Run final checks and submit order for a signal."""
         regime_profiles = self.cfg.get("regime_profiles", {})
         rp = regime_profiles.get(regime, {}) if regime else {}
@@ -386,14 +566,14 @@ class LiveRunner:
             gate_result = self._news_gate.check_gate(now, direction)
             if not gate_result["allowed"]:
                 logger.info("NewsGate blocks %s: %s", direction, gate_result["reason"])
-                return
+                return "no_trade", "news_block"
             news_boost = gate_result.get("boost", 1.0)
 
         # Spread guard
         spread_issue = self._check_spread_guard()
         if spread_issue:
             logger.info("Spread guard blocks entry: %s", spread_issue)
-            return
+            return "no_trade", "spread_block"
 
         # Calculate SL/TP from ATR
         entry_atr = self._current_atr
@@ -402,7 +582,7 @@ class LiveRunner:
             entry_atr = float(_atr_series.iloc[-1]) if not _atr_series.empty else 0
         if entry_atr <= 0:
             logger.warning("ATR is 0 — cannot calculate SL/TP")
-            return
+            return "no_trade", "atr_unavailable"
 
         tp_r = rp.get("tp_r", self.cfg.get("backtest", {}).get("tp_r", 2.0))
         sl_r = rp.get("sl_r", self.cfg.get("backtest", {}).get("sl_r", 1.0))
@@ -412,7 +592,7 @@ class LiveRunner:
             price_info = self.broker.get_current_price()
             if not price_info:
                 logger.warning("Cannot get current price for order")
-                return
+                return "no_trade", "price_unavailable"
             entry_price = price_info["ask"] if direction == "LONG" else price_info["bid"]
         else:
             entry_price = float(data["close"].iloc[-1])
@@ -432,7 +612,7 @@ class LiveRunner:
 
         if units <= 0:
             logger.warning("Position size is 0 — skipping")
-            return
+            return "no_trade", "risk_block"
 
         logger.info(
             "SIGNAL: %s %s @ %.2f | SL: %.2f | TP: %.2f | ATR: %.2f | Regime: %s | Units: %.0f",
@@ -462,11 +642,11 @@ class LiveRunner:
                 exec_result = self.quantbridge.execute(request)
             except Exception as e:
                 logger.error("QuantBridge execution failed: %s", e)
-                return
+                return "no_trade", "execution_exception"
 
             if exec_result.status != "filled":
                 logger.error("Order failed via QuantBridge: %s", exec_result.message)
-                return
+                return "no_trade", "execution_reject"
 
             trade_id = exec_result.broker_order_id or f"UNK_{now.strftime('%H%M%S')}"
             fill_price = exec_result.filled_price or entry_price
@@ -480,7 +660,7 @@ class LiveRunner:
                     slippage, 100 * slippage / risk_amount,
                 )
                 self.broker.close_trade(trade_id)
-                return
+                return "no_trade", "slippage_block"
 
         # Register with order manager
         self.order_manager.register_trade(
@@ -507,6 +687,18 @@ class LiveRunner:
         self._daily_trade_count += 1
 
         logger.info("Trade registered: %s %s (id=%s)", direction, regime, trade_id)
+        if self._telegram.enabled:
+            self._telegram.alert_trade_entry(
+                direction=direction,
+                symbol=self.cfg.get("symbol", "XAUUSD"),
+                entry_price=fill_price,
+                sl=sl,
+                tp=tp,
+                reason=f"regime={regime or 'none'}",
+            )
+        if self.dry_run:
+            return "order_intent", "all_conditions_met"
+        return "order_filled", "all_conditions_met"
 
     def _calculate_units(self, entry: float, sl: float, risk_pct: float) -> float:
         """Calculate position size based on account equity and risk percentage."""
@@ -614,12 +806,36 @@ class LiveRunner:
                 self.position_monitor.remove_position(pos.trade_id)
                 self.order_manager.unregister_trade(pos.trade_id, reason="thesis_invalid")
 
+    def _send_status_report(self, now: datetime, reason: str = "interval") -> None:
+        if not self._telegram.enabled:
+            return
+        if reason == "interval" and (now - self._last_status_report).total_seconds() < self._report_interval_seconds:
+            return
+
+        mode = "DRY_RUN" if self.dry_run else "LIVE"
+        regime = self.get_effective_regime() or "none"
+        open_positions = len(self.position_monitor.open_positions)
+        sent = self._telegram.alert_status_report(
+            symbol=self.cfg.get("symbol", "XAUUSD"),
+            mode=mode,
+            regime=regime,
+            trades_today=self._daily_trade_count,
+            pnl_r=self._daily_pnl_r,
+            open_positions=open_positions,
+            source=self._last_data_source,
+        )
+        if sent:
+            self._last_status_report = now
+            logger.info("Telegram status report sent (%s)", reason)
+
     # ── Main Loop ─────────────────────────────────────────────────────
 
     def run(self):
         """Main loop: connect, bootstrap data, update regime, check signals, manage positions."""
         mode = "DRY RUN" if self.dry_run else "LIVE"
         logger.info("Starting LiveRunner in %s mode", mode)
+        if self._telegram.enabled and self._telegram.startup_report_enabled():
+            self._send_status_report(datetime.now(timezone.utc), reason="startup")
 
         if not self.dry_run:
             if not self.broker.connect():
@@ -629,7 +845,8 @@ class LiveRunner:
         if not self._bootstrap_market_data():
             logger.error(
                 "market_data_bootstrap_failed — no point running with 0 bars. "
-                "Check symbol mapping, Dukascopy availability, and data/market_cache path."
+                "Check source config, symbol mapping, data provider availability, "
+                "and data/market_cache path."
             )
             if not self.dry_run and self.broker.is_connected:
                 self.broker.disconnect()
@@ -651,8 +868,8 @@ class LiveRunner:
 
                 # Update regime periodically
                 if (now - self._last_regime_update).total_seconds() >= regime_interval:
-                    data_15m = self._load_recent_data("15m", 300)
-                    data_1h = self._load_recent_data("1h", 100)
+                    data_15m, _ = self._load_recent_data("15m", 300)
+                    data_1h, _ = self._load_recent_data("1h", 100)
                     self._update_regime(data_15m, data_1h if not data_1h.empty else None)
 
                 # Poll news
@@ -672,11 +889,17 @@ class LiveRunner:
 
                 # Monitor positions
                 self._monitor_positions()
+                self._send_status_report(now, reason="interval")
 
                 time.sleep(check_interval)
 
         except KeyboardInterrupt:
             pass
+        except Exception as e:
+            logger.exception("Live runner crashed: %s", e)
+            if self._telegram.enabled:
+                self._telegram.alert_error("runtime_exception", str(e))
+            raise
         finally:
             self._shutdown()
 
@@ -686,6 +909,8 @@ class LiveRunner:
 
     def _shutdown(self):
         logger.info("Shutting down LiveRunner...")
+        if self._telegram.enabled and self._telegram.shutdown_report_enabled():
+            self._send_status_report(datetime.now(timezone.utc), reason="shutdown")
         self.order_manager.save_state()
         if self._news_history:
             self._news_history.save_to_parquet()

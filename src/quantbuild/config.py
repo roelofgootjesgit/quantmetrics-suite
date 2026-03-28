@@ -6,7 +6,7 @@ from typing import Any, Dict
 import yaml
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(override=True)
 
 _DEFAULT_PATH = Path(__file__).resolve().parents[2] / "configs" / "default.yaml"
 
@@ -49,6 +49,22 @@ def load_config(path: str | Path | None = None) -> Dict[str, Any]:
         broker["client_id"] = os.getenv("CTRADER_CLIENT_ID")
     if os.getenv("CTRADER_CLIENT_SECRET"):
         broker["client_secret"] = os.getenv("CTRADER_CLIENT_SECRET")
+
+    # Telegram env overrides (prefer env over committed YAML secrets)
+    monitoring = merged.setdefault("monitoring", {})
+    telegram = monitoring.setdefault("telegram", {})
+    if os.getenv("TELEGRAM_ENABLED"):
+        telegram["enabled"] = os.getenv("TELEGRAM_ENABLED", "false").strip().lower() in {
+            "1", "true", "yes", "on",
+        }
+    if os.getenv("TELEGRAM_BOT_TOKEN"):
+        telegram["bot_token"] = os.getenv("TELEGRAM_BOT_TOKEN")
+    if os.getenv("TELEGRAM_CHAT_ID"):
+        telegram["chat_id"] = os.getenv("TELEGRAM_CHAT_ID")
+    if os.getenv("TELEGRAM_REPORT_INTERVAL_SECONDS"):
+        telegram.setdefault("report", {})["interval_seconds"] = int(
+            os.getenv("TELEGRAM_REPORT_INTERVAL_SECONDS", "3600")
+        )
 
     return merged
 

@@ -1,0 +1,16 @@
+[Unit]
+Description=QuantBuild cTrader Demo Runtime
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/quantbuild/quantbuild_e1_v1
+EnvironmentFile=/etc/quantbuild/quantbuild.env
+ExecStart=/opt/quantbuild/quantbuild_e1_v1/.venv/bin/python scripts/launch_live_safe.py --config configs/ctrader_quantbridge_openapi.yaml --max-runtime-seconds 604800 --heartbeat-seconds 30 --skip-recovery
+Restart=always
+RestartSec=10
+StandardOutput=append:/opt/quantbuild/quantbuild_e1_v1/logs/runtime_ctrader_demo.log
+StandardError=append:/opt/quantbuild/quantbuild_e1_v1/logs/runtime_ctrader_demo.log
+
+[Install]
+WantedBy=multi-user.target

@@ -11,11 +11,37 @@ Data source priority:
 import logging
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 import pandas as pd
 
 logger = logging.getLogger(__name__)
+
+
+def _resolve_source_order(source: str) -> tuple[str, list[str]]:
+    source_name = str(source or "auto").lower()
+    if source_name == "auto":
+        return source_name, ["ctrader", "dukascopy", "yfinance"]
+    if source_name in {"ctrader", "dukascopy", "yfinance"}:
+        return source_name, [source_name]
+    logger.warning("Unknown data source '%s'; using auto", source_name)
+    return "auto", ["ctrader", "dukascopy", "yfinance"]
+
+
+def _frame_range_text(df: pd.DataFrame) -> tuple[str, str]:
+    if df.empty:
+        return "None", "None"
+    return str(df.index[0]), str(df.index[-1])
+
+
+def _tag_source(df: pd.DataFrame, requested: str, actual: str) -> pd.DataFrame:
+    """Attach source metadata to returned DataFrame."""
+    try:
+        df.attrs["source_requested"] = requested
+        df.attrs["source_actual"] = actual
+    except Exception:
+        pass
+    return df
 
 
 def path_for(base_path: Path, symbol: str, timeframe: str) -> Path:
@@ -155,6 +181,86 @@ def _fetch_dukascopy(
     return df[["open", "high", "low", "close", "volume"]]
 
 
+def _normalize_ohlcv_frame(data: Any) -> pd.DataFrame:
+    """Normalize arbitrary OHLCV-like payload to canonical DataFrame."""
+    if data is None:
+        return pd.DataFrame()
+    if not isinstance(data, pd.DataFrame):
+        try:
+            data = pd.DataFrame(data)
+        except Exception:
+            return pd.DataFrame()
+    if data.empty:
+        return pd.DataFrame()
+
+    lower_map = {c: str(c).lower() for c in data.columns}
+    data = data.rename(columns=lower_map)
+
+    # Common cTrader/adapter aliases.
+    aliases = {
+        "timestamp": ("timestamp", "time", "datetime", "date"),
+        "open": ("open", "o"),
+        "high": ("high", "h"),
+        "low": ("low", "l"),
+        "close": ("close", "c"),
+        "volume": ("volume", "vol", "tick_volume"),
+    }
+    resolved = {}
+    for target, options in aliases.items():
+        for name in options:
+            if name in data.columns:
+                resolved[target] = name
+                break
+
+    if not {"open", "high", "low", "close"}.issubset(set(resolved.keys())):
+        return pd.DataFrame()
+
+    if "timestamp" in resolved:
+        data = data.set_index(resolved["timestamp"])
+    if not isinstance(data.index, pd.DatetimeIndex):
+        data.index = pd.to_datetime(data.index, errors="coerce", utc=True)
+    else:
+        data.index = pd.to_datetime(data.index, utc=True)
+
+    data = data[~data.index.isna()].copy()
+    if data.empty:
+        return pd.DataFrame()
+
+    if data.index.tz is not None:
+        data.index = data.index.tz_localize(None)
+
+    out = pd.DataFrame(index=data.index)
+    out["open"] = pd.to_numeric(data[resolved["open"]], errors="coerce")
+    out["high"] = pd.to_numeric(data[resolved["high"]], errors="coerce")
+    out["low"] = pd.to_numeric(data[resolved["low"]], errors="coerce")
+    out["close"] = pd.to_numeric(data[resolved["close"]], errors="coerce")
+    if "volume" in resolved:
+        out["volume"] = pd.to_numeric(data[resolved["volume"]], errors="coerce").fillna(0.0)
+    else:
+        out["volume"] = 0.0
+
+    out = out.dropna(subset=["open", "high", "low", "close"]).sort_index()
+    return out
+
+
+def _fetch_ctrader(
+    broker: Any,
+    symbol: str,
+    timeframe: str,
+    start: datetime,
+    end: datetime,
+) -> pd.DataFrame:
+    """Fetch OHLCV from cTrader bridge when supported by the broker adapter."""
+    if broker is None or not hasattr(broker, "fetch_ohlcv"):
+        return pd.DataFrame()
+    try:
+        raw = broker.fetch_ohlcv(timeframe=timeframe, start=start, end=end, instrument=symbol)
+    except Exception as e:
+        logger.warning("cTrader OHLCV fetch failed for %s %s: %s", symbol, timeframe, e)
+        return pd.DataFrame()
+    return _normalize_ohlcv_frame(raw)
+
+
 def _fetch_yfinance(
     symbol: str,
     timeframe: str,
@@ -194,10 +300,12 @@ def ensure_data(
     timeframe: str,
     base_path: Path,
     period_days: int = 60,
+    source: str = "auto",
+    broker: Any = None,
 ) -> pd.DataFrame:
     """
-    Ensure data exists. Fetch priority: Dukascopy -> yfinance.
-    Dukascopy supports years of free intraday data.
+    Ensure data exists with configurable source routing.
+    Supported source values: auto, dukascopy, ctrader, yfinance.
     """
     end = datetime.now()
     start = end - timedelta(days=period_days)
@@ -207,27 +315,58 @@ def ensure_data(
     if len(existing) > 100:
         return existing
 
-    # Try Dukascopy first (free, years of data)
-    try:
-        logger.info("Fetching %s %s via Dukascopy (%dd)...", symbol, timeframe, period_days)
-        data = _fetch_dukascopy(symbol, timeframe, start, end)
-        if not data.empty and len(data) > 100:
-            save_parquet(base_path, symbol, timeframe, data)
-            logger.info("Dukascopy: saved %d rows for %s %s", len(data), symbol, timeframe)
-            return load_parquet(base_path, symbol, timeframe, start=start, end=end)
-    except Exception as e:
-        logger.warning("Dukascopy fetch failed: %s — falling back to yfinance", e)
+    source_requested, source_order = _resolve_source_order(source)
+    failure_reasons: list[str] = []
 
-    # Fallback to yfinance
-    try:
-        logger.info("Fetching %s %s via yfinance (%dd)...", symbol, timeframe, period_days)
-        data = _fetch_yfinance(symbol, timeframe, period_days)
-        if not data.empty:
-            save_parquet(base_path, symbol, timeframe, data)
-            logger.info("yfinance: saved %d rows for %s %s", len(data), symbol, timeframe)
-            return load_parquet(base_path, symbol, timeframe, start=start, end=end)
-    except Exception as e:
-        logger.warning("yfinance fetch failed: %s", e)
+    for provider in source_order:
+        try:
+            logger.info(
+                "data_fetch_attempt requested=%s provider=%s symbol=%s timeframe=%s min_rows=100",
+                source_requested, provider, symbol, timeframe,
+            )
+            if provider == "ctrader":
+                data = _fetch_ctrader(broker, symbol, timeframe, start, end)
+                if not data.empty and len(data) >= 100:
+                    save_parquet(base_path, symbol, timeframe, data)
+                    first_ts, last_ts = _frame_range_text(data)
+                    logger.info(
+                        "data_fetch_success requested=%s actual=%s symbol=%s timeframe=%s rows=%d "
+                        "first_ts=%s last_ts=%s",
+                        source_requested, provider, symbol, timeframe, len(data), first_ts, last_ts,
+                    )
+                    return load_parquet(base_path, symbol, timeframe, start=start, end=end)
+                failure_reasons.append(f"{provider}: rows={len(data)}")
+            elif provider == "dukascopy":
+                data = _fetch_dukascopy(symbol, timeframe, start, end)
+                if not data.empty and len(data) >= 100:
+                    save_parquet(base_path, symbol, timeframe, data)
+                    first_ts, last_ts = _frame_range_text(data)
+                    logger.info(
+                        "data_fetch_success requested=%s actual=%s symbol=%s timeframe=%s rows=%d "
+                        "first_ts=%s last_ts=%s",
+                        source_requested, provider, symbol, timeframe, len(data), first_ts, last_ts,
+                    )
+                    return load_parquet(base_path, symbol, timeframe, start=start, end=end)
+                failure_reasons.append(f"{provider}: rows={len(data)}")
+            elif provider == "yfinance":
+                data = _fetch_yfinance(symbol, timeframe, period_days)
+                if not data.empty:
+                    save_parquet(base_path, symbol, timeframe, data)
+                    first_ts, last_ts = _frame_range_text(data)
+                    logger.info(
+                        "data_fetch_success requested=%s actual=%s symbol=%s timeframe=%s rows=%d "
+                        "first_ts=%s last_ts=%s",
+                        source_requested, provider, symbol, timeframe, len(data), first_ts, last_ts,
+                    )
+                    return load_parquet(base_path, symbol, timeframe, start=start, end=end)
+                failure_reasons.append(f"{provider}: rows=0")
+        except Exception as e:
+            failure_reasons.append(f"{provider}: {e}")
+
+    logger.warning(
+        "data_fetch_failed requested=%s symbol=%s timeframe=%s reasons=%s",
+        source_requested, symbol, timeframe, " | ".join(failure_reasons) if failure_reasons else "n/a",
+    )
 
     return existing
 
@@ -238,9 +377,10 @@ def ensure_live_data(
     base_path: Path,
     min_bars: int = 200,
     max_stale_minutes: int = 30,
+    source: str = "auto",
+    broker: Any = None,
 ) -> pd.DataFrame:
-    """Ensure fresh data for live trading. Refetches from Dukascopy if cache is
-    stale or too small.
+    """Ensure fresh data for live trading via configurable source routing.
 
     Returns DataFrame with at least ``min_bars`` rows if data is available,
     empty DataFrame on total failure.
@@ -251,9 +391,18 @@ def ensure_live_data(
     start = now - timedelta(days=period_days)
 
     existing = load_parquet(base_path, symbol, timeframe, start=start, end=now)
+    source_name = str(source or "auto").lower()
+    truth_mode_ctrader = source_name == "ctrader"
 
     needs_refresh = False
-    if existing.empty or len(existing) < min_bars:
+    if truth_mode_ctrader:
+        needs_refresh = True
+        logger.info(
+            "bootstrap_truth_mode requested=ctrader cache_bypass=true symbol=%s timeframe=%s "
+            "reason=broker_native_validation cached_rows=%d",
+            symbol, timeframe, len(existing),
+        )
+    elif existing.empty or len(existing) < min_bars:
         needs_refresh = True
         logger.info(
             "live_data_refresh: %s %s cache has %d bars (need %d)",
@@ -272,29 +421,90 @@ def ensure_live_data(
             )
 
     if not needs_refresh:
-        return existing.tail(min_bars)
+        return _tag_source(existing.tail(min_bars), str(source or "auto").lower(), "cache_fresh")
 
-    try:
-        data = _fetch_dukascopy(symbol, timeframe, start, now)
-        if not data.empty and len(data) >= min_bars:
-            save_parquet(base_path, symbol, timeframe, data)
+    source_requested = source_name
+    if source_requested == "auto":
+        source_order = ["ctrader", "dukascopy"]
+    elif source_requested in {"ctrader", "dukascopy"}:
+        source_order = [source_requested]
+    elif source_requested == "yfinance":
+        logger.error(
+            "live_data_refresh_invalid_source requested=yfinance symbol=%s timeframe=%s "
+            "reason=yfinance_not_allowed_for_live",
+            symbol, timeframe,
+        )
+        return pd.DataFrame()
+    else:
+        logger.warning("Unknown live data source '%s'; using auto", source_requested)
+        source_requested = "auto"
+        source_order = ["ctrader", "dukascopy"]
+
+    best_partial: Optional[pd.DataFrame] = None
+    best_partial_source: Optional[str] = None
+    failure_reasons: list[str] = []
+
+    for provider in source_order:
+        try:
             logger.info(
-                "live_data_refresh: Dukascopy OK — %d bars for %s %s (last: %s)",
-                len(data), symbol, timeframe, data.index[-1],
+                "live_data_fetch_attempt requested=%s provider=%s symbol=%s timeframe=%s "
+                "min_bars=%d window_start=%s window_end=%s",
+                source_requested, provider, symbol, timeframe, min_bars, start, now,
             )
-            return data.tail(min_bars)
-        elif not data.empty:
-            save_parquet(base_path, symbol, timeframe, data)
-            logger.warning(
-                "live_data_refresh: Dukascopy partial — %d bars (need %d)",
-                len(data), min_bars,
-            )
-            return data
-    except Exception as e:
-        logger.error("live_data_refresh: Dukascopy failed for %s %s: %s", symbol, timeframe, e)
+            if provider == "ctrader":
+                data = _fetch_ctrader(broker, symbol, timeframe, start, now)
+            else:
+                data = _fetch_dukascopy(symbol, timeframe, start, now)
+
+            if not data.empty and len(data) >= min_bars:
+                save_parquet(base_path, symbol, timeframe, data)
+                first_ts, last_ts = _frame_range_text(data)
+                logger.info(
+                    "live_data_refresh_success requested=%s actual=%s symbol=%s timeframe=%s bars=%d "
+                    "first_ts=%s last_ts=%s",
+                    source_requested, provider, symbol, timeframe, len(data), first_ts, last_ts,
+                )
+                return _tag_source(data.tail(min_bars), source_requested, provider)
+            if not data.empty and (best_partial is None or len(data) > len(best_partial)):
+                best_partial = data
+                best_partial_source = provider
+                save_parquet(base_path, symbol, timeframe, data)
+            failure_reasons.append(f"{provider}: rows={len(data)}")
+        except Exception as e:
+            failure_reasons.append(f"{provider}: {e}")
+
+    # Explicit cTrader mode must fail fast: do not hide venue-data issues.
+    if source_requested == "ctrader":
+        logger.error(
+            "live_data_refresh_fail_fast requested=ctrader symbol=%s timeframe=%s "
+            "reasons=%s",
+            symbol, timeframe, " | ".join(failure_reasons) if failure_reasons else "n/a",
+        )
+        return _tag_source(pd.DataFrame(), source_requested, "none")
+
+    if best_partial is not None and not best_partial.empty:
+        first_ts, last_ts = _frame_range_text(best_partial)
+        logger.warning(
+            "live_data_refresh_partial requested=%s actual=%s symbol=%s timeframe=%s "
+            "bars=%d need=%d first_ts=%s last_ts=%s",
+            source_requested, best_partial_source, symbol, timeframe, len(best_partial), min_bars,
+            first_ts, last_ts,
+        )
+        return _tag_source(best_partial, source_requested, best_partial_source or "unknown")
 
     if not existing.empty:
-        logger.warning("live_data_refresh: falling back to stale cache (%d bars)", len(existing))
-        return existing.tail(min_bars)
+        first_ts, last_ts = _frame_range_text(existing)
+        logger.warning(
+            "live_data_refresh_stale_cache requested=%s actual=cache_stale symbol=%s timeframe=%s "
+            "bars=%d first_ts=%s last_ts=%s reasons=%s",
+            source_requested, symbol, timeframe, len(existing), first_ts, last_ts,
+            " | ".join(failure_reasons) if failure_reasons else "n/a",
+        )
+        return _tag_source(existing.tail(min_bars), source_requested, "cache_stale")
 
-    return pd.DataFrame()
+    logger.error(
+        "live_data_refresh_failed requested=%s actual=none symbol=%s timeframe=%s "
+        "reasons=%s",
+        source_requested, symbol, timeframe, " | ".join(failure_reasons) if failure_reasons else "n/a",
+    )
+    return _tag_source(pd.DataFrame(), source_requested, "none")

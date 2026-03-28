@@ -28,28 +28,41 @@ def cmd_fetch(args: argparse.Namespace) -> int:
     period_days = args.days or cfg.get("backtest", {}).get("default_period_days", 60)
     timeframes = [args.timeframe] if args.timeframe else cfg.get("timeframes", ["15m", "1h"])
     source = getattr(args, "source", "auto")
+    broker = None
+    if source in {"ctrader", "auto"}:
+        try:
+            from src.quantbuild.execution.broker_factory import create_broker
+            broker = create_broker(cfg)
+            broker.connect()
+        except Exception:
+            broker = None
 
-    for tf in timeframes:
-        print(f"Fetching {symbol} {tf} ({period_days}d) via {source}...")
+    try:
+        for tf in timeframes:
+            print(f"Fetching {symbol} {tf} ({period_days}d) via {source}...")
 
-        if source == "dukascopy":
-            from src.quantbuild.io.parquet_loader import _fetch_dukascopy, save_parquet
-            from datetime import timedelta
-            end = datetime.now()
-            start = end - timedelta(days=period_days)
-            data = _fetch_dukascopy(symbol, tf, start, end)
-            if not data.empty:
-                save_parquet(base, symbol, tf, data)
-                print(f"  Dukascopy: {len(data):,} rows saved")
-            else:
-                print(f"  Dukascopy: no data returned for {tf}")
-        elif source == "oanda":
-            from src.quantbuild.io.oanda_loader import fetch_and_cache
-            data = fetch_and_cache(timeframe=tf, period_days=period_days, base_path=base)
-            print(f"  Oanda: {len(data):,} rows saved")
-        else:
+            if source == "oanda":
+                from src.quantbuild.io.oanda_loader import fetch_and_cache
+                data = fetch_and_cache(timeframe=tf, period_days=period_days, base_path=base)
+                print(f"  Oanda: {len(data):,} rows saved")
+                continue
+
             from src.quantbuild.io.parquet_loader import ensure_data
-            ensure_data(symbol=symbol, timeframe=tf, base_path=base, period_days=period_days)
+            data = ensure_data(
+                symbol=symbol,
+                timeframe=tf,
+                base_path=base,
+                period_days=period_days,
+                source=source,
+                broker=broker,
+            )
+            if data.empty:
+                print(f"  No data returned for {symbol} {tf} (source={source})")
+            else:
+                print(f"  Saved/loaded {len(data):,} rows")
+    finally:
+        if broker is not None and getattr(broker, "is_connected", False):
+            broker.disconnect()
     return 0
 
 
@@ -93,8 +106,8 @@ def main() -> int:
     fetch.add_argument("--symbol", "-s", default=None)
     fetch.add_argument("--timeframe", "-t", default=None)
     fetch.add_argument("--days", "-d", type=int, default=None)
-    fetch.add_argument("--source", choices=["auto", "dukascopy", "oanda", "yfinance"], default="auto",
-                        help="Data source (default: auto = dukascopy → yfinance)")
+    fetch.add_argument("--source", choices=["auto", "ctrader", "dukascopy", "oanda", "yfinance"], default="auto",
+                        help="Data source (default: auto = ctrader -> dukascopy -> yfinance)")
     fetch.set_defaults(func=cmd_fetch)
 
     news = sub.add_parser("news-test", help="Test news layer (poll once)")
