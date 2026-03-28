@@ -15,7 +15,7 @@ dukascopy-python>=4.0
 yfinance>=0.2
 
 # Optional: LLM sentiment
-# openai>=1.0
+openai>=1.0
 
 # Optional: Oanda broker (live/paper trading)
 # oandapyV20>=0.7

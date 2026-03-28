@@ -7,6 +7,7 @@ from src.quantbuild.news.base import NewsSource
 from src.quantbuild.news.normalizer import NewsNormalizer
 from src.quantbuild.news.rss import create_rss_sources
 from src.quantbuild.news.newsapi_source import create_newsapi_source
+from src.quantbuild.news.finnhub_source import create_finnhub_source
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +21,9 @@ class NewsPoller:
     def setup(self) -> int:
         self._sources = []
         self._sources.extend(create_rss_sources(self._cfg))
+        finnhub = create_finnhub_source(self._cfg)
+        if finnhub:
+            self._sources.append(finnhub)
         newsapi = create_newsapi_source(self._cfg)
         if newsapi:
             self._sources.append(newsapi)

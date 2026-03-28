@@ -9,6 +9,7 @@ from src.quantbuild.news.normalizer import NewsNormalizer, _extract_topic_hints,
 from src.quantbuild.news.relevance_filter import RelevanceFilter, RelevanceResult
 from src.quantbuild.news.gold_classifier import GoldEventClassifier
 from src.quantbuild.news.sentiment import RuleBasedSentiment
+from src.quantbuild.news.advisor import LLMTradeAdvisor
 from src.quantbuild.news.counter_news import CounterNewsDetector
 from src.quantbuild.strategy_modules.news_gate import NewsGate
 from src.quantbuild.models.trade import Position
@@ -186,3 +187,45 @@ class TestCounterNews:
         affected = detector.check_against_positions(event, [position])
         assert len(affected) > 0
         assert affected[0]["trade_id"] == "T1"
+
+
+class TestLLMTradeAdvisor:
+    def test_disabled_returns_neutral(self):
+        advisor = LLMTradeAdvisor({"news": {"advisor": {"enabled": False}}, "ai": {}})
+        result = advisor.evaluate(
+            now=datetime.now(timezone.utc),
+            direction="LONG",
+            regime="trend",
+            sentiment_summary={"avg_impact": 0.0, "event_count": 3},
+            recent_events=[
+                _make_event("Gold steady ahead of FOMC"),
+                _make_event("Dollar index flat in quiet session"),
+            ],
+        )
+        assert result["allowed"]
+        assert result["risk_multiplier"] == 1.0
+        assert result["stance"] == "neutral"
+
+    def test_fallback_strong_counter_news_blocks(self):
+        cfg = {
+            "news": {"advisor": {"enabled": True, "min_events": 2, "block_on_strong_contra": True}},
+            "ai": {"openai_api_key": ""},
+        }
+        advisor = LLMTradeAdvisor(cfg)
+        now = datetime.now(timezone.utc)
+        events = [
+            _make_event("Dollar surges after hawkish Fed remarks"),
+            _make_event("Gold drops as yields spike"),
+        ]
+        for e in events:
+            e.received_at = now
+        result = advisor.evaluate(
+            now=now,
+            direction="LONG",
+            regime="trend",
+            sentiment_summary={"avg_impact": -0.9, "event_count": 4},
+            recent_events=events,
+        )
+        assert result["stance"] == "contra"
+        assert not result["allowed"]
+        assert result["risk_multiplier"] < 1.0

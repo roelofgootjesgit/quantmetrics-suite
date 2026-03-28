@@ -35,6 +35,43 @@ def load_config(path: str | Path | None = None) -> Dict[str, Any]:
     if os.getenv("CACHE_TTL_HOURS"):
         merged.setdefault("data", {})["cache_ttl_hours"] = int(os.getenv("CACHE_TTL_HOURS", "24"))
 
+    # News / AI env overrides
+    news = merged.setdefault("news", {})
+    if os.getenv("NEWSAPI_KEY"):
+        news["newsapi_key"] = os.getenv("NEWSAPI_KEY")
+    if os.getenv("FINNHUB_API_KEY"):
+        news["finnhub_api_key"] = os.getenv("FINNHUB_API_KEY")
+    if os.getenv("NEWSAPI_ENABLED"):
+        news_sources = news.setdefault("sources", {})
+        newsapi_cfg = news_sources.setdefault("newsapi", {})
+        newsapi_cfg["enabled"] = os.getenv("NEWSAPI_ENABLED", "false").strip().lower() in {
+            "1", "true", "yes", "on",
+        }
+    if os.getenv("FINNHUB_ENABLED"):
+        news_sources = news.setdefault("sources", {})
+        finnhub_cfg = news_sources.setdefault("finnhub", {})
+        finnhub_cfg["enabled"] = os.getenv("FINNHUB_ENABLED", "false").strip().lower() in {
+            "1", "true", "yes", "on",
+        }
+    if os.getenv("FINNHUB_CATEGORY"):
+        news_sources = news.setdefault("sources", {})
+        finnhub_cfg = news_sources.setdefault("finnhub", {})
+        finnhub_cfg["category"] = os.getenv("FINNHUB_CATEGORY")
+    if os.getenv("NEWSAPI_CATEGORIES"):
+        categories = [
+            c.strip() for c in os.getenv("NEWSAPI_CATEGORIES", "").split(",") if c.strip()
+        ]
+        if categories:
+            news_sources = news.setdefault("sources", {})
+            newsapi_cfg = news_sources.setdefault("newsapi", {})
+            newsapi_cfg["categories"] = categories
+
+    ai = merged.setdefault("ai", {})
+    if os.getenv("OPENAI_API_KEY"):
+        ai["openai_api_key"] = os.getenv("OPENAI_API_KEY")
+    if os.getenv("OPENAI_MODEL"):
+        ai["model"] = os.getenv("OPENAI_MODEL")
+
     # Broker env overrides (safe for both oanda and ctrader profiles)
     broker = merged.setdefault("broker", {})
     if os.getenv("OANDA_ACCOUNT_ID"):

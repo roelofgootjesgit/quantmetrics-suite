@@ -52,3 +52,18 @@ monitoring:
       interval_seconds: 3600
       on_startup: true
       on_shutdown: true
+
+news:
+  enabled: false
+  sources:
+    rss:
+      enabled: false
+      feeds: []
+    finnhub:
+      enabled: false
+      category: general
+      tier: 2
+    newsapi:
+      enabled: false
+      categories: ["business"]
+      language: en

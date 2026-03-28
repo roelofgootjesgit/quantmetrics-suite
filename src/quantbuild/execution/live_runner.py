@@ -114,9 +114,16 @@ class LiveRunner:
         self._news_poller = None
         self._news_gate = None
         self._sentiment_engine = None
+        self._rule_sentiment_engine = None
         self._counter_news = None
         self._relevance_filter = None
         self._news_history = None
+        self._llm_advisor = None
+        self._recent_news_events: list = []
+        sentiment_cfg = cfg.get("news", {}).get("sentiment", {})
+        self._news_max_events_per_poll: int = int(sentiment_cfg.get("max_events_per_poll", 12))
+        self._news_max_source_tier_for_llm: int = int(sentiment_cfg.get("max_source_tier_for_llm", 2))
+        self._news_max_event_age_minutes: int = int(sentiment_cfg.get("max_event_age_minutes", 20))
 
         if cfg.get("news", {}).get("enabled", False):
             self._setup_news_layer()
@@ -135,9 +142,10 @@ class LiveRunner:
             from src.quantbuild.news.poller import NewsPoller
             from src.quantbuild.news.relevance_filter import RelevanceFilter
             from src.quantbuild.news.gold_classifier import GoldEventClassifier
-            from src.quantbuild.news.sentiment import HybridSentiment
+            from src.quantbuild.news.sentiment import HybridSentiment, RuleBasedSentiment
             from src.quantbuild.news.counter_news import CounterNewsDetector
             from src.quantbuild.news.history import NewsHistory
+            from src.quantbuild.news.advisor import LLMTradeAdvisor
             from src.quantbuild.strategy_modules.news_gate import NewsGate
 
             self._news_poller = NewsPoller(self.cfg)
@@ -145,9 +153,11 @@ class LiveRunner:
             self._relevance_filter = RelevanceFilter(self.cfg)
             self._gold_classifier = GoldEventClassifier(self.cfg)
             self._sentiment_engine = HybridSentiment(self.cfg)
+            self._rule_sentiment_engine = RuleBasedSentiment()
             self._counter_news = CounterNewsDetector(self.cfg)
             self._news_gate = NewsGate(self.cfg)
             self._news_history = NewsHistory()
+            self._llm_advisor = LLMTradeAdvisor(self.cfg)
             logger.info("News layer initialized: %d sources", self._news_poller.source_count)
         except Exception as e:
             logger.warning("News layer setup failed: %s", e)
@@ -629,6 +639,42 @@ class LiveRunner:
                 return "no_trade", "news_block"
             news_boost = gate_result.get("boost", 1.0)
 
+        # LLM advisory layer (optional): final decision support after gate check.
+        if self._llm_advisor and self._llm_advisor.enabled:
+            sentiment_summary = (
+                self._news_gate.get_current_sentiment_summary()
+                if self._news_gate
+                else {"direction": "neutral", "avg_impact": 0.0, "event_count": 0}
+            )
+            advice = self._llm_advisor.evaluate(
+                now=now,
+                direction=direction,
+                regime=regime,
+                sentiment_summary=sentiment_summary,
+                recent_events=self._recent_news_events,
+            )
+            if not advice.get("allowed", True):
+                logger.info(
+                    "LLM advisor blocks %s: %s (method=%s stance=%s conf=%.2f)",
+                    direction,
+                    advice.get("reason", "unknown"),
+                    advice.get("method", "unknown"),
+                    advice.get("stance", "neutral"),
+                    float(advice.get("confidence", 0.0)),
+                )
+                return "no_trade", "llm_advice_block"
+            advice_mult = float(advice.get("risk_multiplier", 1.0) or 1.0)
+            news_boost *= advice_mult
+            logger.info(
+                "LLM advisor %s: mult=%.2f (method=%s stance=%s conf=%.2f reason=%s)",
+                direction,
+                advice_mult,
+                advice.get("method", "unknown"),
+                advice.get("stance", "neutral"),
+                float(advice.get("confidence", 0.0)),
+                advice.get("reason", "n/a"),
+            )
+
         # Spread guard
         spread_issue = self._check_spread_guard()
         if spread_issue:
@@ -786,18 +832,18 @@ class LiveRunner:
             events = self._news_poller.poll()
             if self._relevance_filter:
                 events = self._relevance_filter.filter_batch(events)
+            events = self._select_news_events_for_processing(events, datetime.now(timezone.utc))
 
             for event in events:
+                self._recent_news_events.append(event)
+                if len(self._recent_news_events) > 200:
+                    self._recent_news_events = self._recent_news_events[-200:]
                 classification = (
                     self._gold_classifier.classify(event)
                     if hasattr(self, "_gold_classifier")
                     else None
                 )
-                sentiment = (
-                    self._sentiment_engine.analyze(event)
-                    if self._sentiment_engine
-                    else None
-                )
+                sentiment = self._analyze_sentiment_with_budget(event)
 
                 if self._news_gate and sentiment:
                     self._news_gate.add_news_event(event, sentiment)
@@ -824,6 +870,68 @@ class LiveRunner:
                     )
         except Exception as e:
             logger.error("News poll error: %s", e)
+
+    def _select_news_events_for_processing(
+        self,
+        events: list,
+        now: datetime,
+    ) -> list:
+        if not events:
+            return events
+
+        if now.tzinfo is None:
+            now = now.replace(tzinfo=timezone.utc)
+
+        fresh_events = []
+        stale_dropped = 0
+        for event in events:
+            ts = event.published_at or event.received_at
+            if ts.tzinfo is None:
+                ts = ts.replace(tzinfo=timezone.utc)
+            age_minutes = (now - ts).total_seconds() / 60.0
+            if age_minutes <= self._news_max_event_age_minutes:
+                fresh_events.append(event)
+            else:
+                stale_dropped += 1
+
+        if stale_dropped > 0:
+            logger.info(
+                "News budget: dropped %d stale events (> %d min)",
+                stale_dropped,
+                self._news_max_event_age_minutes,
+            )
+
+        if len(fresh_events) <= self._news_max_events_per_poll:
+            return fresh_events
+
+        prioritized = sorted(
+            fresh_events,
+            key=lambda e: (
+                int(e.source_tier),
+                -len(e.topic_hints),
+                e.received_at,
+            ),
+        )[: self._news_max_events_per_poll]
+
+        dropped_for_budget = len(fresh_events) - len(prioritized)
+        logger.info(
+            "News budget: processing %d events, dropped %d by poll cap",
+            len(prioritized),
+            dropped_for_budget,
+        )
+        return prioritized
+
+    def _analyze_sentiment_with_budget(self, event):
+        if not self._sentiment_engine:
+            return None
+        try:
+            event_tier = int(event.source_tier)
+        except Exception:
+            event_tier = 4
+
+        if event_tier > self._news_max_source_tier_for_llm and self._rule_sentiment_engine:
+            return self._rule_sentiment_engine.analyze(event)
+        return self._sentiment_engine.analyze(event)
 
     def _update_news_regime_override(self):
         """Use news state to override technical regime when appropriate."""
