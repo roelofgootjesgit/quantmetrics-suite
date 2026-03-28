@@ -159,6 +159,7 @@ class TelegramAlerter:
         source: str = "unknown",
         broker_positions: int | None = None,
         account_daily_pnl: float | None = None,
+        account_daily_baseline_at: str | None = None,
         account_balance: float | None = None,
         account_equity: float | None = None,
         account_unrealized_pnl: float | None = None,
@@ -173,6 +174,8 @@ class TelegramAlerter:
         account_lines = ""
         if account_daily_pnl is not None:
             account_lines += f"Account P/L today: {account_daily_pnl:+,.2f} {account_currency}\n"
+        if account_daily_baseline_at:
+            account_lines += f"Daily baseline: {account_daily_baseline_at}\n"
         if account_balance is not None:
             account_lines += f"Account balance: {account_balance:,.2f} {account_currency}\n"
         if account_equity is not None:

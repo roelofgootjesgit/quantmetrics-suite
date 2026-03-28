@@ -100,6 +100,7 @@ class LiveRunner:
         self._daily_trade_count: int = 0
         self._daily_account_baseline_equity: Optional[float] = None
         self._daily_account_baseline_date: Optional[str] = None
+        self._daily_account_baseline_set_at: Optional[str] = None
         self._decision_cycle_n: int = 0
         self._report_interval_seconds: int = 3600
         self._last_status_report: datetime = datetime.min.replace(tzinfo=timezone.utc)
@@ -319,6 +320,11 @@ class LiveRunner:
                 self._daily_account_baseline_date = date_val
             if equity_val is not None:
                 self._daily_account_baseline_equity = float(equity_val)
+            set_at_val = raw.get("set_at")
+            if isinstance(set_at_val, str) and set_at_val.strip():
+                self._daily_account_baseline_set_at = set_at_val.strip()
+            elif self._daily_account_baseline_date:
+                self._daily_account_baseline_set_at = f"{self._daily_account_baseline_date} 00:00 UTC"
         except Exception as e:
             logger.warning("Failed to load daily account baseline: %s", e)
 
@@ -328,6 +334,7 @@ class LiveRunner:
         payload = {
             "date": self._daily_account_baseline_date,
             "equity": float(self._daily_account_baseline_equity),
+            "set_at": self._daily_account_baseline_set_at,
         }
         try:
             path = self._daily_account_state_path()
@@ -342,6 +349,7 @@ class LiveRunner:
         if self._daily_account_baseline_date != today or self._daily_account_baseline_equity is None:
             self._daily_account_baseline_date = today
             self._daily_account_baseline_equity = float(equity)
+            self._daily_account_baseline_set_at = now.strftime("%Y-%m-%d %H:%M UTC")
             self._save_daily_account_state()
             logger.info(
                 "Daily account baseline set: date=%s equity=%.2f",
@@ -872,6 +880,7 @@ class LiveRunner:
         account_equity: Optional[float] = None
         account_unrealized_pnl: Optional[float] = None
         account_daily_pnl: Optional[float] = None
+        account_daily_baseline_at: Optional[str] = None
         account_currency: str = "USD"
         if not self.dry_run and self.broker.is_connected:
             try:
@@ -886,6 +895,7 @@ class LiveRunner:
                     account_unrealized_pnl = float(acct.unrealized_pnl)
                     account_currency = str(acct.currency or "USD")
                     account_daily_pnl = self._update_daily_account_baseline(now, account_equity)
+                    account_daily_baseline_at = self._daily_account_baseline_set_at
                     if broker_positions is None:
                         broker_positions = int(acct.open_trade_count)
             except Exception as e:
@@ -900,6 +910,7 @@ class LiveRunner:
             source=self._last_data_source,
             broker_positions=broker_positions,
             account_daily_pnl=account_daily_pnl,
+            account_daily_baseline_at=account_daily_baseline_at,
             account_balance=account_balance,
             account_equity=account_equity,
             account_unrealized_pnl=account_unrealized_pnl,
