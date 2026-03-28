@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 
 from quantbridge.execution.broker_contract import BrokerContract
 from quantbridge.execution.clients.ctrader_mock_client import CTraderMockClient
@@ -164,3 +164,36 @@ class CTraderBroker(BrokerContract):
 
     def sync_positions(self, instrument: Optional[str] = None) -> List[Position]:
         return self.get_open_trades(instrument=instrument)
+
+    def fetch_ohlcv(
+        self,
+        instrument: Optional[str],
+        timeframe: str,
+        start: datetime,
+        end: datetime,
+    ) -> List[Dict[str, Any]]:
+        broker_symbol = map_symbol("ctrader", instrument or self.instrument)
+        if not hasattr(self.client, "fetch_ohlcv"):
+            return []
+        rows = self.client.fetch_ohlcv(
+            instrument=broker_symbol,
+            timeframe=timeframe,
+            start=start,
+            end=end,
+        )
+        if rows:
+            self._last_success_at = datetime.now(timezone.utc)
+            self._last_error = None
+        else:
+            self._last_error = getattr(self.client, "last_error", "trendbars_unavailable")
+        return rows
+
+    # Compatibility aliases used by QuantBuild adapter probing.
+    def get_ohlcv(self, instrument: Optional[str], timeframe: str, start: datetime, end: datetime):
+        return self.fetch_ohlcv(instrument=instrument, timeframe=timeframe, start=start, end=end)
+
+    def get_candles(self, instrument: Optional[str], timeframe: str, start: datetime, end: datetime):
+        return self.fetch_ohlcv(instrument=instrument, timeframe=timeframe, start=start, end=end)
+
+    def get_trendbars(self, instrument: Optional[str], timeframe: str, start: datetime, end: datetime):
+        return self.fetch_ohlcv(instrument=instrument, timeframe=timeframe, start=start, end=end)

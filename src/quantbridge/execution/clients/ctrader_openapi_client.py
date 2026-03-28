@@ -63,6 +63,7 @@ class CTraderOpenApiClient:
         self._spot_by_symbol_id: Dict[int, Dict[str, float]] = {}
         self._symbol_id_by_name: Dict[str, int] = {}
         self._symbol_name_by_id: Dict[int, str] = {}
+        self._symbol_digits_by_id: Dict[int, int] = {}
         self._money_digits: int = 2
 
     def _set_success(self) -> None:
@@ -128,12 +129,16 @@ class CTraderOpenApiClient:
             type(message).__name__,
             self.account_id,
         )
-        deferred = self._client.send(
-            message,
-            clientMsgId=request_id,
-            responseTimeoutInSeconds=self.request_timeout_seconds,
-        )
-        response = self._to_blocking(deferred, timeout=self.request_timeout_seconds + 1.0)
+        from twisted.internet.threads import blockingCallFromThread
+
+        def _send_and_wait():
+            return self._client.send(
+                message,
+                clientMsgId=request_id,
+                responseTimeoutInSeconds=self.request_timeout_seconds,
+            )
+
+        response = blockingCallFromThread(self._reactor, _send_and_wait)
         response = self._extract_payload(response)
         logger.info(
             "ctrader.response action=recv request_id=%s payload=%s",
@@ -202,11 +207,19 @@ class CTraderOpenApiClient:
 
         host = EndPoints.PROTOBUF_DEMO_HOST if self.environment.lower() == "demo" else EndPoints.PROTOBUF_LIVE_HOST
         try:
+            from twisted.internet.threads import blockingCallFromThread
+
             self._client = Client(host, EndPoints.PROTOBUF_PORT, TcpProtocol)
             self._client.setMessageReceivedCallback(self._on_message)
-            self._client.startService()
-            connected_deferred = self._client.whenConnected(failAfterFailures=1)
-            self._to_blocking(connected_deferred, timeout=self.request_timeout_seconds)
+
+            def _start_and_wait():
+                self._client.startService()
+                return self._client.whenConnected(failAfterFailures=1)
+
+            blockingCallFromThread(
+                self._reactor,
+                _start_and_wait,
+            )
         except Exception as e:
             self._set_error(f"session_connect_failed: {e}")
             return False
@@ -233,12 +246,15 @@ class CTraderOpenApiClient:
             )
             self._symbol_id_by_name.clear()
             self._symbol_name_by_id.clear()
+            self._symbol_digits_by_id.clear()
             for item in getattr(symbols_res, "symbol", []):
                 name = str(getattr(item, "symbolName", "")).upper()
                 symbol_id = int(getattr(item, "symbolId", 0))
                 if name and symbol_id > 0:
                     self._symbol_id_by_name[name] = symbol_id
                     self._symbol_name_by_id[symbol_id] = name
+                    digits = int(getattr(item, "digits", 5) or 5)
+                    self._symbol_digits_by_id[symbol_id] = digits
         except Exception as e:
             msg = str(e)
             if "TimeoutError" in msg or "timed out" in msg or "Deferred" in msg:
@@ -267,6 +283,86 @@ class CTraderOpenApiClient:
             name = "XAUUSD"
         symbol_id = self._symbol_id_by_name.get(name)
         return name, symbol_id
+
+    def _resolve_trendbar_period(self, timeframe: str):
+        tf = str(timeframe or "").strip().lower()
+        aliases = {
+            "m1": "M1",
+            "1m": "M1",
+            "m5": "M5",
+            "5m": "M5",
+            "m15": "M15",
+            "15m": "M15",
+            "m30": "M30",
+            "30m": "M30",
+            "h1": "H1",
+            "1h": "H1",
+            "h4": "H4",
+            "4h": "H4",
+            "d1": "D1",
+            "1d": "D1",
+        }
+        period_name = aliases.get(tf)
+        if period_name is None:
+            raise ValueError(f"unsupported_timeframe: {timeframe}")
+
+        from ctrader_open_api.messages import OpenApiModelMessages_pb2 as model
+
+        # OpenApiPy enum names typically include a PREFIX (e.g. M1), but we keep
+        # a defensive fallback in case only numeric values are present.
+        for attr in (
+            period_name,
+            f"TB_PERIOD_{period_name}",
+            f"ProtoOATrendbarPeriod_{period_name}",
+        ):
+            if hasattr(model, attr):
+                return getattr(model, attr)
+
+        fallback_numeric = {
+            "M1": 1,
+            "M5": 2,
+            "M15": 3,
+            "M30": 4,
+            "H1": 5,
+            "H4": 6,
+            "D1": 10,
+        }
+        return fallback_numeric[period_name]
+
+    def _trendbar_to_ohlcv(
+        self,
+        trendbar: object,
+        symbol_id: int,
+        symbol_name: str,
+    ) -> Optional[Dict[str, float]]:
+        ts_minutes = int(getattr(trendbar, "utcTimestampInMinutes", 0) or 0)
+        if ts_minutes <= 0:
+            return None
+
+        digits = int(self._symbol_digits_by_id.get(symbol_id, 5))
+        price_scale = 10 ** digits
+
+        low_raw = int(getattr(trendbar, "low", 0) or 0)
+        delta_open = int(getattr(trendbar, "deltaOpen", 0) or 0)
+        delta_close = int(getattr(trendbar, "deltaClose", 0) or 0)
+        delta_high = int(getattr(trendbar, "deltaHigh", 0) or 0)
+        volume = float(getattr(trendbar, "volume", 0) or 0)
+
+        low = low_raw / price_scale
+        open_ = (low_raw + delta_open) / price_scale
+        close = (low_raw + delta_close) / price_scale
+        high = (low_raw + delta_high) / price_scale
+        ts = datetime.fromtimestamp(ts_minutes * 60, tz=timezone.utc)
+
+        return {
+            "timestamp": ts.isoformat(),
+            "symbol": symbol_name,
+            "open": float(open_),
+            "high": float(high),
+            "low": float(low),
+            "close": float(close),
+            "volume": float(volume),
+        }
 
     def _subscribe_spot(self, symbol_id: int) -> bool:
         try:
@@ -503,3 +599,52 @@ class CTraderOpenApiClient:
         except Exception as e:
             self._set_error(f"modify_failed: {e}")
             return False
+
+    def fetch_ohlcv(
+        self,
+        instrument: str,
+        timeframe: str,
+        start: datetime,
+        end: datetime,
+    ) -> List[Dict[str, float]]:
+        if not self.connected:
+            self._set_error("session_expired: not connected")
+            return []
+
+        try:
+            from ctrader_open_api.messages.OpenApiMessages_pb2 import ProtoOAGetTrendbarsReq
+        except Exception as e:
+            self._set_error(f"trendbars_sdk_import_failed: {e}")
+            return []
+
+        symbol_name, symbol_id = self._resolve_symbol(instrument)
+        if symbol_id is None:
+            self._set_error(f"invalid_symbol: {symbol_name}")
+            return []
+
+        try:
+            period = self._resolve_trendbar_period(timeframe)
+            from_ts_ms = int(start.timestamp() * 1000)
+            to_ts_ms = int(end.timestamp() * 1000)
+
+            req = ProtoOAGetTrendbarsReq(
+                ctidTraderAccountId=int(self.account_id),
+                symbolId=int(symbol_id),
+                period=period,
+                fromTimestamp=from_ts_ms,
+                toTimestamp=to_ts_ms,
+            )
+            res = self._send_message(req)
+
+            rows: List[Dict[str, float]] = []
+            for tb in getattr(res, "trendbar", []):
+                row = self._trendbar_to_ohlcv(tb, symbol_id=symbol_id, symbol_name=symbol_name)
+                if row is not None:
+                    rows.append(row)
+
+            rows.sort(key=lambda r: r["timestamp"])
+            self._set_success()
+            return rows
+        except Exception as e:
+            self._set_error(f"trendbars_fetch_failed: {e}")
+            return []
