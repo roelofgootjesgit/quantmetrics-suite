@@ -837,7 +837,9 @@ class LiveRunner:
         if self._telegram.enabled and self._telegram.startup_report_enabled():
             self._send_status_report(datetime.now(timezone.utc), reason="startup")
 
-        if not self.dry_run:
+        data_source = str(self.cfg.get("data", {}).get("source", "auto")).lower()
+        connect_for_market_data = self.dry_run and data_source == "ctrader"
+        if (not self.dry_run) or connect_for_market_data:
             if not self.broker.connect():
                 logger.error("Cannot connect to broker. Exiting.")
                 return

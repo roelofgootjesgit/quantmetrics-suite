@@ -387,7 +387,20 @@ def ensure_live_data(
     """
     base_path = Path(base_path)
     now = datetime.now(timezone.utc)
-    period_days = max(10, min_bars // 96 + 3)
+    # Estimate required calendar window from timeframe + min_bars.
+    # Markets like XAU trade 5d/week, so we use effective bars/day
+    # instead of full 24/7 bars to avoid under-fetch (notably 1h).
+    tf = str(timeframe).lower()
+    effective_bars_per_day = {
+        "1m": 340.0,
+        "5m": 68.0,
+        "15m": 22.0,
+        "30m": 11.0,
+        "1h": 17.0,
+        "4h": 4.0,
+        "1d": 1.0,
+    }.get(tf, 22.0)
+    period_days = max(10, int(min_bars / max(effective_bars_per_day, 1.0)) + 5)
     start = now - timedelta(days=period_days)
 
     existing = load_parquet(base_path, symbol, timeframe, start=start, end=now)
