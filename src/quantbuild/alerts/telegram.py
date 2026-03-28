@@ -14,6 +14,7 @@ class TelegramAlerter:
         self._enabled = tg_cfg.get("enabled", False)
         self._bot_token = tg_cfg.get("bot_token", "")
         self._chat_id = tg_cfg.get("chat_id", "")
+        self._system_label = str(tg_cfg.get("system_label", "Trading System")).strip() or "Trading System"
         self._instance_label = str(tg_cfg.get("instance_label", "")).strip()
         self._alerts_cfg = tg_cfg.get("alerts", {})
         self._report_cfg = tg_cfg.get("report", {})
@@ -41,8 +42,10 @@ class TelegramAlerter:
         self._ensure_bot()
         if not self._bot:
             return False
+        header = f"🤖 <b>{self._system_label}</b>"
         if self._instance_label:
-            text = f"🏷️ <b>{self._instance_label}</b>\n{text}"
+            header += f" • <b>{self._instance_label}</b>"
+        text = f"{header}\n{text}"
         try:
             resp = self._bot.post("/sendMessage", json={
                 "chat_id": self._chat_id,
@@ -154,17 +157,37 @@ class TelegramAlerter:
         pnl_r: float,
         open_positions: int,
         source: str = "unknown",
+        broker_positions: int | None = None,
+        account_daily_pnl: float | None = None,
+        account_balance: float | None = None,
+        account_equity: float | None = None,
+        account_unrealized_pnl: float | None = None,
+        account_currency: str = "USD",
     ) -> bool:
         if not self.status_report_enabled():
             return False
+        if broker_positions is None:
+            positions_line = f"Active trades: {open_positions}"
+        else:
+            positions_line = f"Active trades: {open_positions} tracked / {broker_positions} broker"
+        account_lines = ""
+        if account_daily_pnl is not None:
+            account_lines += f"Account P/L today: {account_daily_pnl:+,.2f} {account_currency}\n"
+        if account_balance is not None:
+            account_lines += f"Account balance: {account_balance:,.2f} {account_currency}\n"
+        if account_equity is not None:
+            account_lines += f"Account equity: {account_equity:,.2f} {account_currency}\n"
+        if account_unrealized_pnl is not None:
+            account_lines += f"Account P/L (float): {account_unrealized_pnl:+,.2f} {account_currency}\n"
         text = (
             f"📡 <b>STATUS REPORT</b>\n"
-            f"Symbol: {symbol}\n"
+            f"Configured symbol: {symbol}\n"
             f"Mode: {mode}\n"
             f"Regime: {regime}\n"
             f"Trades today: {trades_today}\n"
             f"P&L today: {pnl_r:+.2f}R\n"
-            f"Open positions: {open_positions}\n"
+            f"{positions_line}\n"
+            f"{account_lines}"
             f"Data source: {source}\n"
             f"Time: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}"
         )

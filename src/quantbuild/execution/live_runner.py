@@ -9,6 +9,7 @@ Wires together:
   6. Position sync from broker
 """
 import logging
+import json
 import signal
 import time
 from datetime import datetime, timedelta, timezone
@@ -97,6 +98,8 @@ class LiveRunner:
         self._daily_pnl_r: float = 0.0
         self._daily_date: Optional[str] = None
         self._daily_trade_count: int = 0
+        self._daily_account_baseline_equity: Optional[float] = None
+        self._daily_account_baseline_date: Optional[str] = None
         self._decision_cycle_n: int = 0
         self._report_interval_seconds: int = 3600
         self._last_status_report: datetime = datetime.min.replace(tzinfo=timezone.utc)
@@ -297,6 +300,55 @@ class LiveRunner:
             self._daily_pnl_r = 0.0
             self._daily_trade_count = 0
             logger.info("New trading day: %s", today)
+
+    def _daily_account_state_path(self) -> Path:
+        base = Path(self.cfg.get("data", {}).get("base_path", "data/market_cache"))
+        state_dir = base / "runtime_state"
+        state_dir.mkdir(parents=True, exist_ok=True)
+        return state_dir / "daily_account_baseline.json"
+
+    def _load_daily_account_state(self) -> None:
+        path = self._daily_account_state_path()
+        if not path.exists():
+            return
+        try:
+            raw = json.loads(path.read_text(encoding="utf-8"))
+            date_val = raw.get("date")
+            equity_val = raw.get("equity")
+            if isinstance(date_val, str):
+                self._daily_account_baseline_date = date_val
+            if equity_val is not None:
+                self._daily_account_baseline_equity = float(equity_val)
+        except Exception as e:
+            logger.warning("Failed to load daily account baseline: %s", e)
+
+    def _save_daily_account_state(self) -> None:
+        if self._daily_account_baseline_date is None or self._daily_account_baseline_equity is None:
+            return
+        payload = {
+            "date": self._daily_account_baseline_date,
+            "equity": float(self._daily_account_baseline_equity),
+        }
+        try:
+            path = self._daily_account_state_path()
+            path.write_text(json.dumps(payload), encoding="utf-8")
+        except Exception as e:
+            logger.warning("Failed to save daily account baseline: %s", e)
+
+    def _update_daily_account_baseline(self, now: datetime, equity: Optional[float]) -> Optional[float]:
+        if equity is None:
+            return None
+        today = now.strftime("%Y-%m-%d")
+        if self._daily_account_baseline_date != today or self._daily_account_baseline_equity is None:
+            self._daily_account_baseline_date = today
+            self._daily_account_baseline_equity = float(equity)
+            self._save_daily_account_state()
+            logger.info(
+                "Daily account baseline set: date=%s equity=%.2f",
+                self._daily_account_baseline_date,
+                self._daily_account_baseline_equity,
+            )
+        return float(equity) - float(self._daily_account_baseline_equity)
 
     # ── Position Sync ─────────────────────────────────────────────────
 
@@ -815,6 +867,29 @@ class LiveRunner:
         mode = "DRY_RUN" if self.dry_run else "LIVE"
         regime = self.get_effective_regime() or "none"
         open_positions = len(self.position_monitor.open_positions)
+        broker_positions: Optional[int] = None
+        account_balance: Optional[float] = None
+        account_equity: Optional[float] = None
+        account_unrealized_pnl: Optional[float] = None
+        account_daily_pnl: Optional[float] = None
+        account_currency: str = "USD"
+        if not self.dry_run and self.broker.is_connected:
+            try:
+                broker_positions = len(self.broker.get_open_trades(instrument=None))
+            except Exception as e:
+                logger.warning("Failed to fetch broker open trades for status report: %s", e)
+            try:
+                acct = self.broker.get_account_info()
+                if acct is not None:
+                    account_balance = float(acct.balance)
+                    account_equity = float(acct.equity)
+                    account_unrealized_pnl = float(acct.unrealized_pnl)
+                    account_currency = str(acct.currency or "USD")
+                    account_daily_pnl = self._update_daily_account_baseline(now, account_equity)
+                    if broker_positions is None:
+                        broker_positions = int(acct.open_trade_count)
+            except Exception as e:
+                logger.warning("Failed to fetch broker account state for status report: %s", e)
         sent = self._telegram.alert_status_report(
             symbol=self.cfg.get("symbol", "XAUUSD"),
             mode=mode,
@@ -823,6 +898,12 @@ class LiveRunner:
             pnl_r=self._daily_pnl_r,
             open_positions=open_positions,
             source=self._last_data_source,
+            broker_positions=broker_positions,
+            account_daily_pnl=account_daily_pnl,
+            account_balance=account_balance,
+            account_equity=account_equity,
+            account_unrealized_pnl=account_unrealized_pnl,
+            account_currency=account_currency,
         )
         if sent:
             self._last_status_report = now
@@ -834,8 +915,6 @@ class LiveRunner:
         """Main loop: connect, bootstrap data, update regime, check signals, manage positions."""
         mode = "DRY RUN" if self.dry_run else "LIVE"
         logger.info("Starting LiveRunner in %s mode", mode)
-        if self._telegram.enabled and self._telegram.startup_report_enabled():
-            self._send_status_report(datetime.now(timezone.utc), reason="startup")
 
         data_source = str(self.cfg.get("data", {}).get("source", "auto")).lower()
         connect_for_market_data = self.dry_run and data_source == "ctrader"
@@ -855,6 +934,17 @@ class LiveRunner:
             return
 
         self.order_manager.load_state()
+        self._load_daily_account_state()
+        self._sync_positions_from_broker()
+
+        # Prime regime before first startup report so Telegram does not start at "none".
+        data_15m, _ = self._load_recent_data("15m", 300)
+        data_1h, _ = self._load_recent_data("1h", 100)
+        self._update_regime(data_15m, data_1h if not data_1h.empty else None)
+
+        if self._telegram.enabled and self._telegram.startup_report_enabled():
+            self._send_status_report(datetime.now(timezone.utc), reason="startup")
+
         self._running = True
         signal.signal(signal.SIGINT, self._handle_shutdown)
 

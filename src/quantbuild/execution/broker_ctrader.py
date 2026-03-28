@@ -361,7 +361,8 @@ class CTraderBroker:
         if not self.mock_mode:
             if not self.is_connected or self._real_bridge is None:
                 return []
-            positions = self._real_bridge.get_open_trades(instrument=instrument or self.instrument)
+            # When instrument is None we explicitly request all open trades.
+            positions = self._real_bridge.get_open_trades(instrument=instrument)
             out: List[OandaPosition] = []
             for p in positions:
                 out.append(
