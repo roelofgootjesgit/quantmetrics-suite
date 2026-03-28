@@ -184,7 +184,6 @@ class TelegramAlerter:
             account_lines += f"Account P/L (float): {account_unrealized_pnl:+,.2f} {account_currency}\n"
         text = (
             f"📡 <b>STATUS REPORT</b>\n"
-            f"Configured symbol: {symbol}\n"
             f"Mode: {mode}\n"
             f"Regime: {regime}\n"
             f"Trades today: {trades_today}\n"
