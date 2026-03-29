@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
 
 def _utc_now_iso() -> str:
@@ -16,22 +17,59 @@ def _utc_now_iso() -> str:
 class JsonlEventSink:
     path: str | Path
     source: str = "quantbridge"
+    source_component: str = "observability"
+    environment: str = "paper"
     run_id: str = ""
+    session_id: str = ""
+    _source_seq: int = field(default=0, init=False)
 
     def __post_init__(self) -> None:
         self.path = Path(self.path)
         if not self.run_id:
             self.run_id = _utc_now_iso().replace(":", "").replace("-", "")
+        if not self.session_id:
+            self.session_id = f"{self.run_id}-session"
 
     def emit(self, event_type: str, payload: dict[str, Any]) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
+        self._source_seq += 1
+        timestamp_utc = _utc_now_iso().replace("+00:00", "Z")
+        trace_id = str(payload.get("trace_id") or f"trace_qbr_{uuid4().hex[:12]}")
+        order_ref = payload.get("order_ref")
+        position_id = payload.get("position_id")
+        account_id = payload.get("account_id")
+        strategy_id = payload.get("strategy_id")
+        symbol = payload.get("symbol") or payload.get("instrument")
+        severity = str(payload.get("severity", "info"))
         event = {
-            "ts": _utc_now_iso(),
-            "source": self.source,
-            "run_id": self.run_id,
+            "event_id": str(uuid4()),
             "event_type": event_type,
+            "event_version": 1,
+            "timestamp_utc": timestamp_utc,
+            "ingested_at_utc": _utc_now_iso().replace("+00:00", "Z"),
+            "source_system": self.source,
+            "source_component": self.source_component,
+            "environment": self.environment,
+            "run_id": self.run_id,
+            "session_id": self.session_id,
+            "source_seq": self._source_seq,
+            "trace_id": trace_id,
+            "severity": severity,
             "payload": payload,
+            # legacy fields retained for compatibility with existing scripts
+            "ts": timestamp_utc,
+            "source": self.source,
         }
+        if isinstance(order_ref, str) and order_ref.strip():
+            event["order_ref"] = order_ref
+        if isinstance(position_id, str) and position_id.strip():
+            event["position_id"] = position_id
+        if isinstance(account_id, str) and account_id.strip():
+            event["account_id"] = account_id
+        if isinstance(strategy_id, str) and strategy_id.strip():
+            event["strategy_id"] = strategy_id
+        if isinstance(symbol, str) and symbol.strip():
+            event["symbol"] = symbol
         with self.path.open("a", encoding="utf-8") as f:
             f.write(json.dumps(event, sort_keys=True) + "\n")
 
