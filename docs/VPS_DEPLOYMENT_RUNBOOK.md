@@ -73,13 +73,43 @@ export CTRADER_ACCESS_TOKEN="..."
 export CTRADER_CLIENT_ID="..."
 export CTRADER_CLIENT_SECRET="..."
 export QUANTBRIDGE_SRC_PATH="/opt/quantbuild/quantBridge-v.1/src"
+
+# News + LLM
+export FINNHUB_API_KEY="..."
+export OPENAI_API_KEY="..."
+# optioneel backup news source
+export NEWSAPI_KEY="..."
+
+# Telegram
+export TELEGRAM_ENABLED="true"
+export TELEGRAM_BOT_TOKEN="..."
+export TELEGRAM_CHAT_ID="..."
+export TELEGRAM_INSTANCE_LABEL="VPS"
 ```
 
 Tip: zet deze in een service env-file (`/etc/quantbuild/quantbuild.env`).
 
 ---
 
-## 6) Config voor Runtime Testfase
+## 6) Nieuwe SSH Sessie (altijd eerst)
+
+Nieuwe PuTTY/SSH sessie start zonder actieve venv. Gebruik steeds:
+
+```bash
+cd /opt/quantbuild/quantbuild_e1_v1
+source .venv/bin/activate
+which python
+```
+
+Verwacht pad:
+
+```text
+/opt/quantbuild/quantbuild_e1_v1/.venv/bin/python
+```
+
+---
+
+## 7) Config voor Runtime Testfase
 
 Gebruik:
 
@@ -96,7 +126,34 @@ python -m src.quantbuild.app --config configs/ctrader_quantbridge_openapi.yaml l
 
 ---
 
-## 7) Preflight Checks (verplicht)
+## 8) News Intelligence Validatie (strict_prod_v2)
+
+Voor news-gate + sentiment + LLM advisor + Telegram news-impact alerts:
+
+```bash
+cd /opt/quantbuild/quantbuild_e1_v1
+source .venv/bin/activate
+
+# 1) News ingest smoke test
+python -m src.quantbuild.app --config configs/strict_prod_v2.yaml news-test
+
+# 2) Telegram news-impact testbericht
+python -c "from src.quantbuild.config import load_config; from src.quantbuild.alerts.telegram import TelegramAlerter; c=load_config('configs/strict_prod_v2.yaml'); t=TelegramAlerter(c); print('sent=', t.alert_news_event('VPS test news impact', 'VPS', 'bullish', 0.77, 'system/test'))"
+
+# 3) Dry-run met volledige decision kernel
+python -m src.quantbuild.app --config configs/strict_prod_v2.yaml live --dry-run
+```
+
+Belangrijke logregels tijdens dry-run:
+
+- `Relevance filter: X/Y events passed`
+- `News budget: dropped ... stale events`
+- `News budget: processing ... dropped ... by poll cap`
+- `LLM advisor ...` (block/suppress/boost)
+
+---
+
+## 9) Preflight Checks (verplicht)
 
 ### A. Truth-mode check (ctrader only, verwacht fail-fast als candles niet beschikbaar zijn)
 
@@ -114,7 +171,7 @@ Voor strict cTrader-run is deze stap optioneel en niet onderdeel van productiebe
 
 ---
 
-## 8) Systemd Service (aanbevolen)
+## 10) Systemd Service (aanbevolen)
 
 Maak env-file (voorbeeld staat in `deploy/systemd/quantbuild.env.example`):
 
@@ -177,7 +234,7 @@ tail -f /opt/quantbuild/quantbuild_e1_v1/logs/runtime_ctrader_demo.log
 
 ---
 
-## 9) Week-Run Acceptatiecriteria
+## 11) Week-Run Acceptatiecriteria
 
 ### Must pass
 
@@ -201,11 +258,11 @@ tail -f /opt/quantbuild/quantbuild_e1_v1/logs/runtime_ctrader_demo.log
 
 ---
 
-## 10) Dagelijkse Controle (snelle routine)
+## 12) Dagelijkse Controle (snelle routine)
 
 ```bash
 sudo systemctl status quantbuild-ctrader-demo.service --no-pager
-rg "BOOTSTRAP|decision_cycle|market_data_bootstrap_failed|live_data_refresh_fail_fast|ERROR" /opt/quantbuild/quantbuild_e1_v1/logs/runtime_ctrader_demo.log
+rg "BOOTSTRAP|decision_cycle|market_data_bootstrap_failed|live_data_refresh_fail_fast|Relevance filter|News budget|LLM advisor|ERROR" /opt/quantbuild/quantbuild_e1_v1/logs/runtime_ctrader_demo.log
 ```
 
 Of via script:
@@ -218,7 +275,7 @@ chmod +x scripts/vps/daily_health_check.sh
 
 ---
 
-## 11) Na 1 Week: Go/No-Go
+## 13) Na 1 Week: Go/No-Go
 
 - **GO naar langere paper-run** als stabiliteit + decision trace consistent zijn.
 - **NO-GO** als data-integriteit of decision observability gaten toont.
