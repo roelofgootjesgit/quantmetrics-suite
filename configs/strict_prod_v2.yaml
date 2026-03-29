@@ -274,3 +274,8 @@ ai:
   max_tokens: 500
   temperature: 0.2
   timeout_seconds: 15
+
+quantlog:
+  enabled: true
+  base_path: data/quantlog_events
+  environment: dry_run

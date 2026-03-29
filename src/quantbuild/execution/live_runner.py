@@ -15,6 +15,7 @@ import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+from uuid import uuid4
 
 import numpy as np
 import pandas as pd
@@ -23,6 +24,7 @@ from src.quantbuild.config import load_config
 from src.quantbuild.data.sessions import session_from_timestamp, ENTRY_SESSIONS
 from src.quantbuild.alerts.telegram import TelegramAlerter
 from src.quantbuild.execution.broker_factory import create_broker
+from src.quantbuild.execution.quantlog_emitter import QuantLogEmitter
 from src.quantbuild.execution.order_manager import OrderManager
 from src.quantbuild.execution.position_monitor import PositionMonitor
 from src.quantbuild.execution.quantbridge import (
@@ -109,6 +111,23 @@ class LiveRunner:
         # Alerts/monitoring
         self._telegram = TelegramAlerter(cfg)
         self._report_interval_seconds = self._telegram.report_interval_seconds(default_seconds=3600)
+
+        # QuantLog integration
+        self._quantlog: Optional[QuantLogEmitter] = None
+        ql_cfg = cfg.get("quantlog", {}) or {}
+        if bool(ql_cfg.get("enabled", False)):
+            ql_base = Path(str(ql_cfg.get("base_path", "data/quantlog_events")))
+            ql_env = str(ql_cfg.get("environment", "dry_run" if dry_run else "live"))
+            run_id = str(ql_cfg.get("run_id", f"qb_run_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"))
+            session_id = str(ql_cfg.get("session_id", f"qb_session_{uuid4().hex[:10]}"))
+            self._quantlog = QuantLogEmitter(
+                base_path=ql_base,
+                source_component="live_runner",
+                environment=ql_env,
+                run_id=run_id,
+                session_id=session_id,
+            )
+            logger.info("QuantLog emitter enabled: base_path=%s run_id=%s", ql_base, run_id)
 
         # News layer
         self._news_poller = None
@@ -413,6 +432,81 @@ class LiveRunner:
 
     # ── Signal Evaluation ─────────────────────────────────────────────
 
+    def _new_trace_id(self) -> str:
+        return f"trace_qb_{uuid4().hex[:12]}"
+
+    def _emit_signal_evaluated(
+        self,
+        *,
+        trace_id: str,
+        direction: str,
+        confidence: float,
+        regime: Optional[str],
+    ) -> None:
+        if not self._quantlog:
+            return
+        self._quantlog.emit(
+            event_type="signal_evaluated",
+            trace_id=trace_id,
+            account_id=self._account_id,
+            strategy_id="sqe_live_runner",
+            symbol=self.cfg.get("symbol", "XAUUSD"),
+            payload={
+                "signal_type": "sqe_entry",
+                "signal_direction": direction,
+                "confidence": confidence,
+                "regime": regime or "none",
+            },
+        )
+
+    def _emit_guard_decision(
+        self,
+        *,
+        trace_id: str,
+        decision: str,
+        reason: str,
+        guard_name: str,
+    ) -> None:
+        if not self._quantlog:
+            return
+        self._quantlog.emit(
+            event_type="risk_guard_decision",
+            trace_id=trace_id,
+            account_id=self._account_id,
+            strategy_id="sqe_live_runner",
+            symbol=self.cfg.get("symbol", "XAUUSD"),
+            payload={
+                "guard_name": guard_name,
+                "decision": decision,
+                "reason": reason,
+            },
+        )
+
+    def _emit_trade_action(
+        self,
+        *,
+        trace_id: str,
+        decision: str,
+        reason: str,
+        side: Optional[str] = None,
+    ) -> None:
+        if not self._quantlog:
+            return
+        payload: Dict[str, Any] = {
+            "decision": decision,
+            "reason": reason,
+        }
+        if side:
+            payload["side"] = side
+        self._quantlog.emit(
+            event_type="trade_action",
+            trace_id=trace_id,
+            account_id=self._account_id,
+            strategy_id="sqe_live_runner",
+            symbol=self.cfg.get("symbol", "XAUUSD"),
+            payload=payload,
+        )
+
     def _log_decision_cycle(
         self,
         now: datetime,
@@ -611,7 +705,15 @@ class LiveRunner:
             return
 
         for direction in signals_to_check:
-            action, reason = self._evaluate_and_execute(direction, data_15m, now, regime)
+            trace_id = self._new_trace_id()
+            confidence = 1.0
+            self._emit_signal_evaluated(
+                trace_id=trace_id,
+                direction=direction,
+                confidence=confidence,
+                regime=regime,
+            )
+            action, reason = self._evaluate_and_execute(direction, data_15m, now, regime, trace_id)
             self._log_decision_cycle(
                 now=now,
                 action=action,
@@ -628,7 +730,12 @@ class LiveRunner:
             )
 
     def _evaluate_and_execute(
-        self, direction: str, data: pd.DataFrame, now: datetime, regime: Optional[str],
+        self,
+        direction: str,
+        data: pd.DataFrame,
+        now: datetime,
+        regime: Optional[str],
+        trace_id: str,
     ) -> tuple[str, str]:
         """Run final checks and submit order for a signal."""
         regime_profiles = self.cfg.get("regime_profiles", {})
@@ -640,6 +747,18 @@ class LiveRunner:
             gate_result = self._news_gate.check_gate(now, direction)
             if not gate_result["allowed"]:
                 logger.info("NewsGate blocks %s: %s", direction, gate_result["reason"])
+                self._emit_guard_decision(
+                    trace_id=trace_id,
+                    decision="BLOCK",
+                    reason="news_block",
+                    guard_name="news_gate",
+                )
+                self._emit_trade_action(
+                    trace_id=trace_id,
+                    decision="NO_ACTION",
+                    reason="news_block",
+                    side=direction,
+                )
                 return "no_trade", "news_block"
             news_boost = gate_result.get("boost", 1.0)
 
@@ -666,6 +785,18 @@ class LiveRunner:
                     advice.get("stance", "neutral"),
                     float(advice.get("confidence", 0.0)),
                 )
+                self._emit_guard_decision(
+                    trace_id=trace_id,
+                    decision="BLOCK",
+                    reason="llm_advice_block",
+                    guard_name="llm_advisor",
+                )
+                self._emit_trade_action(
+                    trace_id=trace_id,
+                    decision="NO_ACTION",
+                    reason="llm_advice_block",
+                    side=direction,
+                )
                 return "no_trade", "llm_advice_block"
             advice_mult = float(advice.get("risk_multiplier", 1.0) or 1.0)
             news_boost *= advice_mult
@@ -683,6 +814,18 @@ class LiveRunner:
         spread_issue = self._check_spread_guard()
         if spread_issue:
             logger.info("Spread guard blocks entry: %s", spread_issue)
+            self._emit_guard_decision(
+                trace_id=trace_id,
+                decision="BLOCK",
+                reason="spread_block",
+                guard_name="spread_guard",
+            )
+            self._emit_trade_action(
+                trace_id=trace_id,
+                decision="NO_ACTION",
+                reason="spread_block",
+                side=direction,
+            )
             return "no_trade", "spread_block"
 
         # Calculate SL/TP from ATR
@@ -692,6 +835,18 @@ class LiveRunner:
             entry_atr = float(_atr_series.iloc[-1]) if not _atr_series.empty else 0
         if entry_atr <= 0:
             logger.warning("ATR is 0 — cannot calculate SL/TP")
+            self._emit_guard_decision(
+                trace_id=trace_id,
+                decision="BLOCK",
+                reason="atr_unavailable",
+                guard_name="atr_guard",
+            )
+            self._emit_trade_action(
+                trace_id=trace_id,
+                decision="NO_ACTION",
+                reason="atr_unavailable",
+                side=direction,
+            )
             return "no_trade", "atr_unavailable"
 
         tp_r = rp.get("tp_r", self.cfg.get("backtest", {}).get("tp_r", 2.0))
@@ -722,6 +877,18 @@ class LiveRunner:
 
         if units <= 0:
             logger.warning("Position size is 0 — skipping")
+            self._emit_guard_decision(
+                trace_id=trace_id,
+                decision="BLOCK",
+                reason="risk_block",
+                guard_name="position_sizing",
+            )
+            self._emit_trade_action(
+                trace_id=trace_id,
+                decision="NO_ACTION",
+                reason="risk_block",
+                side=direction,
+            )
             return "no_trade", "risk_block"
 
         logger.info(
@@ -752,10 +919,22 @@ class LiveRunner:
                 exec_result = self.quantbridge.execute(request)
             except Exception as e:
                 logger.error("QuantBridge execution failed: %s", e)
+                self._emit_trade_action(
+                    trace_id=trace_id,
+                    decision="NO_ACTION",
+                    reason="execution_exception",
+                    side=direction,
+                )
                 return "no_trade", "execution_exception"
 
             if exec_result.status != "filled":
                 logger.error("Order failed via QuantBridge: %s", exec_result.message)
+                self._emit_trade_action(
+                    trace_id=trace_id,
+                    decision="NO_ACTION",
+                    reason="execution_reject",
+                    side=direction,
+                )
                 return "no_trade", "execution_reject"
 
             trade_id = exec_result.broker_order_id or f"UNK_{now.strftime('%H%M%S')}"
@@ -770,6 +949,18 @@ class LiveRunner:
                     slippage, 100 * slippage / risk_amount,
                 )
                 self.broker.close_trade(trade_id)
+                self._emit_guard_decision(
+                    trace_id=trace_id,
+                    decision="BLOCK",
+                    reason="slippage_block",
+                    guard_name="slippage_guard",
+                )
+                self._emit_trade_action(
+                    trace_id=trace_id,
+                    decision="NO_ACTION",
+                    reason="slippage_block",
+                    side=direction,
+                )
                 return "no_trade", "slippage_block"
 
         # Register with order manager
@@ -807,7 +998,19 @@ class LiveRunner:
                 reason=f"regime={regime or 'none'}",
             )
         if self.dry_run:
+            self._emit_trade_action(
+                trace_id=trace_id,
+                decision="ENTER",
+                reason="all_conditions_met",
+                side=direction,
+            )
             return "order_intent", "all_conditions_met"
+        self._emit_trade_action(
+            trace_id=trace_id,
+            decision="ENTER",
+            reason="all_conditions_met",
+            side=direction,
+        )
         return "order_filled", "all_conditions_met"
 
     def _calculate_units(self, entry: float, sl: float, risk_pct: float) -> float:

@@ -35,6 +35,13 @@ logging:
   format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
   file_path: logs/quantbuild.log
 
+quantlog:
+  enabled: false
+  base_path: data/quantlog_events
+  environment: dry_run
+  run_id: ""
+  session_id: ""
+
 monitoring:
   telegram:
     enabled: false
