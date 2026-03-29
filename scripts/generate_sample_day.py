@@ -15,7 +15,7 @@ from __future__ import annotations
 import argparse
 import random
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from uuid import uuid4
 
@@ -39,7 +39,7 @@ def _mk_ids(prefix: str, idx: int) -> TraceIds:
 
 
 def _fmt(dt: datetime) -> str:
-    return dt.astimezone(UTC).isoformat().replace("+00:00", "Z")
+    return dt.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 def _emit_happy(
@@ -416,7 +416,9 @@ def _inject_anomalies(output_path: Path, date: str) -> dict[str, int]:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Generate a sample QuantLog event day")
     parser.add_argument("--output-path", default="data/events/generated", help="Base output event path")
-    parser.add_argument("--date", default=datetime.now(tz=UTC).strftime("%Y-%m-%d"), help="UTC date YYYY-MM-DD")
+    parser.add_argument(
+        "--date", default=datetime.now(tz=timezone.utc).strftime("%Y-%m-%d"), help="UTC date YYYY-MM-DD"
+    )
     parser.add_argument("--traces", type=int, default=20, help="Total traces to generate")
     parser.add_argument("--happy-ratio", type=float, default=0.6, help="Happy path ratio")
     parser.add_argument("--blocked-ratio", type=float, default=0.25, help="Blocked path ratio")
