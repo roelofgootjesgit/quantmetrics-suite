@@ -1,0 +1,66 @@
+version: 1
+description: QuantLog v1 canonical event types and required payload keys
+
+event_types:
+  signal_evaluated:
+    required_payload:
+      - signal_type
+      - signal_direction
+      - confidence
+  risk_guard_decision:
+    required_payload:
+      - guard_name
+      - decision
+      - reason
+    allowed_decisions:
+      - ALLOW
+      - BLOCK
+      - REDUCE
+      - DELAY
+  trade_action:
+    required_payload:
+      - decision
+      - reason
+    allowed_decisions:
+      - ENTER
+      - EXIT
+      - REVERSE
+      - NO_ACTION
+  adaptive_mode_transition:
+    required_payload:
+      - old_mode
+      - new_mode
+      - reason
+  broker_connect:
+    required_payload:
+      - broker
+      - status
+  order_submitted:
+    required_payload:
+      - order_ref
+      - side
+      - volume
+  order_filled:
+    required_payload:
+      - order_ref
+      - fill_price
+  order_rejected:
+    required_payload:
+      - order_ref
+      - reason
+  governance_state_changed:
+    required_payload:
+      - account_id
+      - old_state
+      - new_state
+      - reason
+  failsafe_pause:
+    required_payload:
+      - reason
+  audit_gap_detected:
+    required_payload:
+      - source_system
+      - gap_start_utc
+      - gap_end_utc
+      - gap_seconds
+      - reason

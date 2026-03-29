@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Virtual environments
+.venv/
+venv/
+
+# Build/packaging artifacts
+build/
+dist/
+*.egg-info/
+
+# Local/generated runtime data
+.tmp/
+data/events/generated/
+
+# IDE/OS
+.DS_Store
+Thumbs.db
