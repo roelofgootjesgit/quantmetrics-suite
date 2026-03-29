@@ -4,14 +4,14 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
 
 def _utc_now_iso() -> str:
-    return datetime.now(tz=UTC).isoformat().replace("+00:00", "Z")
+    return datetime.now(tz=timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 @dataclass
