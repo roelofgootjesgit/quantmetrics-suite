@@ -4,11 +4,13 @@ __pycache__/
 .venv/
 venv/
 .env
+envvps.txt
 *.egg-info/
 dist/
 build/
 data/market_cache/
 data/news_cache/
+data/quantlog_events/
 data/state.json
 logs/
 *.parquet
