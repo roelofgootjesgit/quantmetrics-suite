@@ -27,6 +27,7 @@ Praktische handleiding om QuantBuild + QuantBridge op een Linux VPS te deployen 
 ```text
 /opt/quantbuild/quantbuild_e1_v1
 /opt/quantbuild/quantBridge-v.1
+/opt/quantbuild/quantlog-v.1    # optioneel; event spine + post_run — zie docs/VPS_MULTI_MODULE_DEPLOYMENT.md
 ```
 
 ---

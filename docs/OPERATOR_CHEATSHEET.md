@@ -26,6 +26,11 @@ git fetch origin
 git checkout main
 git pull --ff-only
 
+cd /opt/quantbuild/quantlog-v.1
+git fetch origin
+git checkout main
+git pull --ff-only
+
 cd /opt/quantbuild/quantbuild_e1_v1
 git fetch origin
 git checkout v2-development
@@ -34,6 +39,8 @@ git pull --ff-only
 sudo systemctl restart quantbuild-ctrader-demo.service
 sudo systemctl is-active quantbuild-ctrader-demo.service
 ```
+
+Zie `docs/VPS_MULTI_MODULE_DEPLOYMENT.md`: na pull eventueel `pip install -r requirements.txt` en/of `pip install -e /opt/quantbuild/quantlog-v.1` in **QuantBuild** `.venv` vóór restart.
 
 ---
 

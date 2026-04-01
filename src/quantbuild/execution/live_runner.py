@@ -489,15 +489,24 @@ class LiveRunner:
         decision: str,
         reason: str,
         side: Optional[str] = None,
+        session: Optional[str] = None,
+        regime: Optional[str] = None,
     ) -> None:
         if not self._quantlog:
             return
+        from src.quantbuild.execution.quantlog_no_action import canonical_no_action_reason
+
+        eff_reason = canonical_no_action_reason(reason) if decision == "NO_ACTION" else reason
         payload: Dict[str, Any] = {
             "decision": decision,
-            "reason": reason,
+            "reason": eff_reason,
         }
         if side:
             payload["side"] = side
+        if session is not None:
+            payload["session"] = session
+        if regime is not None:
+            payload["regime"] = regime
         self._quantlog.emit(
             event_type="trade_action",
             trace_id=trace_id,
@@ -566,6 +575,13 @@ class LiveRunner:
                     position_ok=position_ok,
                     daily_loss_ok=daily_loss_ok,
                 )
+                self._emit_trade_action(
+                    trace_id=self._new_trace_id(),
+                    decision="NO_ACTION",
+                    reason="regime_block",
+                    session=current_session,
+                    regime=regime,
+                )
                 return
 
             # Per-regime session/time filter
@@ -581,6 +597,13 @@ class LiveRunner:
                     position_ok=position_ok,
                     daily_loss_ok=daily_loss_ok,
                 )
+                self._emit_trade_action(
+                    trace_id=self._new_trace_id(),
+                    decision="NO_ACTION",
+                    reason="outside_killzone",
+                    session=current_session,
+                    regime=regime,
+                )
                 return
 
             min_hour = rp.get("min_hour_utc")
@@ -594,6 +617,13 @@ class LiveRunner:
                     killzone=current_session,
                     position_ok=position_ok,
                     daily_loss_ok=daily_loss_ok,
+                )
+                self._emit_trade_action(
+                    trace_id=self._new_trace_id(),
+                    decision="NO_ACTION",
+                    reason="time_filter_block",
+                    session=current_session,
+                    regime=regime,
                 )
                 return
 
@@ -609,6 +639,13 @@ class LiveRunner:
                 position_ok=position_ok,
                 daily_loss_ok=daily_loss_ok,
             )
+            self._emit_trade_action(
+                trace_id=self._new_trace_id(),
+                decision="NO_ACTION",
+                reason="position_limit_block",
+                session=current_session,
+                regime=regime,
+            )
             return
 
         # Daily loss limit
@@ -622,6 +659,13 @@ class LiveRunner:
                 killzone=current_session,
                 position_ok=position_ok,
                 daily_loss_ok=daily_loss_ok,
+            )
+            self._emit_trade_action(
+                trace_id=self._new_trace_id(),
+                decision="NO_ACTION",
+                reason="daily_loss_block",
+                session=current_session,
+                regime=regime,
             )
             return
 
@@ -647,6 +691,13 @@ class LiveRunner:
                 position_ok=position_ok,
                 daily_loss_ok=daily_loss_ok,
             )
+            self._emit_trade_action(
+                trace_id=self._new_trace_id(),
+                decision="NO_ACTION",
+                reason="bars_missing",
+                session=current_session,
+                regime=regime,
+            )
             return
 
         # Detect if we're on a new bar
@@ -662,6 +713,13 @@ class LiveRunner:
                 bars_ok=True,
                 position_ok=position_ok,
                 daily_loss_ok=daily_loss_ok,
+            )
+            self._emit_trade_action(
+                trace_id=self._new_trace_id(),
+                decision="NO_ACTION",
+                reason="same_bar_already_processed",
+                session=current_session,
+                regime=regime,
             )
             return  # Already processed this bar
         self._last_bar_ts = latest_ts
@@ -702,6 +760,13 @@ class LiveRunner:
                 position_ok=position_ok,
                 daily_loss_ok=daily_loss_ok,
             )
+            self._emit_trade_action(
+                trace_id=self._new_trace_id(),
+                decision="NO_ACTION",
+                reason="no_entry_signal",
+                session=current_session,
+                regime=regime,
+            )
             return
 
         for direction in signals_to_check:
@@ -713,7 +778,9 @@ class LiveRunner:
                 confidence=confidence,
                 regime=regime,
             )
-            action, reason = self._evaluate_and_execute(direction, data_15m, now, regime, trace_id)
+            action, reason = self._evaluate_and_execute(
+                direction, data_15m, now, regime, trace_id, current_session
+            )
             self._log_decision_cycle(
                 now=now,
                 action=action,
@@ -736,6 +803,7 @@ class LiveRunner:
         now: datetime,
         regime: Optional[str],
         trace_id: str,
+        session: str,
     ) -> tuple[str, str]:
         """Run final checks and submit order for a signal."""
         regime_profiles = self.cfg.get("regime_profiles", {})
@@ -758,6 +826,8 @@ class LiveRunner:
                     decision="NO_ACTION",
                     reason="news_block",
                     side=direction,
+                    session=session,
+                    regime=regime,
                 )
                 return "no_trade", "news_block"
             news_boost = gate_result.get("boost", 1.0)
@@ -796,6 +866,8 @@ class LiveRunner:
                     decision="NO_ACTION",
                     reason="llm_advice_block",
                     side=direction,
+                    session=session,
+                    regime=regime,
                 )
                 return "no_trade", "llm_advice_block"
             advice_mult = float(advice.get("risk_multiplier", 1.0) or 1.0)
@@ -825,6 +897,8 @@ class LiveRunner:
                 decision="NO_ACTION",
                 reason="spread_block",
                 side=direction,
+                session=session,
+                regime=regime,
             )
             return "no_trade", "spread_block"
 
@@ -846,6 +920,8 @@ class LiveRunner:
                 decision="NO_ACTION",
                 reason="atr_unavailable",
                 side=direction,
+                session=session,
+                regime=regime,
             )
             return "no_trade", "atr_unavailable"
 
@@ -857,6 +933,20 @@ class LiveRunner:
             price_info = self.broker.get_current_price()
             if not price_info:
                 logger.warning("Cannot get current price for order")
+                self._emit_guard_decision(
+                    trace_id=trace_id,
+                    decision="BLOCK",
+                    reason="price_unavailable",
+                    guard_name="price_feed",
+                )
+                self._emit_trade_action(
+                    trace_id=trace_id,
+                    decision="NO_ACTION",
+                    reason="price_unavailable",
+                    side=direction,
+                    session=session,
+                    regime=regime,
+                )
                 return "no_trade", "price_unavailable"
             entry_price = price_info["ask"] if direction == "LONG" else price_info["bid"]
         else:
@@ -888,6 +978,8 @@ class LiveRunner:
                 decision="NO_ACTION",
                 reason="risk_block",
                 side=direction,
+                session=session,
+                regime=regime,
             )
             return "no_trade", "risk_block"
 
@@ -924,6 +1016,8 @@ class LiveRunner:
                     decision="NO_ACTION",
                     reason="execution_exception",
                     side=direction,
+                    session=session,
+                    regime=regime,
                 )
                 return "no_trade", "execution_exception"
 
@@ -934,6 +1028,8 @@ class LiveRunner:
                     decision="NO_ACTION",
                     reason="execution_reject",
                     side=direction,
+                    session=session,
+                    regime=regime,
                 )
                 return "no_trade", "execution_reject"
 
@@ -960,6 +1056,8 @@ class LiveRunner:
                     decision="NO_ACTION",
                     reason="slippage_block",
                     side=direction,
+                    session=session,
+                    regime=regime,
                 )
                 return "no_trade", "slippage_block"
 
@@ -1003,6 +1101,8 @@ class LiveRunner:
                 decision="ENTER",
                 reason="all_conditions_met",
                 side=direction,
+                session=session,
+                regime=regime,
             )
             return "order_intent", "all_conditions_met"
         self._emit_trade_action(
@@ -1010,6 +1110,8 @@ class LiveRunner:
             decision="ENTER",
             reason="all_conditions_met",
             side=direction,
+            session=session,
+            regime=regime,
         )
         return "order_filled", "all_conditions_met"
 
