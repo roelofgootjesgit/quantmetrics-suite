@@ -173,6 +173,10 @@ class TelegramAlerter:
         account_equity: float | None = None,
         account_unrealized_pnl: float | None = None,
         account_currency: str = "USD",
+        *,
+        hourly_no_action: dict[str, int] | None = None,
+        hourly_enter: int = 0,
+        activity_caption: str = "",
     ) -> bool:
         if not self.status_report_enabled():
             return False
@@ -191,8 +195,22 @@ class TelegramAlerter:
             account_lines += f"Account equity: {account_equity:,.2f} {account_currency}\n"
         if account_unrealized_pnl is not None:
             account_lines += f"Account P/L (float): {account_unrealized_pnl:+,.2f} {account_currency}\n"
+        activity_block = ""
+        if activity_caption:
+            na = hourly_no_action if hourly_no_action is not None else {}
+            na_total = sum(na.values())
+            act_lines = [
+                f"<b>{activity_caption}</b>",
+                f"NO_ACTION (no new trade): <b>{na_total}</b>",
+            ]
+            for rk, rv in sorted(na.items(), key=lambda x: (-x[1], x[0])):
+                act_lines.append(f"  • <code>{rk}</code>: {rv}")
+            act_lines.append(f"ENTER (opened): <b>{hourly_enter}</b>")
+            activity_block = "\n".join(act_lines) + "\n\n"
         text = (
             f"📡 <b>STATUS REPORT</b>\n"
+            f"{activity_block}"
+            f"Symbol: {symbol}\n"
             f"Mode: {mode}\n"
             f"Regime: {regime}\n"
             f"Trades today: {trades_today}\n"

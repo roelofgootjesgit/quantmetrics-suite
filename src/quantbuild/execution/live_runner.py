@@ -12,6 +12,7 @@ import logging
 import json
 import signal
 import time
+from collections import Counter
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -111,6 +112,8 @@ class LiveRunner:
         # Alerts/monitoring
         self._telegram = TelegramAlerter(cfg)
         self._report_interval_seconds = self._telegram.report_interval_seconds(default_seconds=3600)
+        self._hourly_no_action_counts: Counter[str] = Counter()
+        self._hourly_enter_count: int = 0
 
         # QuantLog integration
         self._quantlog: Optional[QuantLogEmitter] = None
@@ -492,11 +495,15 @@ class LiveRunner:
         session: Optional[str] = None,
         regime: Optional[str] = None,
     ) -> None:
-        if not self._quantlog:
-            return
         from src.quantbuild.execution.quantlog_no_action import canonical_no_action_reason
 
         eff_reason = canonical_no_action_reason(reason) if decision == "NO_ACTION" else reason
+        if decision == "NO_ACTION":
+            self._hourly_no_action_counts[eff_reason] += 1
+        elif decision == "ENTER":
+            self._hourly_enter_count += 1
+        if not self._quantlog:
+            return
         payload: Dict[str, Any] = {
             "decision": decision,
             "reason": eff_reason,
@@ -1338,6 +1345,13 @@ class LiveRunner:
                         broker_positions = int(acct.open_trade_count)
             except Exception as e:
                 logger.warning("Failed to fetch broker account state for status report: %s", e)
+        mins = max(1, self._report_interval_seconds // 60)
+        activity_caption = {
+            "startup": "Activity since process start",
+            "shutdown": "Activity since last report (shutdown)",
+            "interval": f"Activity past ~{mins} min",
+        }.get(reason, "Activity since last report")
+
         sent = self._telegram.alert_status_report(
             symbol=self.cfg.get("symbol", "XAUUSD"),
             mode=mode,
@@ -1353,9 +1367,14 @@ class LiveRunner:
             account_equity=account_equity,
             account_unrealized_pnl=account_unrealized_pnl,
             account_currency=account_currency,
+            hourly_no_action=dict(self._hourly_no_action_counts),
+            hourly_enter=self._hourly_enter_count,
+            activity_caption=activity_caption,
         )
         if sent:
             self._last_status_report = now
+            self._hourly_no_action_counts.clear()
+            self._hourly_enter_count = 0
             logger.info("Telegram status report sent (%s)", reason)
 
     # ── Main Loop ─────────────────────────────────────────────────────
