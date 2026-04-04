@@ -54,6 +54,12 @@ def _make_ohlc(n=200):
 
 
 class TestQuantLogRunSessionIds:
+    @pytest.fixture(autouse=True)
+    def _clear_quantlog_run_env(self, monkeypatch):
+        """GitHub Actions (and systemd) set INVOCATION_ID; tests need deterministic defaults."""
+        monkeypatch.delenv("INVOCATION_ID", raising=False)
+        monkeypatch.delenv("QUANTBUILD_RUN_ID", raising=False)
+
     def test_empty_config_run_id_uses_default_prefix(self):
         rid = _resolve_quantlog_run_id({})
         assert rid.startswith("qb_run_")
