@@ -4,7 +4,12 @@ from __future__ import annotations
 
 import unittest
 
-from src.quantbuild.execution.quantlog_no_action import canonical_no_action_reason
+from src.quantbuild.execution.quantlog_no_action import (
+    LIVE_RUNNER_NO_ACTION_INTERNAL_CODES,
+    _CANONICAL_NO_ACTION,
+    _INTERNAL_TO_CANONICAL,
+    canonical_no_action_reason,
+)
 
 
 class TestQuantlogNoActionReasons(unittest.TestCase):
@@ -21,6 +26,19 @@ class TestQuantlogNoActionReasons(unittest.TestCase):
 
     def test_unknown_defaults_to_risk_blocked(self) -> None:
         self.assertEqual(canonical_no_action_reason("totally_unknown_code"), "risk_blocked")
+
+    def test_internal_map_targets_are_quantlog_canonical(self) -> None:
+        for internal, canonical in _INTERNAL_TO_CANONICAL.items():
+            self.assertIn(
+                canonical,
+                _CANONICAL_NO_ACTION,
+                msg=f"{internal!r} -> {canonical!r} not in _CANONICAL_NO_ACTION",
+            )
+
+    def test_every_internal_code_maps_via_function(self) -> None:
+        for code in LIVE_RUNNER_NO_ACTION_INTERNAL_CODES:
+            out = canonical_no_action_reason(code)
+            self.assertIn(out, _CANONICAL_NO_ACTION)
 
 
 if __name__ == "__main__":

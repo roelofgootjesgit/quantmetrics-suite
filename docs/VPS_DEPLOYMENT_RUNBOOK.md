@@ -233,6 +233,18 @@ Logs volgen:
 tail -f /opt/quantbuild/quantbuild_e1_v1/logs/runtime_ctrader_demo.log
 ```
 
+### QuantLog nightly timer (optioneel)
+
+Valideert/summariseert de **vorige UTC-dag** (`scripts/vps/quantlog_nightly.sh`). Zet de server op **UTC** (`timedatectl set-timezone UTC`) of pas `deploy/systemd/quantbuild-quantlog-report.timer` aan.
+
+```bash
+cd /opt/quantbuild/quantbuild_e1_v1
+chmod +x scripts/vps/install_quantlog_nightly_timer.sh scripts/vps/quantlog_nightly.sh
+./scripts/vps/install_quantlog_nightly_timer.sh
+```
+
+Zie ook `docs/OPERATOR_CHEATSHEET.md` §9.
+
 ---
 
 ## 11) Week-Run Acceptatiecriteria

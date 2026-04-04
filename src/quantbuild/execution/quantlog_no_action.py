@@ -24,6 +24,7 @@ _CANONICAL_NO_ACTION: frozenset[str] = frozenset(
     }
 )
 
+# Every internal code emitted as trade_action NO_ACTION from live_runner must appear here.
 _INTERNAL_TO_CANONICAL: dict[str, str] = {
     # _check_signals early exits (internal log reason -> canonical)
     "regime_block": "regime_blocked",
@@ -45,6 +46,8 @@ _INTERNAL_TO_CANONICAL: dict[str, str] = {
     "slippage_block": "risk_blocked",
     "price_unavailable": "broker_unavailable",
 }
+
+LIVE_RUNNER_NO_ACTION_INTERNAL_CODES: frozenset[str] = frozenset(_INTERNAL_TO_CANONICAL.keys())
 
 
 def canonical_no_action_reason(reason: str) -> str:

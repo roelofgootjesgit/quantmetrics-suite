@@ -1,0 +1,12 @@
+[Unit]
+Description=Daily QuantLog report (previous UTC day)
+
+[Timer]
+# Runs once per day after midnight. Use `timedatectl set-timezone UTC` on the VPS so
+# "yesterday" in quantlog_nightly.sh matches this trigger, or change OnCalendar accordingly.
+OnCalendar=*-*-* 00:20:00
+Persistent=true
+Unit=quantbuild-quantlog-report.service
+
+[Install]
+WantedBy=timers.target

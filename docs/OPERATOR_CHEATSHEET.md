@@ -42,6 +42,8 @@ sudo systemctl is-active quantbuild-ctrader-demo.service
 
 Zie `docs/VPS_MULTI_MODULE_DEPLOYMENT.md`: na pull eventueel `pip install -r requirements.txt` en/of `pip install -e /opt/quantbuild/quantlog-v.1` in **QuantBuild** `.venv` vóór restart.
 
+**Eerste keer op deze VPS:** als `ls /opt/quantbuild/quantlog-v.1` faalt → in `/opt/quantbuild` uitvoeren: `git clone <jouw-QuantLog-repo-URL> quantlog-v.1`, daarna `pip install -e /opt/quantbuild/quantlog-v.1` in de QuantBuild-venv. Zonder deze clone werkt `python -m quantlog.cli` / `scripts/quantlog_post_run.py` niet op de server (events staan wél in `data/quantlog_events/`).
+
 ---
 
 ## 3) Telegram Quick Test
@@ -129,4 +131,58 @@ Gebruik verschillende labels zodat Telegram duidelijk is:
 
 - VPS: `TELEGRAM_INSTANCE_LABEL=VPS-LIVE`
 - Local: `TELEGRAM_INSTANCE_LABEL=LOCAL-DEV`
+
+---
+
+## 9) QuantLog nightly (optioneel)
+
+Vereist: `quantlog-v.1` gecloned + `pip install -e /opt/quantbuild/quantlog-v.1` in QuantBuild `.venv`.
+
+Eenmalig installeren (timer = elke dag ~00:20 **serverlocal time**; zet VPS op UTC met `timedatectl set-timezone UTC` zodat dit gelijk is aan UTC):
+
+```bash
+cd /opt/quantbuild/quantbuild_e1_v1
+chmod +x scripts/vps/install_quantlog_nightly_timer.sh scripts/vps/quantlog_nightly.sh
+./scripts/vps/install_quantlog_nightly_timer.sh
+sudo systemctl list-timers | grep quantlog
+```
+
+Handmatig één run (gisteren UTC):
+
+```bash
+sudo systemctl start quantbuild-quantlog-report.service
+tail -n 80 /opt/quantbuild/quantbuild_e1_v1/logs/quantlog_nightly.log
+```
+
+Optioneel in `/etc/quantbuild/quantbuild.env`: `QUANTBUILD_POST_RUN_CONFIG=configs/jouw.yaml`, `QUANTLOG_REPO_PATH=...`.
+
+---
+
+## 10) P1.4 — validate-events op productiedata
+
+Na een deploy met correlatie-fix: op de VPS (met QuantLog CLI werkend):
+
+```bash
+cd /opt/quantbuild/quantbuild_e1_v1 && source .venv/bin/activate
+python -m quantlog.cli validate-events --path data/quantlog_events/2026-04-02
+```
+
+Geen structurele `invalid_run_id` / `invalid_session_id` verwacht.
+
+---
+
+## 11) QuantBuild ↔ QuantLog koppelcheck
+
+Controleert: QuantLog-repo vindbaar, `validate-events` op de **test-fixture**, en gelijkheid van **NO_ACTION**-reason sets (Build vs QuantLog schema).
+
+```bash
+cd /opt/quantbuild/quantbuild_e1_v1
+source .venv/bin/activate
+python scripts/check_quantlog_linkage.py
+```
+
+- **Geen clone:** script eindigt met **exit 0** maar print **`WARNING`** op stderr → zelfde als GitHub Actions zonder QuantLog.
+- **Strikte modus** (bijv. vóór release): `QUANTLOG_LINKAGE_STRICT=1 python scripts/check_quantlog_linkage.py` of `python scripts/check_quantlog_linkage.py --strict` → **exit 1** als repo ontbreekt of validatie/schema mismatch.
+
+Zie ook runtime: bij `quantlog.enabled` zonder vindbare repo logt `live_runner` een **warning** bij start.
 

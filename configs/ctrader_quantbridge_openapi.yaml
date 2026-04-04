@@ -32,3 +32,4 @@ quantlog:
   enabled: true
   base_path: data/quantlog_events
   environment: live
+  # run_id / session_id: weglaten = auto (env QUANTBUILD_RUN_ID / INVOCATION_ID voor run_id)

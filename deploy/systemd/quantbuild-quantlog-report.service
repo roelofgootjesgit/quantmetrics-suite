@@ -1,0 +1,14 @@
+[Unit]
+Description=QuantLog post-run (validate/summarize/score) for previous UTC day
+After=network.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/quantbuild/quantbuild_e1_v1
+EnvironmentFile=-/etc/quantbuild/quantbuild.env
+ExecStart=/bin/bash /opt/quantbuild/quantbuild_e1_v1/scripts/vps/quantlog_nightly.sh
+StandardOutput=append:/opt/quantbuild/quantbuild_e1_v1/logs/quantlog_nightly.log
+StandardError=append:/opt/quantbuild/quantbuild_e1_v1/logs/quantlog_nightly.log
+
+[Install]
+WantedBy=multi-user.target

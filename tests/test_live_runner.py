@@ -1,4 +1,6 @@
 """Unit tests for LiveRunner — decision kernel wiring."""
+import logging
+
 import pytest
 from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
@@ -6,7 +8,12 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pandas as pd
 
-from src.quantbuild.execution.live_runner import LiveRunner
+import src.quantbuild.execution.live_runner as live_runner_mod
+from src.quantbuild.execution.live_runner import (
+    LiveRunner,
+    _resolve_quantlog_run_id,
+    _resolve_quantlog_session_id,
+)
 
 
 def _minimal_cfg():
@@ -44,6 +51,53 @@ def _make_ohlc(n=200):
         {"open": opn, "high": high, "low": low, "close": close},
         index=pd.date_range("2025-01-01 10:00", periods=n, freq="15min", tz="UTC"),
     )
+
+
+class TestQuantLogRunSessionIds:
+    def test_empty_config_run_id_uses_default_prefix(self):
+        rid = _resolve_quantlog_run_id({})
+        assert rid.startswith("qb_run_")
+        assert len(rid) > len("qb_run_")
+
+    def test_whitespace_run_id_falls_through_to_default(self):
+        rid = _resolve_quantlog_run_id({"run_id": "  "})
+        assert rid.startswith("qb_run_")
+
+    def test_explicit_run_id_preserved(self):
+        assert _resolve_quantlog_run_id({"run_id": "my_run"}) == "my_run"
+
+    def test_env_quantbuild_run_id_when_config_empty(self, monkeypatch):
+        monkeypatch.delenv("INVOCATION_ID", raising=False)
+        monkeypatch.setenv("QUANTBUILD_RUN_ID", "from_env")
+        rid = _resolve_quantlog_run_id({"run_id": ""})
+        assert rid == "from_env"
+
+    def test_invocation_id_when_no_config(self, monkeypatch):
+        monkeypatch.delenv("QUANTBUILD_RUN_ID", raising=False)
+        monkeypatch.setenv("INVOCATION_ID", "systemd-abc")
+        rid = _resolve_quantlog_run_id({})
+        assert rid == "systemd-abc"
+
+    def test_empty_session_id_gets_default_prefix(self):
+        sid = _resolve_quantlog_session_id({"session_id": ""})
+        assert sid.startswith("qb_session_")
+
+    def test_quantlog_emitter_non_empty_ids_with_empty_yaml(self):
+        cfg = {
+            **_minimal_cfg(),
+            "quantlog": {"enabled": True, "run_id": "", "session_id": ""},
+        }
+        runner = LiveRunner(cfg, dry_run=True)
+        assert runner._quantlog is not None
+        assert runner._quantlog.run_id.startswith("qb_run_")
+        assert runner._quantlog.session_id.startswith("qb_session_")
+
+    def test_quantlog_warns_when_cli_repo_not_found(self, monkeypatch, caplog):
+        monkeypatch.setattr(live_runner_mod, "resolve_quantlog_repo_path", lambda: None)
+        cfg = {**_minimal_cfg(), "quantlog": {"enabled": True}}
+        with caplog.at_level(logging.WARNING):
+            LiveRunner(cfg, dry_run=True)
+        assert any("QuantLog JSONL is on" in r.message for r in caplog.records)
 
 
 class TestLiveRunnerInit:

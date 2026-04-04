@@ -115,6 +115,8 @@ git pull --ff-only
 
 **Na pull:** geen eigen QuantLog-venv. Gebruik je `pip install -e` voor QuantLog in QuantBuild’s venv, voer die **opnieuw** uit na wijzigingen (of werk met alleen `PYTHONPATH` via `scripts/quantlog_post_run.py`). **Alleen QuantLog geüpdatet?** Herstart de service. **Volledige drie-repo update?** §5.4 — **één** restart onderaan.
 
+**Optioneel — dagelijkse validate/summary:** `deploy/systemd/quantbuild-quantlog-report.{service,timer}` en `scripts/vps/install_quantlog_nightly_timer.sh` (zie `docs/OPERATOR_CHEATSHEET.md` §9).
+
 ```bash
 sudo systemctl restart quantbuild-ctrader-demo.service
 ```

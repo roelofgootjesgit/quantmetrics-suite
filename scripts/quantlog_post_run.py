@@ -18,6 +18,18 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from src.quantbuild.config import load_config
+from src.quantbuild.quantlog_repo import resolve_quantlog_repo_path
+
+
+def _default_quantlog_repo_path() -> Path:
+    """Resolved QuantLog root, or a fallback path for argparse when not found."""
+    found = resolve_quantlog_repo_path()
+    if found is not None:
+        return found
+    env = os.environ.get("QUANTLOG_REPO_PATH", "").strip()
+    if env:
+        return Path(env)
+    return Path("/opt/quantbuild/quantlog-v.1")
 
 
 def _run_json(cmd: list[str], *, env: dict[str, str] | None = None) -> dict:
@@ -53,8 +65,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--config", required=True, help="QuantBuild config path")
     parser.add_argument(
         "--quantlog-repo-path",
-        default=str(Path(__file__).resolve().parents[2].parents[0] / "quantLog v.1"),
-        help="Path to QuantLog repository",
+        default=str(_default_quantlog_repo_path()),
+        help="Path to QuantLog repository (or set QUANTLOG_REPO_PATH)",
     )
     parser.add_argument(
         "--date",
@@ -80,8 +92,11 @@ def main() -> int:
         raise RuntimeError(f"QuantLog day path does not exist: {day_path}")
 
     quantlog_repo = Path(args.quantlog_repo_path)
-    if not quantlog_repo.exists():
-        raise RuntimeError(f"QuantLog repo path does not exist: {quantlog_repo}")
+    if not quantlog_repo.exists() or not (quantlog_repo / "src" / "quantlog").is_dir():
+        raise RuntimeError(
+            f"QuantLog repo path invalid or missing (no src/quantlog): {quantlog_repo}. "
+            "Clone QuantLog, set QUANTLOG_REPO_PATH, or run: python scripts/check_quantlog_linkage.py"
+        )
     quantlog_src = quantlog_repo / "src"
     if not quantlog_src.exists():
         raise RuntimeError(f"QuantLog src path does not exist: {quantlog_src}")

@@ -279,3 +279,4 @@ quantlog:
   enabled: true
   base_path: data/quantlog_events
   environment: dry_run
+  # run_id / session_id: weglaten voor auto (geen lege strings)

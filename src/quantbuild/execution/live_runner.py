@@ -10,6 +10,7 @@ Wires together:
 """
 import logging
 import json
+import os
 import signal
 import time
 from collections import Counter
@@ -26,6 +27,7 @@ from src.quantbuild.data.sessions import session_from_timestamp, ENTRY_SESSIONS
 from src.quantbuild.alerts.telegram import TelegramAlerter
 from src.quantbuild.execution.broker_factory import create_broker
 from src.quantbuild.execution.quantlog_emitter import QuantLogEmitter
+from src.quantbuild.quantlog_repo import resolve_quantlog_repo_path
 from src.quantbuild.execution.order_manager import OrderManager
 from src.quantbuild.execution.position_monitor import PositionMonitor
 from src.quantbuild.execution.quantbridge import (
@@ -50,6 +52,37 @@ from src.quantbuild.strategy_modules.regime.detector import (
 logger = logging.getLogger(__name__)
 
 MIN_BARS_FOR_SIGNAL = 100
+
+
+def _resolve_quantlog_run_id(ql_cfg: Dict[str, Any]) -> str:
+    """Stable non-empty run_id: explicit config wins, else env, else timestamp default.
+
+    YAML often sets ``run_id: ""`` intending "auto"; ``dict.get`` would otherwise yield
+    an empty string and skip the default — that breaks QuantLog correlatie (P1).
+    """
+    raw = ql_cfg.get("run_id")
+    if raw is not None:
+        s = str(raw).strip()
+        if s:
+            return s
+    for env_key in ("QUANTBUILD_RUN_ID", "INVOCATION_ID"):
+        v = os.environ.get(env_key, "").strip()
+        if v:
+            return v
+    return f"qb_run_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
+
+
+def _resolve_quantlog_session_id(ql_cfg: Dict[str, Any]) -> str:
+    """Non-empty session_id: explicit config, else QUANTBUILD_SESSION_ID, else random."""
+    raw = ql_cfg.get("session_id")
+    if raw is not None:
+        s = str(raw).strip()
+        if s:
+            return s
+    env_sid = os.environ.get("QUANTBUILD_SESSION_ID", "").strip()
+    if env_sid:
+        return env_sid
+    return f"qb_session_{uuid4().hex[:10]}"
 
 
 class LiveRunner:
@@ -121,8 +154,8 @@ class LiveRunner:
         if bool(ql_cfg.get("enabled", False)):
             ql_base = Path(str(ql_cfg.get("base_path", "data/quantlog_events")))
             ql_env = str(ql_cfg.get("environment", "dry_run" if dry_run else "live"))
-            run_id = str(ql_cfg.get("run_id", f"qb_run_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"))
-            session_id = str(ql_cfg.get("session_id", f"qb_session_{uuid4().hex[:10]}"))
+            run_id = _resolve_quantlog_run_id(ql_cfg)
+            session_id = _resolve_quantlog_session_id(ql_cfg)
             self._quantlog = QuantLogEmitter(
                 base_path=ql_base,
                 source_component="live_runner",
@@ -131,6 +164,12 @@ class LiveRunner:
                 session_id=session_id,
             )
             logger.info("QuantLog emitter enabled: base_path=%s run_id=%s", ql_base, run_id)
+            if resolve_quantlog_repo_path() is None:
+                logger.warning(
+                    "QuantLog JSONL is on, but the QuantLog repository was not found for CLI "
+                    "(validate/summarize). Clone quantlog-v.1, set QUANTLOG_REPO_PATH, or run "
+                    "python scripts/check_quantlog_linkage.py — events will still be written."
+                )
 
         # News layer
         self._news_poller = None
@@ -445,21 +484,28 @@ class LiveRunner:
         direction: str,
         confidence: float,
         regime: Optional[str],
+        setup: bool = True,
+        eval_stage: Optional[str] = None,
     ) -> None:
         if not self._quantlog:
             return
+        payload: Dict[str, Any] = {
+            "signal_type": "sqe_entry",
+            "signal_direction": direction,
+            "confidence": confidence,
+            "regime": regime or "none",
+        }
+        if not setup:
+            payload["setup"] = False
+        if eval_stage:
+            payload["eval_stage"] = eval_stage
         self._quantlog.emit(
             event_type="signal_evaluated",
             trace_id=trace_id,
             account_id=self._account_id,
             strategy_id="sqe_live_runner",
             symbol=self.cfg.get("symbol", "XAUUSD"),
-            payload={
-                "signal_type": "sqe_entry",
-                "signal_direction": direction,
-                "confidence": confidence,
-                "regime": regime or "none",
-            },
+            payload=payload,
         )
 
     def _emit_guard_decision(
@@ -567,12 +613,22 @@ class LiveRunner:
         current_session = session_from_timestamp(now, mode=session_mode)
         position_ok = self._check_position_limit()
         daily_loss_ok = self._check_daily_loss_limit()
+        # One trace for pre-signal exits in this cycle (PLATFORM_ROADMAP P3 / QUANTBUILD_ROADMAP).
+        cycle_trace_id = self._new_trace_id()
 
         # Regime skip
         if regime:
             rp = regime_profiles.get(regime, {})
             if rp.get("skip", False):
                 logger.debug("Regime %s -> skip", regime)
+                self._emit_signal_evaluated(
+                    trace_id=cycle_trace_id,
+                    direction="NONE",
+                    confidence=0.0,
+                    regime=regime,
+                    setup=False,
+                    eval_stage="regime_block",
+                )
                 self._log_decision_cycle(
                     now=now,
                     action="no_trade",
@@ -583,7 +639,7 @@ class LiveRunner:
                     daily_loss_ok=daily_loss_ok,
                 )
                 self._emit_trade_action(
-                    trace_id=self._new_trace_id(),
+                    trace_id=cycle_trace_id,
                     decision="NO_ACTION",
                     reason="regime_block",
                     session=current_session,
@@ -595,6 +651,14 @@ class LiveRunner:
             allowed_sessions = rp.get("allowed_sessions")
             if allowed_sessions and current_session not in allowed_sessions:
                 logger.debug("Regime %s session %s not allowed", regime, current_session)
+                self._emit_signal_evaluated(
+                    trace_id=cycle_trace_id,
+                    direction="NONE",
+                    confidence=0.0,
+                    regime=regime,
+                    setup=False,
+                    eval_stage="outside_killzone",
+                )
                 self._log_decision_cycle(
                     now=now,
                     action="no_trade",
@@ -605,7 +669,7 @@ class LiveRunner:
                     daily_loss_ok=daily_loss_ok,
                 )
                 self._emit_trade_action(
-                    trace_id=self._new_trace_id(),
+                    trace_id=cycle_trace_id,
                     decision="NO_ACTION",
                     reason="outside_killzone",
                     session=current_session,
@@ -616,6 +680,14 @@ class LiveRunner:
             min_hour = rp.get("min_hour_utc")
             if min_hour is not None and now.hour < min_hour:
                 logger.debug("Regime %s hour %d < min %d", regime, now.hour, min_hour)
+                self._emit_signal_evaluated(
+                    trace_id=cycle_trace_id,
+                    direction="NONE",
+                    confidence=0.0,
+                    regime=regime,
+                    setup=False,
+                    eval_stage="time_filter_block",
+                )
                 self._log_decision_cycle(
                     now=now,
                     action="no_trade",
@@ -626,7 +698,7 @@ class LiveRunner:
                     daily_loss_ok=daily_loss_ok,
                 )
                 self._emit_trade_action(
-                    trace_id=self._new_trace_id(),
+                    trace_id=cycle_trace_id,
                     decision="NO_ACTION",
                     reason="time_filter_block",
                     session=current_session,
@@ -637,6 +709,14 @@ class LiveRunner:
         # Position limit
         if not position_ok:
             logger.debug("Position limit reached (%d)", self._max_open_positions)
+            self._emit_signal_evaluated(
+                trace_id=cycle_trace_id,
+                direction="NONE",
+                confidence=0.0,
+                regime=regime,
+                setup=False,
+                eval_stage="position_limit_block",
+            )
             self._log_decision_cycle(
                 now=now,
                 action="no_trade",
@@ -647,7 +727,7 @@ class LiveRunner:
                 daily_loss_ok=daily_loss_ok,
             )
             self._emit_trade_action(
-                trace_id=self._new_trace_id(),
+                trace_id=cycle_trace_id,
                 decision="NO_ACTION",
                 reason="position_limit_block",
                 session=current_session,
@@ -658,6 +738,14 @@ class LiveRunner:
         # Daily loss limit
         if not daily_loss_ok:
             logger.warning("Daily loss limit reached (%.2fR)", self._daily_pnl_r)
+            self._emit_signal_evaluated(
+                trace_id=cycle_trace_id,
+                direction="NONE",
+                confidence=0.0,
+                regime=regime,
+                setup=False,
+                eval_stage="daily_loss_block",
+            )
             self._log_decision_cycle(
                 now=now,
                 action="no_trade",
@@ -668,7 +756,7 @@ class LiveRunner:
                 daily_loss_ok=daily_loss_ok,
             )
             self._emit_trade_action(
-                trace_id=self._new_trace_id(),
+                trace_id=cycle_trace_id,
                 decision="NO_ACTION",
                 reason="daily_loss_block",
                 session=current_session,
@@ -687,6 +775,14 @@ class LiveRunner:
                 symbol, MIN_BARS_FOR_SIGNAL, len(data_15m), last_ts,
                 source_actual,
             )
+            self._emit_signal_evaluated(
+                trace_id=cycle_trace_id,
+                direction="NONE",
+                confidence=0.0,
+                regime=regime,
+                setup=False,
+                eval_stage="bars_missing",
+            )
             self._log_decision_cycle(
                 now=now,
                 action="no_trade",
@@ -699,7 +795,7 @@ class LiveRunner:
                 daily_loss_ok=daily_loss_ok,
             )
             self._emit_trade_action(
-                trace_id=self._new_trace_id(),
+                trace_id=cycle_trace_id,
                 decision="NO_ACTION",
                 reason="bars_missing",
                 session=current_session,
@@ -710,6 +806,14 @@ class LiveRunner:
         # Detect if we're on a new bar
         latest_ts = data_15m.index[-1]
         if self._last_bar_ts is not None and latest_ts <= self._last_bar_ts:
+            self._emit_signal_evaluated(
+                trace_id=cycle_trace_id,
+                direction="NONE",
+                confidence=0.0,
+                regime=regime,
+                setup=False,
+                eval_stage="same_bar_already_processed",
+            )
             self._log_decision_cycle(
                 now=now,
                 action="no_trade",
@@ -722,7 +826,7 @@ class LiveRunner:
                 daily_loss_ok=daily_loss_ok,
             )
             self._emit_trade_action(
-                trace_id=self._new_trace_id(),
+                trace_id=cycle_trace_id,
                 decision="NO_ACTION",
                 reason="same_bar_already_processed",
                 session=current_session,
@@ -754,6 +858,14 @@ class LiveRunner:
 
         if not signals_to_check:
             logger.debug("No entry signals at %s", now.strftime("%H:%M"))
+            self._emit_signal_evaluated(
+                trace_id=cycle_trace_id,
+                direction="NONE",
+                confidence=0.0,
+                regime=regime,
+                setup=False,
+                eval_stage="no_entry_signal",
+            )
             self._log_decision_cycle(
                 now=now,
                 action="no_trade",
@@ -768,7 +880,7 @@ class LiveRunner:
                 daily_loss_ok=daily_loss_ok,
             )
             self._emit_trade_action(
-                trace_id=self._new_trace_id(),
+                trace_id=cycle_trace_id,
                 decision="NO_ACTION",
                 reason="no_entry_signal",
                 session=current_session,
