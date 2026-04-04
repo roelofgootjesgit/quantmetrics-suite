@@ -64,6 +64,9 @@ def _validate_payload(event_type: str, payload: dict) -> None:
     if event_type == "signal_evaluated":
         for k in ("signal_type", "signal_direction", "confidence"):
             assert k in payload, f"signal_evaluated missing {k}"
+        dc = payload.get("decision_context")
+        if dc is not None:
+            assert isinstance(dc, dict), "decision_context must be a dict when present"
     elif event_type == "trade_action":
         assert "decision" in payload and "reason" in payload
         dec = str(payload["decision"]).upper()
@@ -72,6 +75,9 @@ def _validate_payload(event_type: str, payload: dict) -> None:
             assert isinstance(reason, str) and reason in _CANONICAL_NO_ACTION, (
                 f"NO_ACTION reason not canonical: {reason!r}"
             )
+        dc = payload.get("decision_context")
+        if dc is not None:
+            assert isinstance(dc, dict), "decision_context must be a dict when present"
 
 
 def test_minimal_fixture_jsonl_contract() -> None:

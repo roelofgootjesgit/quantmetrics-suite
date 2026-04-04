@@ -47,7 +47,14 @@ class TestDisplacement:
 class TestFairValueGaps:
     def test_output_columns(self):
         result = FairValueGapModule().calculate(_make_ohlcv(), {"min_gap_pct": 0.5, "validity_candles": 50})
-        for col in ["bullish_fvg", "bearish_fvg", "in_bullish_fvg", "in_bearish_fvg"]:
+        for col in [
+            "bullish_fvg",
+            "bearish_fvg",
+            "in_bullish_fvg",
+            "in_bearish_fvg",
+            "bullish_fvg_quality",
+            "bearish_fvg_quality",
+        ]:
             assert col in result.columns
 
 

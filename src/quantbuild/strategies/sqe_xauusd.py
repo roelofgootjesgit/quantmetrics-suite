@@ -5,7 +5,7 @@ SQE (Smart Quality Entry) for XAUUSD – 3-pillar model.
   2. Liquidity/levels – sweep + FVG
   3. Entry timing     – displacement trigger
 """
-from typing import Dict, Any, List
+from typing import Any, Dict, List
 import pandas as pd
 
 from src.quantbuild.strategy_modules.ict.liquidity_sweep import LiquiditySweepModule
@@ -155,3 +155,155 @@ def run_sqe_conditions(
     else:
         df = _compute_modules_once(data, cfg)
     return _apply_direction_filter(df, direction, cfg)
+
+
+def _row_bool(row: pd.Series, col: str) -> bool:
+    if col not in row.index:
+        return False
+    v = row[col]
+    try:
+        if pd.isna(v):
+            return False
+    except (TypeError, ValueError):
+        pass
+    return bool(v)
+
+
+def _row_float(row: pd.Series, col: str, default: float = 0.0) -> float:
+    if col not in row.index:
+        return default
+    v = row[col]
+    try:
+        if pd.isna(v):
+            return default
+    except (TypeError, ValueError):
+        return default
+    try:
+        f = float(v)
+    except (TypeError, ValueError):
+        return default
+    if pd.isna(f):
+        return default
+    return round(f, 4)
+
+
+def sqe_decision_context_at_bar(
+    df: pd.DataFrame,
+    direction: str,
+    bar_index: int,
+    config: Dict[str, Any] | None = None,
+) -> Dict[str, Any]:
+    """JSON-serializable SQE attribution snapshot at a single bar (for QuantLog / research).
+
+    Mirrors ``_apply_direction_filter`` so logged flags match the actual entry boolean.
+    """
+    cfg = config or get_sqe_default_config()
+    if bar_index < 0 or bar_index >= len(df):
+        return {
+            "decision_context_version": 1,
+            "strategy": "sqe_xauusd",
+            "direction": direction,
+            "error": "bar_index_out_of_range",
+        }
+
+    row = df.iloc[bar_index]
+    if direction == "LONG":
+        structure_col = "in_bullish_structure"
+        module_cols = {
+            "mss_confirmed": "bullish_mss",
+            "sweep_detected": "bullish_sweep",
+            "fvg_in_zone": "in_bullish_fvg",
+            "displacement_trigger": "bullish_disp",
+        }
+    else:
+        structure_col = "in_bearish_structure"
+        module_cols = {
+            "mss_confirmed": "bearish_mss",
+            "sweep_detected": "bearish_sweep",
+            "fvg_in_zone": "in_bearish_fvg",
+            "displacement_trigger": "bearish_disp",
+        }
+
+    flags = {k: _row_bool(row, col) for k, col in module_cols.items()}
+    structure_column_true = _row_bool(row, structure_col)
+
+    fvg_q_col = "bullish_fvg_quality" if direction == "LONG" else "bearish_fvg_quality"
+    fvg_quality = _row_float(row, fvg_q_col, 0.0)
+
+    tc_cfg = cfg.get("trend_context") or get_sqe_default_config()["trend_context"]
+    trend_ok = bool(_combine_pillar(df, tc_cfg.get("modules", []), tc_cfg.get("require_all", False), direction).iloc[bar_index])
+
+    liq_cfg = cfg.get("liquidity_levels") or get_sqe_default_config()["liquidity_levels"]
+    liquidity_ok = bool(
+        _combine_pillar(df, liq_cfg.get("modules", []), liq_cfg.get("require_all", True), direction).iloc[bar_index]
+    )
+
+    trig_cfg = cfg.get("entry_trigger") or get_sqe_default_config()["entry_trigger"]
+    trigger_mod = trig_cfg.get("module", "displacement")
+    trigger_ok = bool(_get_signal_series(df, trigger_mod, direction).iloc[bar_index])
+
+    if cfg.get("require_structure", True):
+        structure_ok = bool(structure_column_true)
+    else:
+        structure_ok = True
+
+    entry_combo = bool(cfg.get("entry_require_sweep_displacement_fvg", False))
+    combo_count: int | None = None
+    combo_lookback: int | None = None
+    combo_min_count: int | None = None
+    entry_signal = False
+
+    if entry_combo:
+        core_modules = ["liquidity_sweep", "displacement", "fair_value_gaps"]
+        entry_modules = cfg.get("entry_combo_modules", core_modules)
+        raw_signals = [_get_signal_series(df, m, direction) for m in entry_modules]
+        lookback = max(0, int(cfg.get("entry_sweep_disp_fvg_lookback_bars", 0)))
+        min_count = max(1, int(cfg.get("entry_sweep_disp_fvg_min_count", 3)))
+        combo_lookback = lookback
+        combo_min_count = min_count
+
+        if lookback > 0:
+            signals = [s.rolling(window=lookback, min_periods=1).max().fillna(0).astype(bool) for s in raw_signals]
+        else:
+            signals = raw_signals
+
+        count_series = signals[0].astype(int)
+        for s in signals[1:]:
+            count_series = count_series + s.astype(int)
+        combo_count = int(count_series.iloc[bar_index])
+        entry_signal = bool(structure_ok and (combo_count >= min_count))
+    else:
+        entry_signal = bool(trend_ok & liquidity_ok & trigger_ok & structure_ok)
+
+    structure_label = row["structure_label"] if "structure_label" in row.index else None
+    if structure_label is not None and not isinstance(structure_label, str):
+        try:
+            if pd.isna(structure_label):
+                structure_label = None
+            else:
+                structure_label = str(structure_label)
+        except (TypeError, ValueError):
+            structure_label = str(structure_label)
+
+    out: Dict[str, Any] = {
+        "decision_context_version": 1,
+        "strategy": "sqe_xauusd",
+        "direction": direction,
+        "entry_path": "sweep_disp_fvg_combo" if entry_combo else "classic_pillars",
+        "structure_required": bool(cfg.get("require_structure", True)),
+        "structure_column_true": structure_column_true,
+        "trend_pillar_ok": trend_ok,
+        "liquidity_pillar_ok": liquidity_ok,
+        "trigger_ok": trigger_ok,
+        "structure_ok": structure_ok,
+        "entry_signal": entry_signal,
+        "fvg_quality": fvg_quality,
+        **flags,
+    }
+    if structure_label is not None:
+        out["structure_label"] = structure_label
+    if entry_combo:
+        out["combo_lookback_bars"] = combo_lookback
+        out["combo_min_modules"] = combo_min_count
+        out["combo_active_modules_count"] = combo_count
+    return out

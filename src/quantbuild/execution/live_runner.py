@@ -43,7 +43,10 @@ from src.quantbuild.indicators.atr import atr as compute_atr, atr_ratio as compu
 from src.quantbuild.io.parquet_loader import load_parquet, ensure_live_data
 from src.quantbuild.models.trade import Position
 from src.quantbuild.strategies.sqe_xauusd import (
-    get_sqe_default_config, _compute_modules_once, run_sqe_conditions,
+    get_sqe_default_config,
+    _compute_modules_once,
+    run_sqe_conditions,
+    sqe_decision_context_at_bar,
 )
 from src.quantbuild.strategy_modules.regime.detector import (
     RegimeDetector, REGIME_EXPANSION, REGIME_COMPRESSION, REGIME_TREND,
@@ -477,6 +480,24 @@ class LiveRunner:
     def _new_trace_id(self) -> str:
         return f"trace_qb_{uuid4().hex[:12]}"
 
+    def _runner_pre_signal_decision_context(
+        self,
+        *,
+        eval_stage: str,
+        regime: Optional[str],
+        session: str,
+        **extra: Any,
+    ) -> Dict[str, Any]:
+        ctx: Dict[str, Any] = {
+            "decision_context_version": 1,
+            "strategy": "sqe_xauusd",
+            "eval_stage": eval_stage,
+            "session": session,
+            "regime": regime or "none",
+        }
+        ctx.update(extra)
+        return ctx
+
     def _emit_signal_evaluated(
         self,
         *,
@@ -486,6 +507,7 @@ class LiveRunner:
         regime: Optional[str],
         setup: bool = True,
         eval_stage: Optional[str] = None,
+        decision_context: Optional[Dict[str, Any]] = None,
     ) -> None:
         if not self._quantlog:
             return
@@ -499,6 +521,8 @@ class LiveRunner:
             payload["setup"] = False
         if eval_stage:
             payload["eval_stage"] = eval_stage
+        if decision_context is not None:
+            payload["decision_context"] = decision_context
         self._quantlog.emit(
             event_type="signal_evaluated",
             trace_id=trace_id,
@@ -540,6 +564,7 @@ class LiveRunner:
         side: Optional[str] = None,
         session: Optional[str] = None,
         regime: Optional[str] = None,
+        decision_context: Optional[Dict[str, Any]] = None,
     ) -> None:
         from src.quantbuild.execution.quantlog_no_action import canonical_no_action_reason
 
@@ -560,6 +585,8 @@ class LiveRunner:
             payload["session"] = session
         if regime is not None:
             payload["regime"] = regime
+        if decision_context is not None:
+            payload["decision_context"] = decision_context
         self._quantlog.emit(
             event_type="trade_action",
             trace_id=trace_id,
@@ -621,6 +648,9 @@ class LiveRunner:
             rp = regime_profiles.get(regime, {})
             if rp.get("skip", False):
                 logger.debug("Regime %s -> skip", regime)
+                pre_ctx = self._runner_pre_signal_decision_context(
+                    eval_stage="regime_block", regime=regime, session=current_session
+                )
                 self._emit_signal_evaluated(
                     trace_id=cycle_trace_id,
                     direction="NONE",
@@ -628,6 +658,7 @@ class LiveRunner:
                     regime=regime,
                     setup=False,
                     eval_stage="regime_block",
+                    decision_context=pre_ctx,
                 )
                 self._log_decision_cycle(
                     now=now,
@@ -644,6 +675,7 @@ class LiveRunner:
                     reason="regime_block",
                     session=current_session,
                     regime=regime,
+                    decision_context=pre_ctx,
                 )
                 return
 
@@ -651,6 +683,12 @@ class LiveRunner:
             allowed_sessions = rp.get("allowed_sessions")
             if allowed_sessions and current_session not in allowed_sessions:
                 logger.debug("Regime %s session %s not allowed", regime, current_session)
+                pre_ctx = self._runner_pre_signal_decision_context(
+                    eval_stage="outside_killzone",
+                    regime=regime,
+                    session=current_session,
+                    allowed_sessions=list(allowed_sessions),
+                )
                 self._emit_signal_evaluated(
                     trace_id=cycle_trace_id,
                     direction="NONE",
@@ -658,6 +696,7 @@ class LiveRunner:
                     regime=regime,
                     setup=False,
                     eval_stage="outside_killzone",
+                    decision_context=pre_ctx,
                 )
                 self._log_decision_cycle(
                     now=now,
@@ -674,12 +713,20 @@ class LiveRunner:
                     reason="outside_killzone",
                     session=current_session,
                     regime=regime,
+                    decision_context=pre_ctx,
                 )
                 return
 
             min_hour = rp.get("min_hour_utc")
             if min_hour is not None and now.hour < min_hour:
                 logger.debug("Regime %s hour %d < min %d", regime, now.hour, min_hour)
+                pre_ctx = self._runner_pre_signal_decision_context(
+                    eval_stage="time_filter_block",
+                    regime=regime,
+                    session=current_session,
+                    min_hour_utc=min_hour,
+                    hour_utc=now.hour,
+                )
                 self._emit_signal_evaluated(
                     trace_id=cycle_trace_id,
                     direction="NONE",
@@ -687,6 +734,7 @@ class LiveRunner:
                     regime=regime,
                     setup=False,
                     eval_stage="time_filter_block",
+                    decision_context=pre_ctx,
                 )
                 self._log_decision_cycle(
                     now=now,
@@ -703,12 +751,19 @@ class LiveRunner:
                     reason="time_filter_block",
                     session=current_session,
                     regime=regime,
+                    decision_context=pre_ctx,
                 )
                 return
 
         # Position limit
         if not position_ok:
             logger.debug("Position limit reached (%d)", self._max_open_positions)
+            pre_ctx = self._runner_pre_signal_decision_context(
+                eval_stage="position_limit_block",
+                regime=regime,
+                session=current_session,
+                max_open_positions=self._max_open_positions,
+            )
             self._emit_signal_evaluated(
                 trace_id=cycle_trace_id,
                 direction="NONE",
@@ -716,6 +771,7 @@ class LiveRunner:
                 regime=regime,
                 setup=False,
                 eval_stage="position_limit_block",
+                decision_context=pre_ctx,
             )
             self._log_decision_cycle(
                 now=now,
@@ -732,12 +788,19 @@ class LiveRunner:
                 reason="position_limit_block",
                 session=current_session,
                 regime=regime,
+                decision_context=pre_ctx,
             )
             return
 
         # Daily loss limit
         if not daily_loss_ok:
             logger.warning("Daily loss limit reached (%.2fR)", self._daily_pnl_r)
+            pre_ctx = self._runner_pre_signal_decision_context(
+                eval_stage="daily_loss_block",
+                regime=regime,
+                session=current_session,
+                daily_pnl_r=float(self._daily_pnl_r),
+            )
             self._emit_signal_evaluated(
                 trace_id=cycle_trace_id,
                 direction="NONE",
@@ -745,6 +808,7 @@ class LiveRunner:
                 regime=regime,
                 setup=False,
                 eval_stage="daily_loss_block",
+                decision_context=pre_ctx,
             )
             self._log_decision_cycle(
                 now=now,
@@ -761,6 +825,7 @@ class LiveRunner:
                 reason="daily_loss_block",
                 session=current_session,
                 regime=regime,
+                decision_context=pre_ctx,
             )
             return
 
@@ -775,6 +840,14 @@ class LiveRunner:
                 symbol, MIN_BARS_FOR_SIGNAL, len(data_15m), last_ts,
                 source_actual,
             )
+            pre_ctx = self._runner_pre_signal_decision_context(
+                eval_stage="bars_missing",
+                regime=regime,
+                session=current_session,
+                source_actual=source_actual,
+                bar_count=len(data_15m),
+                min_bars=MIN_BARS_FOR_SIGNAL,
+            )
             self._emit_signal_evaluated(
                 trace_id=cycle_trace_id,
                 direction="NONE",
@@ -782,6 +855,7 @@ class LiveRunner:
                 regime=regime,
                 setup=False,
                 eval_stage="bars_missing",
+                decision_context=pre_ctx,
             )
             self._log_decision_cycle(
                 now=now,
@@ -800,12 +874,20 @@ class LiveRunner:
                 reason="bars_missing",
                 session=current_session,
                 regime=regime,
+                decision_context=pre_ctx,
             )
             return
 
         # Detect if we're on a new bar
         latest_ts = data_15m.index[-1]
         if self._last_bar_ts is not None and latest_ts <= self._last_bar_ts:
+            pre_ctx = self._runner_pre_signal_decision_context(
+                eval_stage="same_bar_already_processed",
+                regime=regime,
+                session=current_session,
+                latest_bar_ts=str(latest_ts),
+                last_processed_bar_ts=str(self._last_bar_ts),
+            )
             self._emit_signal_evaluated(
                 trace_id=cycle_trace_id,
                 direction="NONE",
@@ -813,6 +895,7 @@ class LiveRunner:
                 regime=regime,
                 setup=False,
                 eval_stage="same_bar_already_processed",
+                decision_context=pre_ctx,
             )
             self._log_decision_cycle(
                 now=now,
@@ -831,6 +914,7 @@ class LiveRunner:
                 reason="same_bar_already_processed",
                 session=current_session,
                 regime=regime,
+                decision_context=pre_ctx,
             )
             return  # Already processed this bar
         self._last_bar_ts = latest_ts
@@ -858,6 +942,20 @@ class LiveRunner:
 
         if not signals_to_check:
             logger.debug("No entry signals at %s", now.strftime("%H:%M"))
+            long_ctx = sqe_decision_context_at_bar(precomputed_df, "LONG", last_idx, sqe_cfg)
+            short_ctx = sqe_decision_context_at_bar(precomputed_df, "SHORT", last_idx, sqe_cfg)
+            long_ctx["session"] = current_session
+            short_ctx["session"] = current_session
+            if regime is not None:
+                long_ctx["regime"] = regime
+                short_ctx["regime"] = regime
+            pre_ctx = self._runner_pre_signal_decision_context(
+                eval_stage="no_entry_signal",
+                regime=regime,
+                session=current_session,
+                long=long_ctx,
+                short=short_ctx,
+            )
             self._emit_signal_evaluated(
                 trace_id=cycle_trace_id,
                 direction="NONE",
@@ -865,6 +963,7 @@ class LiveRunner:
                 regime=regime,
                 setup=False,
                 eval_stage="no_entry_signal",
+                decision_context=pre_ctx,
             )
             self._log_decision_cycle(
                 now=now,
@@ -885,20 +984,32 @@ class LiveRunner:
                 reason="no_entry_signal",
                 session=current_session,
                 regime=regime,
+                decision_context=pre_ctx,
             )
             return
 
         for direction in signals_to_check:
             trace_id = self._new_trace_id()
             confidence = 1.0
+            sqe_ctx = sqe_decision_context_at_bar(precomputed_df, direction, last_idx, sqe_cfg)
+            sqe_ctx["session"] = current_session
+            if regime is not None:
+                sqe_ctx["regime"] = regime
             self._emit_signal_evaluated(
                 trace_id=trace_id,
                 direction=direction,
                 confidence=confidence,
                 regime=regime,
+                decision_context=sqe_ctx,
             )
             action, reason = self._evaluate_and_execute(
-                direction, data_15m, now, regime, trace_id, current_session
+                direction,
+                data_15m,
+                now,
+                regime,
+                trace_id,
+                current_session,
+                strategy_decision_context=sqe_ctx,
             )
             self._log_decision_cycle(
                 now=now,
@@ -923,10 +1034,17 @@ class LiveRunner:
         regime: Optional[str],
         trace_id: str,
         session: str,
+        strategy_decision_context: Optional[Dict[str, Any]] = None,
     ) -> tuple[str, str]:
         """Run final checks and submit order for a signal."""
+        strategy_decision_context = dict(strategy_decision_context or {})
+
+        def _with_exec(ex: Dict[str, Any]) -> Dict[str, Any]:
+            return {**strategy_decision_context, "execution": ex}
+
         regime_profiles = self.cfg.get("regime_profiles", {})
         rp = regime_profiles.get(regime, {}) if regime else {}
+        llm_execution: Optional[Dict[str, Any]] = None
 
         # NewsGate check
         news_boost = 1.0
@@ -947,6 +1065,9 @@ class LiveRunner:
                     side=direction,
                     session=session,
                     regime=regime,
+                    decision_context=_with_exec(
+                        {"blocked_by": "news_block", "detail": gate_result.get("reason")}
+                    ),
                 )
                 return "no_trade", "news_block"
             news_boost = gate_result.get("boost", 1.0)
@@ -987,10 +1108,22 @@ class LiveRunner:
                     side=direction,
                     session=session,
                     regime=regime,
+                    decision_context=_with_exec(
+                        {
+                            "blocked_by": "llm_advice_block",
+                            "detail": advice.get("reason", "unknown"),
+                        }
+                    ),
                 )
                 return "no_trade", "llm_advice_block"
             advice_mult = float(advice.get("risk_multiplier", 1.0) or 1.0)
             news_boost *= advice_mult
+            llm_execution = {
+                "method": str(advice.get("method", "unknown")),
+                "stance": str(advice.get("stance", "neutral")),
+                "confidence": float(advice.get("confidence", 0.0)),
+                "risk_multiplier": float(advice.get("risk_multiplier", 1.0) or 1.0),
+            }
             logger.info(
                 "LLM advisor %s: mult=%.2f (method=%s stance=%s conf=%.2f reason=%s)",
                 direction,
@@ -1018,6 +1151,7 @@ class LiveRunner:
                 side=direction,
                 session=session,
                 regime=regime,
+                decision_context=_with_exec({"blocked_by": "spread_block", "detail": spread_issue}),
             )
             return "no_trade", "spread_block"
 
@@ -1041,6 +1175,7 @@ class LiveRunner:
                 side=direction,
                 session=session,
                 regime=regime,
+                decision_context=_with_exec({"blocked_by": "atr_unavailable"}),
             )
             return "no_trade", "atr_unavailable"
 
@@ -1065,6 +1200,7 @@ class LiveRunner:
                     side=direction,
                     session=session,
                     regime=regime,
+                    decision_context=_with_exec({"blocked_by": "price_unavailable"}),
                 )
                 return "no_trade", "price_unavailable"
             entry_price = price_info["ask"] if direction == "LONG" else price_info["bid"]
@@ -1099,6 +1235,7 @@ class LiveRunner:
                 side=direction,
                 session=session,
                 regime=regime,
+                decision_context=_with_exec({"blocked_by": "risk_block"}),
             )
             return "no_trade", "risk_block"
 
@@ -1137,6 +1274,7 @@ class LiveRunner:
                     side=direction,
                     session=session,
                     regime=regime,
+                    decision_context=_with_exec({"blocked_by": "execution_exception"}),
                 )
                 return "no_trade", "execution_exception"
 
@@ -1149,6 +1287,9 @@ class LiveRunner:
                     side=direction,
                     session=session,
                     regime=regime,
+                    decision_context=_with_exec(
+                        {"blocked_by": "execution_reject", "detail": str(exec_result.message)}
+                    ),
                 )
                 return "no_trade", "execution_reject"
 
@@ -1177,6 +1318,7 @@ class LiveRunner:
                     side=direction,
                     session=session,
                     regime=regime,
+                    decision_context=_with_exec({"blocked_by": "slippage_block"}),
                 )
                 return "no_trade", "slippage_block"
 
@@ -1214,6 +1356,13 @@ class LiveRunner:
                 tp=tp,
                 reason=f"regime={regime or 'none'}",
             )
+        enter_exec: Dict[str, Any] = {
+            "news_gate": "CLEAR",
+            "news_boost": float(news_boost),
+        }
+        if llm_execution is not None:
+            enter_exec["llm"] = llm_execution
+        enter_ctx = _with_exec(enter_exec)
         if self.dry_run:
             self._emit_trade_action(
                 trace_id=trace_id,
@@ -1222,6 +1371,7 @@ class LiveRunner:
                 side=direction,
                 session=session,
                 regime=regime,
+                decision_context=enter_ctx,
             )
             return "order_intent", "all_conditions_met"
         self._emit_trade_action(
@@ -1231,6 +1381,7 @@ class LiveRunner:
             side=direction,
             session=session,
             regime=regime,
+            decision_context=enter_ctx,
         )
         return "order_filled", "all_conditions_met"
 
