@@ -7,7 +7,7 @@ Korte operationele sheet voor dagelijkse run op VPS.
 ## 1) Daily Check (copy/paste)
 
 ```bash
-cd /opt/quantbuild/quantbuild_e1_v1
+cd /opt/quantbuild/quantbuildv1
 sudo systemctl is-active quantbuild-ctrader-demo.service
 tail -n 80 logs/runtime_ctrader_demo.log
 ```
@@ -21,17 +21,17 @@ Snelle signalen:
 ## 2) Daily Update + Restart
 
 ```bash
-cd /opt/quantbuild/quantBridge-v.1
+cd /opt/quantbuild/quantbridgev1
 git fetch origin
 git checkout main
 git pull --ff-only
 
-cd /opt/quantbuild/quantlog-v.1
+cd /opt/quantbuild/quantlogv1
 git fetch origin
 git checkout main
 git pull --ff-only
 
-cd /opt/quantbuild/quantbuild_e1_v1
+cd /opt/quantbuild/quantbuildv1
 git fetch origin
 git checkout v2-development
 git pull --ff-only
@@ -40,9 +40,9 @@ sudo systemctl restart quantbuild-ctrader-demo.service
 sudo systemctl is-active quantbuild-ctrader-demo.service
 ```
 
-Zie `docs/VPS_MULTI_MODULE_DEPLOYMENT.md`: na pull eventueel `pip install -r requirements.txt` en/of `pip install -e /opt/quantbuild/quantlog-v.1` in **QuantBuild** `.venv` vóór restart.
+Zie `docs/VPS_MULTI_MODULE_DEPLOYMENT.md`: na pull eventueel `pip install -r requirements.txt` en/of `pip install -e /opt/quantbuild/quantlogv1` in **QuantBuild** `.venv` vóór restart.
 
-**Eerste keer op deze VPS:** als `ls /opt/quantbuild/quantlog-v.1` faalt → in `/opt/quantbuild` uitvoeren: `git clone <jouw-QuantLog-repo-URL> quantlog-v.1`, daarna `pip install -e /opt/quantbuild/quantlog-v.1` in de QuantBuild-venv. Zonder deze clone werkt `python -m quantlog.cli` / `scripts/quantlog_post_run.py` niet op de server (events staan wél in `data/quantlog_events/`).
+**Eerste keer op deze VPS:** als `ls /opt/quantbuild/quantlogv1` faalt → in `/opt/quantbuild` uitvoeren: `git clone <jouw-QuantLog-repo-URL> quantlogv1`, daarna `pip install -e /opt/quantbuild/quantlogv1` in de QuantBuild-venv. Zonder deze clone werkt `python -m quantlog.cli` / `scripts/quantlog_post_run.py` niet op de server (events staan wél in `data/quantlog_events/`).
 
 ---
 
@@ -62,7 +62,7 @@ curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" 
 Gebruik dit alleen als je strict broker-native candles wil afdwingen.
 
 ```bash
-cd /opt/quantbuild/quantbuild_e1_v1
+cd /opt/quantbuild/quantbuildv1
 source .venv/bin/activate
 set -a; source /etc/quantbuild/quantbuild.env; set +a
 python -m src.quantbuild.app --config configs/preflight_live_ctrader.yaml live --dry-run
@@ -89,7 +89,7 @@ sudo systemctl status quantbuild-ctrader-demo.service --no-pager
 ## 6) Logs
 
 ```bash
-tail -f /opt/quantbuild/quantbuild_e1_v1/logs/runtime_ctrader_demo.log
+tail -f /opt/quantbuild/quantbuildv1/logs/runtime_ctrader_demo.log
 journalctl -u quantbuild-ctrader-demo.service -n 120 --no-pager
 ```
 
@@ -102,13 +102,13 @@ journalctl -u quantbuild-ctrader-demo.service -n 120 --no-pager
 ```bash
 sudo systemctl restart quantbuild-ctrader-demo.service
 sudo systemctl status quantbuild-ctrader-demo.service --no-pager
-tail -n 120 /opt/quantbuild/quantbuild_e1_v1/logs/runtime_ctrader_demo.log
+tail -n 120 /opt/quantbuild/quantbuildv1/logs/runtime_ctrader_demo.log
 ```
 
 ### B) cTrader connect fails
 
 ```bash
-cd /opt/quantbuild/quantbuild_e1_v1
+cd /opt/quantbuild/quantbuildv1
 set -a; source /etc/quantbuild/quantbuild.env; set +a
 python scripts/ctrader_smoke.py --config configs/ctrader_quantbridge_openapi.yaml
 ```
@@ -136,12 +136,12 @@ Gebruik verschillende labels zodat Telegram duidelijk is:
 
 ## 9) QuantLog nightly (optioneel)
 
-Vereist: `quantlog-v.1` gecloned + `pip install -e /opt/quantbuild/quantlog-v.1` in QuantBuild `.venv`.
+Vereist: `quantlogv1` gecloned + `pip install -e /opt/quantbuild/quantlogv1` in QuantBuild `.venv`.
 
 Eenmalig installeren (timer = elke dag ~00:20 **serverlocal time**; zet VPS op UTC met `timedatectl set-timezone UTC` zodat dit gelijk is aan UTC):
 
 ```bash
-cd /opt/quantbuild/quantbuild_e1_v1
+cd /opt/quantbuild/quantbuildv1
 chmod +x scripts/vps/install_quantlog_nightly_timer.sh scripts/vps/quantlog_nightly.sh
 ./scripts/vps/install_quantlog_nightly_timer.sh
 sudo systemctl list-timers | grep quantlog
@@ -151,7 +151,7 @@ Handmatig één run (gisteren UTC):
 
 ```bash
 sudo systemctl start quantbuild-quantlog-report.service
-tail -n 80 /opt/quantbuild/quantbuild_e1_v1/logs/quantlog_nightly.log
+tail -n 80 /opt/quantbuild/quantbuildv1/logs/quantlog_nightly.log
 ```
 
 Optioneel in `/etc/quantbuild/quantbuild.env`: `QUANTBUILD_POST_RUN_CONFIG=configs/jouw.yaml`, `QUANTLOG_REPO_PATH=...`.
@@ -163,7 +163,7 @@ Optioneel in `/etc/quantbuild/quantbuild.env`: `QUANTBUILD_POST_RUN_CONFIG=confi
 Na een deploy met correlatie-fix: op de VPS (met QuantLog CLI werkend):
 
 ```bash
-cd /opt/quantbuild/quantbuild_e1_v1 && source .venv/bin/activate
+cd /opt/quantbuild/quantbuildv1 && source .venv/bin/activate
 python -m quantlog.cli validate-events --path data/quantlog_events/2026-04-02
 ```
 
@@ -176,7 +176,7 @@ Geen structurele `invalid_run_id` / `invalid_session_id` verwacht.
 Controleert: QuantLog-repo vindbaar, `validate-events` op de **test-fixture**, en gelijkheid van **NO_ACTION**-reason sets (Build vs QuantLog schema).
 
 ```bash
-cd /opt/quantbuild/quantbuild_e1_v1
+cd /opt/quantbuild/quantbuildv1
 source .venv/bin/activate
 python scripts/check_quantlog_linkage.py
 ```

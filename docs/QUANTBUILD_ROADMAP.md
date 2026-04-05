@@ -1,6 +1,6 @@
 # QuantBuild roadmap — operations & observability
 
-**Doel:** backlog **alleen voor deze repo** (`quantbuild_e1_v1`), afgestemd op het gedeelde platform-document in **QuantLog**: `docs/PLATFORM_ROADMAP.md` (correlatie, canonieke reasons, lifecycle, nightly rapportage).  
+**Doel:** backlog **alleen voor deze repo** (`quantbuildv1`), afgestemd op het gedeelde platform-document in **QuantLog**: `docs/PLATFORM_ROADMAP.md` (correlatie, canonieke reasons, lifecycle, nightly rapportage).  
 **Werkwijze:** van boven naar beneden; in PR’s verwijzen naar *QuantBuild roadmap §X* of *PLATFORM_ROADMAP §6 P1*.
 
 ---
@@ -63,7 +63,7 @@
 |---|------|------|
 | P4.1 | **Documenteren:** QuantLog clone op VPS | ✅ `OPERATOR_CHEATSHEET.md` |
 | P4.2 | **Optioneel:** systemd timer + install script | ✅ `deploy/systemd/quantbuild-quantlog-report.{service,timer}`, `scripts/vps/quantlog_nightly.sh`, `install_quantlog_nightly_timer.sh` |
-| P4.3 | **Default `--quantlog-repo-path`:** VPS `/opt/quantbuild/quantlog-v.1`, env `QUANTLOG_REPO_PATH`, anders sibling `quantLog v.1` | ✅ `scripts/quantlog_post_run.py` |
+| P4.3 | **Default `--quantlog-repo-path`:** VPS `/opt/quantbuild/quantlogv1`, env `QUANTLOG_REPO_PATH`, anders sibling `quantlogv1` | ✅ `scripts/quantlog_post_run.py` |
 
 ---
 

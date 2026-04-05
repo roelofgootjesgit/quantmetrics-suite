@@ -75,8 +75,8 @@ class CTraderBroker:
         env_path = os.getenv("QUANTBRIDGE_SRC_PATH", "").strip()
         if env_path:
             candidate_roots.append(Path(env_path))
-        # Common sibling checkout: ../quantBridge-v.1/src
-        candidate_roots.append(Path(__file__).resolve().parents[4] / "quantBridge-v.1" / "src")
+        # Common sibling checkout: ../quantbridgev1/src
+        candidate_roots.append(Path(__file__).resolve().parents[4] / "quantbridgev1" / "src")
 
         for candidate in candidate_roots:
             try_path = candidate.resolve()
@@ -102,7 +102,7 @@ class CTraderBroker:
             except Exception as e:
                 logger.warning("Failed loading QuantBridge from %s: %s", try_path, e)
                 continue
-        logger.error("QuantBridge OpenAPI module not found. Set QUANTBRIDGE_SRC_PATH to quantBridge-v.1/src")
+        logger.error("QuantBridge OpenAPI module not found. Set QUANTBRIDGE_SRC_PATH to quantbridgev1/src")
         return False
 
     def _hydrate_credentials_from_dotenv(self, bridge_repo_root: Path) -> None:

@@ -29,7 +29,7 @@ def _default_quantlog_repo_path() -> Path:
     env = os.environ.get("QUANTLOG_REPO_PATH", "").strip()
     if env:
         return Path(env)
-    return Path("/opt/quantbuild/quantlog-v.1")
+    return Path("/opt/quantbuild/quantlogv1")
 
 
 def _run_json(cmd: list[str], *, env: dict[str, str] | None = None) -> dict:

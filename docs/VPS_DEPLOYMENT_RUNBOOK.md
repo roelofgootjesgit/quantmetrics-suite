@@ -2,6 +2,8 @@
 
 Praktische handleiding om QuantBuild + QuantBridge op een Linux VPS te deployen en 1 week stabiel te laten draaien met echte orders op een cTrader demo-account.
 
+**Editor / SSH-key / VS Code Remote:** zie `docs/VPS_SSH_VSCODE_SETUP.md` (start-checklist voor nieuwe VPS of nieuwe machine).
+
 ---
 
 ## 1) Scope en Doel
@@ -25,9 +27,9 @@ Praktische handleiding om QuantBuild + QuantBridge op een Linux VPS te deployen 
 ## 3) Directory Layout (aanbevolen)
 
 ```text
-/opt/quantbuild/quantbuild_e1_v1
-/opt/quantbuild/quantBridge-v.1
-/opt/quantbuild/quantlog-v.1    # optioneel; event spine + post_run — zie docs/VPS_MULTI_MODULE_DEPLOYMENT.md
+/opt/quantbuild/quantbuildv1
+/opt/quantbuild/quantbridgev1
+/opt/quantbuild/quantlogv1    # optioneel; event spine + post_run — zie docs/VPS_MULTI_MODULE_DEPLOYMENT.md
 ```
 
 ---
@@ -37,7 +39,7 @@ Praktische handleiding om QuantBuild + QuantBridge op een Linux VPS te deployen 
 Snelle route (scripts in deze repo):
 
 ```bash
-cd /opt/quantbuild/quantbuild_e1_v1
+cd /opt/quantbuild/quantbuildv1
 chmod +x scripts/vps/bootstrap_vps.sh scripts/vps/install_systemd_service.sh
 ./scripts/vps/bootstrap_vps.sh <JOUW_QUANTBUILD_REPO_URL> <JOUW_QUANTBRIDGE_REPO_URL>
 ```
@@ -52,10 +54,10 @@ sudo mkdir -p /opt/quantbuild
 sudo chown -R $USER:$USER /opt/quantbuild
 cd /opt/quantbuild
 
-git clone <JOUW_QUANTBUILD_REPO_URL> quantbuild_e1_v1
-git clone <JOUW_QUANTBRIDGE_REPO_URL> quantBridge-v.1
+git clone <JOUW_QUANTBUILD_REPO_URL> quantbuildv1
+git clone <JOUW_QUANTBRIDGE_REPO_URL> quantbridgev1
 
-cd /opt/quantbuild/quantbuild_e1_v1
+cd /opt/quantbuild/quantbuildv1
 python3 -m venv .venv
 source .venv/bin/activate
 pip install --upgrade pip
@@ -73,7 +75,7 @@ export CTRADER_ACCOUNT_ID="..."
 export CTRADER_ACCESS_TOKEN="..."
 export CTRADER_CLIENT_ID="..."
 export CTRADER_CLIENT_SECRET="..."
-export QUANTBRIDGE_SRC_PATH="/opt/quantbuild/quantBridge-v.1/src"
+export QUANTBRIDGE_SRC_PATH="/opt/quantbuild/quantbridgev1/src"
 
 # News + LLM
 export FINNHUB_API_KEY="..."
@@ -97,7 +99,7 @@ Tip: zet deze in een service env-file (`/etc/quantbuild/quantbuild.env`).
 Nieuwe PuTTY/SSH sessie start zonder actieve venv. Gebruik steeds:
 
 ```bash
-cd /opt/quantbuild/quantbuild_e1_v1
+cd /opt/quantbuild/quantbuildv1
 source .venv/bin/activate
 which python
 ```
@@ -105,7 +107,7 @@ which python
 Verwacht pad:
 
 ```text
-/opt/quantbuild/quantbuild_e1_v1/.venv/bin/python
+/opt/quantbuild/quantbuildv1/.venv/bin/python
 ```
 
 ---
@@ -120,7 +122,7 @@ Gebruik:
 - run command (demo-account, echte demo-orders):
 
 ```bash
-cd /opt/quantbuild/quantbuild_e1_v1
+cd /opt/quantbuild/quantbuildv1
 source .venv/bin/activate
 python -m src.quantbuild.app --config configs/ctrader_quantbridge_openapi.yaml live --real
 ```
@@ -132,7 +134,7 @@ python -m src.quantbuild.app --config configs/ctrader_quantbridge_openapi.yaml l
 Voor news-gate + sentiment + LLM advisor + Telegram news-impact alerts:
 
 ```bash
-cd /opt/quantbuild/quantbuild_e1_v1
+cd /opt/quantbuild/quantbuildv1
 source .venv/bin/activate
 
 # 1) News ingest smoke test
@@ -183,7 +185,7 @@ CTRADER_ACCOUNT_ID=...
 CTRADER_ACCESS_TOKEN=...
 CTRADER_CLIENT_ID=...
 CTRADER_CLIENT_SECRET=...
-QUANTBRIDGE_SRC_PATH=/opt/quantbuild/quantBridge-v.1/src
+QUANTBRIDGE_SRC_PATH=/opt/quantbuild/quantbridgev1/src
 EOF
 ```
 
@@ -197,13 +199,13 @@ After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=/opt/quantbuild/quantbuild_e1_v1
+WorkingDirectory=/opt/quantbuild/quantbuildv1
 EnvironmentFile=/etc/quantbuild/quantbuild.env
-ExecStart=/opt/quantbuild/quantbuild_e1_v1/.venv/bin/python scripts/launch_live_safe.py --config configs/ctrader_quantbridge_openapi.yaml --max-runtime-seconds 604800 --heartbeat-seconds 30 --skip-recovery
+ExecStart=/opt/quantbuild/quantbuildv1/.venv/bin/python scripts/launch_live_safe.py --config configs/ctrader_quantbridge_openapi.yaml --max-runtime-seconds 604800 --heartbeat-seconds 30 --skip-recovery
 Restart=always
 RestartSec=10
-StandardOutput=append:/opt/quantbuild/quantbuild_e1_v1/logs/runtime_ctrader_demo.log
-StandardError=append:/opt/quantbuild/quantbuild_e1_v1/logs/runtime_ctrader_demo.log
+StandardOutput=append:/opt/quantbuild/quantbuildv1/logs/runtime_ctrader_demo.log
+StandardError=append:/opt/quantbuild/quantbuildv1/logs/runtime_ctrader_demo.log
 
 [Install]
 WantedBy=multi-user.target
@@ -222,7 +224,7 @@ sudo systemctl status quantbuild-ctrader-demo.service --no-pager
 Of via repo script:
 
 ```bash
-cd /opt/quantbuild/quantbuild_e1_v1
+cd /opt/quantbuild/quantbuildv1
 chmod +x scripts/vps/start_weekrun.sh
 ./scripts/vps/start_weekrun.sh
 ```
@@ -230,7 +232,7 @@ chmod +x scripts/vps/start_weekrun.sh
 Logs volgen:
 
 ```bash
-tail -f /opt/quantbuild/quantbuild_e1_v1/logs/runtime_ctrader_demo.log
+tail -f /opt/quantbuild/quantbuildv1/logs/runtime_ctrader_demo.log
 ```
 
 ### QuantLog nightly timer (optioneel)
@@ -238,7 +240,7 @@ tail -f /opt/quantbuild/quantbuild_e1_v1/logs/runtime_ctrader_demo.log
 Valideert/summariseert de **vorige UTC-dag** (`scripts/vps/quantlog_nightly.sh`). Zet de server op **UTC** (`timedatectl set-timezone UTC`) of pas `deploy/systemd/quantbuild-quantlog-report.timer` aan.
 
 ```bash
-cd /opt/quantbuild/quantbuild_e1_v1
+cd /opt/quantbuild/quantbuildv1
 chmod +x scripts/vps/install_quantlog_nightly_timer.sh scripts/vps/quantlog_nightly.sh
 ./scripts/vps/install_quantlog_nightly_timer.sh
 ```
@@ -275,13 +277,13 @@ Zie ook `docs/OPERATOR_CHEATSHEET.md` §9.
 
 ```bash
 sudo systemctl status quantbuild-ctrader-demo.service --no-pager
-rg "BOOTSTRAP|decision_cycle|market_data_bootstrap_failed|live_data_refresh_fail_fast|Relevance filter|News budget|LLM advisor|ERROR" /opt/quantbuild/quantbuild_e1_v1/logs/runtime_ctrader_demo.log
+rg "BOOTSTRAP|decision_cycle|market_data_bootstrap_failed|live_data_refresh_fail_fast|Relevance filter|News budget|LLM advisor|ERROR" /opt/quantbuild/quantbuildv1/logs/runtime_ctrader_demo.log
 ```
 
 Of via script:
 
 ```bash
-cd /opt/quantbuild/quantbuild_e1_v1
+cd /opt/quantbuild/quantbuildv1
 chmod +x scripts/vps/daily_health_check.sh
 ./scripts/vps/daily_health_check.sh
 ```

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BASE_DIR="/opt/quantbuild/quantbuild_e1_v1"
+BASE_DIR="/opt/quantbuild/quantbuildv1"
 ENV_DIR="/etc/quantbuild"
 ENV_FILE="${ENV_DIR}/quantbuild.env"
 SERVICE_SRC="${BASE_DIR}/deploy/systemd/quantbuild-ctrader-demo.service"

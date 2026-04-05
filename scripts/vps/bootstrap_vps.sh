@@ -6,8 +6,8 @@ set -euo pipefail
 #
 # Example:
 #   ./scripts/vps/bootstrap_vps.sh \
-#     git@github.com:you/quantbuild_e1_v1.git \
-#     git@github.com:you/quantBridge-v.1.git
+#     git@github.com:you/quantbuildv1.git \
+#     git@github.com:you/quantbridgev1.git
 
 if [[ $# -lt 2 ]]; then
   echo "Usage: $0 <quantbuild_repo_url> <quantbridge_repo_url>"
@@ -18,8 +18,8 @@ QB_REPO_URL="$1"
 BRIDGE_REPO_URL="$2"
 
 BASE_DIR="/opt/quantbuild"
-QB_DIR="${BASE_DIR}/quantbuild_e1_v1"
-BRIDGE_DIR="${BASE_DIR}/quantBridge-v.1"
+QB_DIR="${BASE_DIR}/quantbuildv1"
+BRIDGE_DIR="${BASE_DIR}/quantbridgev1"
 
 sudo apt update
 sudo apt install -y git python3 python3-venv python3-pip ripgrep

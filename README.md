@@ -238,7 +238,7 @@ Dual-track evaluator that runs adaptive and static allocators side-by-side on ev
 ## Project Structure
 
 ```
-quantbuild_e1_v1/
+quantbuildv1/
 ├── src/quantbuild/
 │   ├── models/              Pydantic typed models (Trade, Signal, Config)
 │   ├── strategy_modules/    ICT modules (8) + News Gate + Regime Detector
@@ -282,7 +282,7 @@ python -m src.quantbuild.app --config configs/strict_prod_v2.yaml live --dry-run
 
 ### cTrader Live via QuantBridge
 
-QuantBuild executes through `quantBridge-v.1` OpenAPI transport on your IC Markets cTrader demo.
+QuantBuild executes through `quantbridgev1` OpenAPI transport on your IC Markets cTrader demo.
 
 ```powershell
 # 1. Market data smoke test (verify Dukascopy feed works)
@@ -298,7 +298,7 @@ python scripts/launch_live_safe.py --config configs/ctrader_quantbridge_openapi.
 python scripts/launch_live_safe.py --config configs/ctrader_quantbridge_openapi.yaml --max-runtime-seconds 14400 --skip-recovery --heartbeat-seconds 60
 
 # 5. Monitor dashboard (open in a SECOND terminal)
-cd C:\Users\Gebruiker\quantbuild_e1_v1
+cd C:\Users\Gebruiker\quantbuildv1
 .\scripts\monitor_live.ps1
 
 # Monitor with faster refresh (every 5 seconds)

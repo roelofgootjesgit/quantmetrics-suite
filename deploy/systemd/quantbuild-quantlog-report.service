@@ -4,11 +4,11 @@ After=network.target
 
 [Service]
 Type=oneshot
-WorkingDirectory=/opt/quantbuild/quantbuild_e1_v1
+WorkingDirectory=/opt/quantbuild/quantbuildv1
 EnvironmentFile=-/etc/quantbuild/quantbuild.env
-ExecStart=/bin/bash /opt/quantbuild/quantbuild_e1_v1/scripts/vps/quantlog_nightly.sh
-StandardOutput=append:/opt/quantbuild/quantbuild_e1_v1/logs/quantlog_nightly.log
-StandardError=append:/opt/quantbuild/quantbuild_e1_v1/logs/quantlog_nightly.log
+ExecStart=/bin/bash /opt/quantbuild/quantbuildv1/scripts/vps/quantlog_nightly.sh
+StandardOutput=append:/opt/quantbuild/quantbuildv1/logs/quantlog_nightly.log
+StandardError=append:/opt/quantbuild/quantbuildv1/logs/quantlog_nightly.log
 
 [Install]
 WantedBy=multi-user.target

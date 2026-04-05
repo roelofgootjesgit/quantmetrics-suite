@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BASE_DIR="/opt/quantbuild/quantbuild_e1_v1"
+BASE_DIR="/opt/quantbuild/quantbuildv1"
 SVC_SRC="${BASE_DIR}/deploy/systemd/quantbuild-quantlog-report.service"
 TMR_SRC="${BASE_DIR}/deploy/systemd/quantbuild-quantlog-report.timer"
 SVC_DST="/etc/systemd/system/quantbuild-quantlog-report.service"

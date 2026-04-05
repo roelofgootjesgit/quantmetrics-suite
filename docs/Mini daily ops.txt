@@ -1,4 +1,4 @@
-cd /opt/quantbuild/quantbuild_e1_v1
+cd /opt/quantbuild/quantbuildv1
 source .venv/bin/activate
 git fetch origin && git checkout v2-development && git pull --ff-only
 python -m src.quantbuild.app --config configs/strict_prod_v2.yaml news-test

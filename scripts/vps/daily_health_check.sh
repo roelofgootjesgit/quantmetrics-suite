@@ -2,7 +2,7 @@
 set -euo pipefail
 
 SERVICE_NAME="quantbuild-ctrader-demo.service"
-LOG_FILE="/opt/quantbuild/quantbuild_e1_v1/logs/runtime_ctrader_demo.log"
+LOG_FILE="/opt/quantbuild/quantbuildv1/logs/runtime_ctrader_demo.log"
 
 echo "=== service status ==="
 sudo systemctl status "${SERVICE_NAME}" --no-pager | sed -n '1,20p'

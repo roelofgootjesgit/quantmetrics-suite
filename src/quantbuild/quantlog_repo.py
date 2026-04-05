@@ -7,7 +7,7 @@ from pathlib import Path
 
 
 def quantbuild_project_root() -> Path:
-    """Root of quantbuild_e1_v1 (contains ``src/``, ``tests/``, ``configs/``)."""
+    """Root of quantbuildv1 (contains ``src/``, ``tests/``, ``configs/``)."""
     return Path(__file__).resolve().parents[2]
 
 
@@ -20,8 +20,8 @@ def resolve_quantlog_repo_path() -> Path | None:
             return p
         return None
     candidates = [
-        Path("/opt/quantbuild/quantlog-v.1"),
-        quantbuild_project_root().parent / "quantLog v.1",
+        Path("/opt/quantbuild/quantlogv1"),
+        quantbuild_project_root().parent / "quantlogv1",
     ]
     for p in candidates:
         if (p / "src" / "quantlog").is_dir():

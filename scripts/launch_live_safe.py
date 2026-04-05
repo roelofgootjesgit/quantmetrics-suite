@@ -2,7 +2,7 @@
 
 Features:
 - preflight checks
-- optional recovery-first call into quantBridge-v.1
+- optional recovery-first call into quantbridgev1
 - controlled live subprocess launch
 - heartbeat logging
 - max runtime timeout
@@ -273,7 +273,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--max-runtime-seconds", type=int, default=1800)
     parser.add_argument("--heartbeat-seconds", type=int, default=30)
     parser.add_argument("--log-file", default="", help="Path to wrapper log file")
-    parser.add_argument("--bridge-root", default=str(ROOT.parent / "quantBridge-v.1"))
+    parser.add_argument("--bridge-root", default=str(ROOT.parent / "quantbridgev1"))
     parser.add_argument("--run-recovery-first", action="store_true", default=True)
     parser.add_argument("--skip-recovery", action="store_true", help="Skip recovery-first step")
     parser.add_argument("--recovery-config", default="configs/ctrader_icmarkets_demo.yaml")

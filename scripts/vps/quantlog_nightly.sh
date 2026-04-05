@@ -3,7 +3,7 @@
 # Intended for systemd timer on Linux VPS (GNU date). See deploy/systemd/quantbuild-quantlog-report.*.
 set -euo pipefail
 
-ROOT="${QUANTBUILD_ROOT:-/opt/quantbuild/quantbuild_e1_v1}"
+ROOT="${QUANTBUILD_ROOT:-/opt/quantbuild/quantbuildv1}"
 cd "$ROOT"
 # shellcheck source=/dev/null
 source .venv/bin/activate

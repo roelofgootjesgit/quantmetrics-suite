@@ -110,7 +110,7 @@ def main() -> int:
     if repo is None:
         msg = (
             "QuantLog linkage: repository not found (set QUANTLOG_REPO_PATH or clone as "
-            "sibling 'quantLog v.1' /opt/quantbuild/quantlog-v.1). "
+            "sibling 'quantlogv1' /opt/quantbuild/quantlogv1). "
             "validate-events and NO_ACTION alignment were skipped."
         )
         print(f"WARNING: {msg}", file=sys.stderr)
