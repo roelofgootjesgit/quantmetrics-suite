@@ -17,6 +17,7 @@ dist/
 # Local/generated runtime data
 .tmp/
 data/events/generated/
+data/imported/
 
 # IDE/OS
 .DS_Store

@@ -16,8 +16,8 @@ Historisch onderscheid:
 | Repo | Branch | Commit (volledig) | Onderwerp |
 |------|--------|-------------------|-----------|
 | quantbuildE1 | `v2-development` | `3cf42b81549223a9fa2804f6c1a4e6c414cbab63` | Integrate QuantLog emitter into live runner and add post-run pipeline |
-| quantBridge-v.1 | `main` | `ccdea09a4e83ef1c401b14aae18d20c2ecec7cc9` | Make observability sink QuantLog-compatible with canonical envelope |
-| quantLog v.1 | `main` | `c4f12fd10853ac64aa5cbb83067c87b1201df0cd` | Acceptance 001 resultaten ingevuld + QuantLog CLI |
+| quantbridgev1 | `main` | `ccdea09a4e83ef1c401b14aae18d20c2ecec7cc9` | Make observability sink QuantLog-compatible with canonical envelope |
+| quantlogv1 | `main` | `c4f12fd10853ac64aa5cbb83067c87b1201df0cd` | Acceptance 001 resultaten ingevuld + QuantLog CLI |
 
 *(Latere commits op `main` kunnen dit dossier alleen documentair bijwerken; integratietests refereren aan de SHAs hierboven.)*
 
@@ -65,7 +65,7 @@ Historisch onderscheid:
 
 ### Paden
 
-- **Dagmap:** `quantbuild_e1_v1/data/quantlog_events/2026-03-29/`
+- **Dagmap:** `quantbuildv1/data/quantlog_events/2026-03-29/`
 - **Bestanden:** `quantbuild.jsonl` (3 events), `quantbridge.jsonl` (2 events)
 
 ### Event counts

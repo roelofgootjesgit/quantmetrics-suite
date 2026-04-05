@@ -82,6 +82,11 @@ Minimale correlatie-eisen:
 - Position events gebruiken waar mogelijk `position_id`.
 - Governance events bevatten `account_id`.
 
+**Lege correlatie:** een veld dat in JSON **wel bestaat** maar `null`, `""` of alleen whitespace is, is **ongeldig** (QuantLog: `invalid_run_id` / `invalid_session_id` / `invalid_trace_id`), net als een ontbrekende sleutel (`missing_required_field`).
+
+**`source_seq` in `validate-events`:** binnen **één JSONL-bestand** moet `source_seq` **strikt oplopen** per stroom  
+`source_system` + `source_component` + `run_id` + `session_id`. Bij een gelijke of lagere waarde: `source_seq_not_monotonic`.
+
 Zonder deze velden is betrouwbare replay niet mogelijk.
 
 ---

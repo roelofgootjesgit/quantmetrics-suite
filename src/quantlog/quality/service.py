@@ -29,6 +29,22 @@ class RunQualityReport:
     missing_order_ref_execution: int
     audit_gaps: int
     penalty_breakdown: dict[str, int]
+    trades_attempted: int
+    trades_filled: int
+    blocks_total: int
+    no_action_by_reason: dict[str, int]
+    trade_action_by_decision: dict[str, int]
+    risk_guard_by_decision: dict[str, int]
+    risk_guard_blocks_by_guard: dict[str, int]
+    by_event_type: dict[str, int]
+    by_severity: dict[str, int]
+    by_source_system: dict[str, int]
+    by_source_component: dict[str, int]
+    by_environment: dict[str, int]
+    non_contract_event_types: dict[str, int]
+    count_unique_run_ids: int
+    count_unique_session_ids: int
+    count_unique_trace_ids: int
 
 
 def _safe_dt(value: Any) -> datetime:
@@ -115,6 +131,7 @@ def score_run(path: Path, max_gap_seconds: float = 300.0, pass_threshold: int = 
     errors_total = sum(1 for issue in validation.issues if issue.level == "error")
     warnings_total = sum(1 for issue in validation.issues if issue.level == "warn")
 
+    non_contract_total = sum(summary.non_contract_event_types.values())
     penalties = {
         "errors": min(errors_total * 25, 60),
         "warnings": min(warnings_total * 2, 20),
@@ -124,6 +141,7 @@ def score_run(path: Path, max_gap_seconds: float = 300.0, pass_threshold: int = 
         "out_of_order_events": min(out_of_order_events * 2, 20),
         "missing_trace_ids": min(missing_trace_ids * 20, 60),
         "missing_order_ref_execution": min(missing_order_ref_execution * 10, 30),
+        "non_contract_event_types": min(non_contract_total * 3, 15),
     }
     total_penalty = sum(penalties.values())
     score = max(0, 100 - total_penalty)
@@ -145,5 +163,21 @@ def score_run(path: Path, max_gap_seconds: float = 300.0, pass_threshold: int = 
         missing_order_ref_execution=missing_order_ref_execution,
         audit_gaps=len(gaps),
         penalty_breakdown=penalties,
+        trades_attempted=summary.trades_attempted,
+        trades_filled=summary.trades_filled,
+        blocks_total=summary.blocks_total,
+        no_action_by_reason=summary.no_action_by_reason,
+        trade_action_by_decision=summary.trade_action_by_decision,
+        risk_guard_by_decision=summary.risk_guard_by_decision,
+        risk_guard_blocks_by_guard=summary.risk_guard_blocks_by_guard,
+        by_event_type=summary.by_event_type,
+        by_severity=summary.by_severity,
+        by_source_system=summary.by_source_system,
+        by_source_component=summary.by_source_component,
+        by_environment=summary.by_environment,
+        non_contract_event_types=summary.non_contract_event_types,
+        count_unique_run_ids=summary.count_unique_run_ids,
+        count_unique_session_ids=summary.count_unique_session_ids,
+        count_unique_trace_ids=summary.count_unique_trace_ids,
     )
 

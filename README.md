@@ -49,7 +49,7 @@ quantlog-v1/
 ## Quickstart (Windows PowerShell)
 
 ```powershell
-cd "c:\Users\Gebruiker\quantLog v.1"
+cd "c:\Users\Gebruiker\quantlogv1"
 python -m venv .venv
 .venv\Scripts\activate
 python -m pip install -e .
@@ -75,6 +75,10 @@ Summarize event day/folder:
 python -m quantlog.cli summarize-day --path data/events/sample
 ```
 
+The JSON output includes `no_action_by_reason` and `trade_action_by_decision` (NO_ACTION histogram) plus `risk_guard_blocks_by_guard` for guard funnel analysis.
+
+`validate-events` also returns `errors_by_code` and `warnings_by_code` (aggregated issue message prefixes).
+
 Check ingest health:
 
 ```powershell
@@ -92,6 +96,50 @@ Run quality scorecard:
 ```powershell
 python -m quantlog.cli score-run --path data/events/sample --max-gap-seconds 300 --pass-threshold 95
 ```
+
+`score-run` includes the same throughput histograms as `summarize-day` (`no_action_by_reason`, `trade_action_by_decision`, `risk_guard_blocks_by_guard`, `trades_attempted`, …) next to the quality score.
+
+Nightly-style chain (same four steps, exit code reflects worst failure):
+
+```powershell
+powershell -File scripts/nightly_quantlog_report.ps1 -Path data/events/sample
+```
+
+On Linux/VPS:
+
+```bash
+bash scripts/nightly_quantlog_report.sh data/events/sample
+```
+
+Canonical `NO_ACTION` payload reasons (for QuantBuild emitters):
+
+```powershell
+python -m quantlog.cli list-no-action-reasons
+```
+
+v1 `event_type` names and required payload keys:
+
+```powershell
+python -m quantlog.cli list-event-types
+```
+
+Required envelope fields plus allowed `severity` / `environment` / `source_system` (and decision enums):
+
+```powershell
+python -m quantlog.cli list-envelope-schema
+```
+
+All of the above in one JSON (for docs/codegen):
+
+```powershell
+python -m quantlog.cli export-v1-schema
+```
+
+`summarize-day` and `score-run` also include `by_severity`, `by_source_system`, `by_source_component`, and `by_environment` next to `by_event_type`.
+
+`non_contract_event_types` counts `event_type` strings that are **not** in the v1 contract (`list-event-types`). The quality score applies a small penalty when any are present.
+
+`summarize-day` and `score-run` include `count_unique_run_ids`, `count_unique_session_ids`, and `count_unique_trace_ids` (distinct non-empty envelope values) to spot merged folders or multi-run days.
 
 ## Build and test workflows
 

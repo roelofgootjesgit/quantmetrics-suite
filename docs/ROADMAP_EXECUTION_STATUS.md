@@ -2,6 +2,8 @@
 
 Dit document geeft een compleet overzicht van de stappen die nog kwamen en hun huidige status.
 
+**Strategische volgende fase (operations + data discipline, correlatie, eventtypen, nightly rapportage):** zie **[PLATFORM_ROADMAP.md](PLATFORM_ROADMAP.md)**.
+
 ## Fase-overzicht
 
 | Fase | Doel | Status |

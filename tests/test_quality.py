@@ -47,6 +47,22 @@ class TestQuality(unittest.TestCase):
             self.assertGreaterEqual(report.score, 95)
             self.assertEqual(report.errors_total, 0)
             self.assertEqual(report.duplicate_event_ids, 0)
+            self.assertEqual(report.trades_attempted, 0)
+            self.assertEqual(report.blocks_total, 1)
+            self.assertEqual(report.trade_action_by_decision.get("NO_ACTION"), 1)
+            self.assertEqual(report.no_action_by_reason.get("risk_blocked"), 1)
+            self.assertEqual(report.risk_guard_blocks_by_guard.get("spread_guard"), 1)
+            self.assertEqual(report.risk_guard_by_decision.get("BLOCK"), 1)
+            self.assertEqual(report.by_event_type.get("signal_evaluated"), 1)
+            self.assertEqual(report.by_event_type.get("trade_action"), 1)
+            self.assertEqual(report.by_severity.get("info"), 3)
+            self.assertEqual(report.by_source_system.get("quantbuild"), 3)
+            self.assertEqual(report.by_environment.get("paper"), 3)
+            self.assertEqual(report.by_source_component.get("quantbuild_adapter"), 3)
+            self.assertEqual(report.non_contract_event_types, {})
+            self.assertEqual(report.count_unique_run_ids, 1)
+            self.assertEqual(report.count_unique_session_ids, 1)
+            self.assertEqual(report.count_unique_trace_ids, 1)
 
     def test_score_run_fails_when_anomalies_are_present(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:

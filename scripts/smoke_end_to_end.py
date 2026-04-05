@@ -255,6 +255,22 @@ def run_smoke() -> None:
         _assert(summary.trades_filled == 1, "summary trades_filled mismatch")
         _assert(summary.blocks_total == 1, "summary blocks_total mismatch")
         _assert(summary.broker_rejects == 0, "summary broker_rejects mismatch")
+        _assert(
+            summary.trade_action_by_decision.get("ENTER") == 1,
+            "summary trade_action ENTER count mismatch",
+        )
+        _assert(
+            summary.trade_action_by_decision.get("NO_ACTION") == 1,
+            "summary trade_action NO_ACTION count mismatch",
+        )
+        _assert(
+            summary.no_action_by_reason.get("spread_too_high") == 1,
+            "summary no_action_by_reason spread_too_high mismatch",
+        )
+        _assert(
+            summary.risk_guard_blocks_by_guard.get("spread_guard") == 1,
+            "summary risk_guard_blocks_by_guard mismatch",
+        )
         print("[OK] summarize day")
 
         gaps = detect_audit_gaps(events_root, max_gap_seconds=300.0)

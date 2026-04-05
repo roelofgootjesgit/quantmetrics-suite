@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -35,6 +36,20 @@ class ValidationReport:
     lines_scanned: int
     events_valid: int
     issues: list[ValidationIssue]
+
+
+def validation_issue_code(message: str) -> str:
+    """Stable bucket for aggregating validation messages (ops / CI summaries)."""
+    if ": " in message:
+        return message.split(": ", 1)[0].strip()
+    return message
+
+
+def aggregate_validation_issue_codes(issues: list[ValidationIssue]) -> dict[str, int]:
+    counts: Counter[str] = Counter()
+    for issue in issues:
+        counts[validation_issue_code(issue.message)] += 1
+    return dict(counts)
 
 
 def _is_utc_iso8601(value: Any) -> bool:
@@ -168,9 +183,12 @@ def validate_raw_event(raw_line: RawEventLine) -> list[ValidationIssue]:
             )
         )
 
+    # Required correlation fields: key may be present with JSON null — still invalid.
     for text_field in ("run_id", "session_id", "trace_id"):
-        value = event.get(text_field)
-        if value is not None and (not isinstance(value, str) or not value.strip()):
+        if text_field not in event:
+            continue
+        value = event[text_field]
+        if not isinstance(value, str) or not value.strip():
             issues.append(
                 ValidationIssue(
                     level="error",
@@ -275,6 +293,48 @@ def validate_raw_event(raw_line: RawEventLine) -> list[ValidationIssue]:
     return issues
 
 
+def _monotonic_source_seq_issues(
+    raw_line: RawEventLine, seq_last: dict[str, int]
+) -> list[ValidationIssue]:
+    """Enforce strictly increasing source_seq per emitter stream within one JSONL file."""
+    issues: list[ValidationIssue] = []
+    if raw_line.parsed is None:
+        return issues
+    event = raw_line.parsed
+    sq = event.get("source_seq")
+    if not isinstance(sq, int) or sq < 1:
+        return issues
+    run_id = event.get("run_id")
+    session_id = event.get("session_id")
+    source_system = event.get("source_system")
+    source_component = event.get("source_component")
+    if not (
+        isinstance(run_id, str)
+        and run_id.strip()
+        and isinstance(session_id, str)
+        and session_id.strip()
+        and isinstance(source_system, str)
+        and source_system.strip()
+        and isinstance(source_component, str)
+        and source_component.strip()
+    ):
+        return issues
+    key = f"{source_system.strip()}|{source_component.strip()}|{run_id.strip()}|{session_id.strip()}"
+    prev = seq_last.get(key)
+    if prev is not None and sq <= prev:
+        issues.append(
+            ValidationIssue(
+                level="error",
+                path=raw_line.path,
+                line_number=raw_line.line_number,
+                message=f"source_seq_not_monotonic: stream={key!r} prev={prev} current={sq}",
+            )
+        )
+    else:
+        seq_last[key] = sq
+    return issues
+
+
 def validate_path(path: Path) -> ValidationReport:
     jsonl_files = discover_jsonl_files(path)
     issues: list[ValidationIssue] = []
@@ -282,11 +342,14 @@ def validate_path(path: Path) -> ValidationReport:
     events_valid = 0
 
     for jsonl_path in jsonl_files:
+        seq_last: dict[str, int] = {}
         for raw_line in iter_jsonl_file(jsonl_path):
             lines_scanned += 1
             event_issues = validate_raw_event(raw_line)
-            issues.extend(event_issues)
-            if not any(issue.level == "error" for issue in event_issues):
+            mono_issues = _monotonic_source_seq_issues(raw_line, seq_last)
+            combined = event_issues + mono_issues
+            issues.extend(combined)
+            if not any(issue.level == "error" for issue in combined):
                 events_valid += 1
 
     return ValidationReport(
