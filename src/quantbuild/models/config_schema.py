@@ -132,6 +132,7 @@ class TelegramConfig(BaseModel):
         "trade_entry": True, "trade_exit": True,
         "daily_summary": True, "error_alerts": True,
         "news_event": True, "counter_news": True,
+        "suite_lifecycle": True,
     })
 
 

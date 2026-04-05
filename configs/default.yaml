@@ -54,6 +54,7 @@ monitoring:
       error_alerts: true
       news_event: true
       counter_news: true
+      suite_lifecycle: true
     report:
       interval_seconds: 3600
       on_startup: true

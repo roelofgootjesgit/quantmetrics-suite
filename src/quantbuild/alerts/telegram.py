@@ -231,3 +231,28 @@ class TelegramAlerter:
             f"Time: {datetime.now(timezone.utc).strftime('%H:%M UTC')}"
         )
         return self._send(text)
+
+    def alert_suite_start(self, components: list[str]) -> bool:
+        """QuantMetrics OS: suite came up; `components` are labels (build, bridge, log, …)."""
+        if not self._alerts_cfg.get("suite_lifecycle", True):
+            return False
+        labels = ", ".join(f"<code>{c}</code>" for c in components) or "<i>(none listed)</i>"
+        text = (
+            f"▶️ <b>QUANTMETRICS SUITE START</b>\n"
+            f"Components: {labels}\n"
+            f"Time: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}"
+        )
+        return self._send(text)
+
+    def alert_suite_stop(self, components: list[str], reason: str = "") -> bool:
+        if not self._alerts_cfg.get("suite_lifecycle", True):
+            return False
+        labels = ", ".join(f"<code>{c}</code>" for c in components) or "<i>(none listed)</i>"
+        text = (
+            f"⏹️ <b>QUANTMETRICS SUITE STOP</b>\n"
+            f"Components: {labels}\n"
+        )
+        if reason.strip():
+            text += f"Reason: {reason.strip()[:300]}\n"
+        text += f"Time: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}"
+        return self._send(text)

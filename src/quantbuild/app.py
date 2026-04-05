@@ -93,6 +93,27 @@ def cmd_live(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_suite_notify(args: argparse.Namespace) -> int:
+    """Send suite start/stop Telegram using monitoring.telegram (for QuantMetrics OS orchestrator)."""
+    cfg = load_config(args.config)
+    setup_logging(cfg)
+    from src.quantbuild.alerts.telegram import TelegramAlerter
+
+    alerter = TelegramAlerter(cfg)
+    if not alerter.enabled:
+        print("Telegram disabled or missing bot_token/chat_id; skipping suite notify.", file=sys.stderr)
+        return 0
+    comps = [c.strip() for c in args.components if c and str(c).strip()]
+    if args.event == "start":
+        ok = alerter.alert_suite_start(comps)
+    else:
+        ok = alerter.alert_suite_stop(comps, reason=getattr(args, "reason", "") or "")
+    if not ok:
+        print("Suite notify: Telegram send failed.", file=sys.stderr)
+        return 1
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(prog="quantbuild", description="Quantbuild E1 — XAUUSD Trading Bot")
     parser.add_argument("--config", "-c", default=None, help="Path to YAML config")
@@ -117,6 +138,20 @@ def main() -> int:
     live.add_argument("--dry-run", action="store_true", default=True, help="Paper trading mode (default)")
     live.add_argument("--real", action="store_true", dest="real", help="Real trading (requires credentials)")
     live.set_defaults(func=cmd_live)
+
+    sn = sub.add_parser(
+        "suite-notify",
+        help="Send QuantMetrics suite start/stop to Telegram (uses monitoring.telegram)",
+    )
+    sn.add_argument("event", choices=["start", "stop"], help="Lifecycle event")
+    sn.add_argument(
+        "components",
+        nargs="+",
+        metavar="COMPONENT",
+        help="Which parts of the suite are up/down, e.g. build bridge log",
+    )
+    sn.add_argument("--reason", default="", help="Optional reason (mainly for stop)")
+    sn.set_defaults(func=cmd_suite_notify)
 
     args = parser.parse_args()
     if hasattr(args, "real") and args.real:

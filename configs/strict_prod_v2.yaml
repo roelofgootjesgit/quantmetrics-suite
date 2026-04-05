@@ -262,6 +262,7 @@ monitoring:
       error_alerts: true
       news_event: true
       counter_news: true
+      suite_lifecycle: true
   dashboard:
     enabled: false
     host: "0.0.0.0"
