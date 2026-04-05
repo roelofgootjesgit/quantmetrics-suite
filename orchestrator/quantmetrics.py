@@ -126,6 +126,27 @@ def cmd_log(args: argparse.Namespace) -> int:
     return _run(cmd, cwd=root, env=_env_with_pythonpath(ql_src))
 
 
+def cmd_notify(args: argparse.Namespace) -> int:
+    """Suite lifecycle Telegram via QuantBuild (monitoring.telegram in YAML)."""
+    _load_dotenv()
+    root = _require_dir("QUANTBUILD_ROOT")
+    cfg = args.config or os.environ.get("QUANTBUILD_CONFIG", "configs/strict_prod_v2.yaml")
+    py = _python()
+    cmd = [
+        py,
+        "-m",
+        "src.quantbuild.app",
+        "--config",
+        cfg,
+        "suite-notify",
+        args.event,
+        *args.components,
+    ]
+    if getattr(args, "reason", None) and str(args.reason).strip():
+        cmd.extend(["--reason", str(args.reason).strip()])
+    return _run(cmd, cwd=root, env=_env_with_pythonpath(str(root)))
+
+
 def cmd_post_run(args: argparse.Namespace) -> int:
     _load_dotenv()
     day = args.date.strip()
@@ -204,6 +225,26 @@ def build_parser() -> argparse.ArgumentParser:
     )
     pr.add_argument("date", help="UTC date folder name, e.g. 2026-03-29")
     pr.set_defaults(func=cmd_post_run)
+
+    nt = sub.add_parser(
+        "notify",
+        help="Telegram suite start/stop (QuantBuild monitoring.telegram); list component labels",
+    )
+    nt.add_argument("event", choices=["start", "stop"], help="Suite lifecycle")
+    nt.add_argument(
+        "components",
+        nargs="+",
+        metavar="COMPONENT",
+        help="e.g. build bridge log (labels only, for the message)",
+    )
+    nt.add_argument(
+        "-c",
+        "--config",
+        default=None,
+        help="QuantBuild YAML relative to QUANTBUILD_ROOT (default: $QUANTBUILD_CONFIG)",
+    )
+    nt.add_argument("--reason", default="", help="Optional note (typically for stop)")
+    nt.set_defaults(func=cmd_notify)
 
     return p
 
