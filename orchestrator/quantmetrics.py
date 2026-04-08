@@ -64,10 +64,11 @@ def cmd_check(_: argparse.Namespace) -> int:
     br = _require_dir("QUANTBRIDGE_ROOT")
     lg = _require_dir("QUANTLOG_ROOT")
     events = _events_root()
+    events_note = "explicit" if os.environ.get("QUANTLOG_EVENTS_ROOT", "").strip() else "default"
     print("QUANTBUILD_ROOT:", b)
     print("QUANTBRIDGE_ROOT:", br)
     print("QUANTLOG_ROOT:", lg)
-    print("QUANTLOG_EVENTS_ROOT:", events)
+    print("QUANTLOG_EVENTS_ROOT:", events, f"({events_note})")
     return 0
 
 
@@ -76,7 +77,7 @@ def _events_root() -> Path:
     raw = os.environ.get("QUANTLOG_EVENTS_ROOT", "").strip()
     if raw:
         return Path(os.path.expandvars(raw)).expanduser().resolve()
-    return _require_dir("QUANTBUILD_ROOT") / "data" / "quantlog_events"
+    return (_require_dir("QUANTBUILD_ROOT") / "data" / "quantlog_events").resolve()
 
 
 def _env_with_pythonpath(extra: str | None) -> dict[str, str]:
