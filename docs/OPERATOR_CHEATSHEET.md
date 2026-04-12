@@ -58,7 +58,9 @@ cd /root/dev/quant/quantmetrics_os/orchestrator
 # Ctrl+B dan D om los te laten
 ```
 
-**cTrader demo-account — echte API-orders (geen cash op live broker-account):** zet **`CTRADER_*`** + **`QUANTBRIDGE_SRC_PATH`**, cTrader desktop ingelogd, QuantBridge-deps geïnstalleerd. Start met **`quantmetrics.py build --real -c configs/demo_strict_ctrader.yaml`** (of `demo_loose_ctrader.yaml` / `strict_prod_v2_ctrader_icmarkets.yaml`). Zonder **`--real`** blijft het dry-run.
+**cTrader demo-account — echte API-orders (geen cash op live broker-account):** zet **`CTRADER_*`** + **`QUANTBRIDGE_SRC_PATH`**, cTrader desktop ingelogd, QuantBridge-deps geïnstalleerd. Start met **`quantmetrics.py build --real -c configs/demo_strict_ctrader.yaml`** (of `strict_prod_v2_ctrader_icmarkets.yaml`). Zonder **`--real`** blijft het dry-run.
+
+**Demo losser (funnel / minder `regime_block`):** **`configs/demo_loose_ctrader.yaml`** — `filters.regime` uit, lossere entry-regels; QuantLog-pad `data/quantlog_events_demo_loose`. Gebruik expliciet `-c configs/demo_loose_ctrader.yaml` (niet alleen strict hernoemen).
 
 **Handmatig vanuit `quantbuildv1` met secrets in `orchestrator/.env`:** `quantmetrics.py` laadt die `.env`; een kale `python -m src.quantbuild.app …` **niet**. Gebruik:  
 `chmod +x scripts/vps/run_live.sh` (eenmalig)  

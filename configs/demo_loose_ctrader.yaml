@@ -5,7 +5,10 @@
 # docs/CREDENTIALS_AND_ENVIRONMENT.md.
 # Zonder credentials: tijdelijk configs/demo_loose_prod_v2.yaml (Oanda-fallback).
 #
-# Research mode: meer ruis/trades om funnel te meten (signal_detected → signal_filtered).
+# Research mode: bewust losser dan strict — meer funnel-events (signal_detected → …).
+# - filters.regime: false → LiveRunner zet geen regime_block op compressie (anders zie je vaak no_trade).
+# - compression.skip: false + kleinere size → ook bruikbaar als je regime-filter later weer aanzet.
+# - strategy: minder entry-gates dan strict (meer kandidaat-signalen; nog steeds position_limit + daily_loss).
 # Pair met demo_strict_ctrader.yaml op een tweede deployment.
 # ============================================================
 # Zelfde strategie/news/execution als strict_prod_v2.yaml, maar broker = cTrader.
@@ -83,11 +86,11 @@ strategy:
   imbalance_zones:
     min_gap_size: 3.0
     validity_candles: 50
-  require_structure: true
-  structure_use_h1_gate: true
-  entry_require_sweep_displacement_fvg: true
+  require_structure: false
+  structure_use_h1_gate: false
+  entry_require_sweep_displacement_fvg: false
   entry_sweep_disp_fvg_lookback_bars: 5
-  entry_sweep_disp_fvg_min_count: 2
+  entry_sweep_disp_fvg_min_count: 1
   structure_context:
     lookback: 30
     pivot_bars: 2
@@ -120,11 +123,16 @@ regime_profiles:
       - Overlap
     min_hour_utc: 10
   compression:
-    skip: true
-    tp_r: 0
-    sl_r: 0
-    max_trades_per_session: 0
-    position_size_mult: 0
+    skip: false
+    tp_r: 2.0
+    sl_r: 1.0
+    max_trades_per_session: 5
+    position_size_mult: 0.5
+    allowed_sessions:
+      - London
+      - Overlap
+      - New York
+      - Asia
 
 news:
   enabled: true
