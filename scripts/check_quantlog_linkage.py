@@ -9,7 +9,7 @@ Exit codes:
   1 — Validation/schema mismatch, or repo missing in ``--strict`` / ``QUANTLOG_LINKAGE_STRICT=1``.
 
 Environment:
-  QUANTLOG_REPO_PATH   — explicit QuantLog root
+  QUANTLOG_REPO_PATH / QUANTLOG_ROOT — explicit QuantLog root
   QUANTLOG_LINKAGE_STRICT — if ``1``/``true``, treat missing repo as failure
 """
 

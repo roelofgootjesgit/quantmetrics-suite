@@ -26,9 +26,6 @@ def _default_quantlog_repo_path() -> Path:
     found = resolve_quantlog_repo_path()
     if found is not None:
         return found
-    env = os.environ.get("QUANTLOG_REPO_PATH", "").strip()
-    if env:
-        return Path(env)
     return Path("/opt/quantbuild/quantlogv1")
 
 
@@ -66,7 +63,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--quantlog-repo-path",
         default=str(_default_quantlog_repo_path()),
-        help="Path to QuantLog repository (or set QUANTLOG_REPO_PATH)",
+        help="Path to QuantLog repository (or QUANTLOG_REPO_PATH / QUANTLOG_ROOT)",
     )
     parser.add_argument(
         "--date",
@@ -103,7 +100,7 @@ def main() -> int:
     if not quantlog_repo.exists() or not (quantlog_repo / "src" / "quantlog").is_dir():
         raise RuntimeError(
             f"QuantLog repo path invalid or missing (no src/quantlog): {quantlog_repo}. "
-            "Clone QuantLog, set QUANTLOG_REPO_PATH, or run: python scripts/check_quantlog_linkage.py"
+            "Clone QuantLog, set QUANTLOG_REPO_PATH (or QUANTLOG_ROOT), or run: python scripts/check_quantlog_linkage.py"
         )
     quantlog_src = quantlog_repo / "src"
     if not quantlog_src.exists():

@@ -170,7 +170,7 @@ class LiveRunner:
             if resolve_quantlog_repo_path() is None:
                 logger.warning(
                     "QuantLog JSONL is on, but the QuantLog repository was not found for CLI "
-                    "(validate/summarize). Clone quantlogv1, set QUANTLOG_REPO_PATH, or run "
+                    "(validate/summarize). Clone quantlogv1, set QUANTLOG_REPO_PATH or QUANTLOG_ROOT, or run "
                     "python scripts/check_quantlog_linkage.py — events will still be written."
                 )
 

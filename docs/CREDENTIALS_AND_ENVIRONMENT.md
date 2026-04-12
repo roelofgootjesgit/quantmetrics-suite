@@ -63,7 +63,7 @@ Dit document is de **canonieke lijst** van variabelenamen en **waar** je ze zet.
 **Sessie / tooling**
 
 - `QUANTBUILD_SESSION_ID` (optioneel; o.a. live runner)
-- `QUANTLOG_REPO_PATH` — pad naar quantlog-repo (scripts / post-run)
+- `QUANTLOG_REPO_PATH` — pad naar quantlog-repo (scripts / post-run). **`QUANTLOG_ROOT`** wordt hetzelfde geïnterpreteerd als alias.
 
 **Launch / nightly (optioneel)**
 

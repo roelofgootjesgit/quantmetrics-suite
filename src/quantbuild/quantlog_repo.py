@@ -13,12 +13,13 @@ def quantbuild_project_root() -> Path:
 
 def resolve_quantlog_repo_path() -> Path | None:
     """Path to QuantLog clone with ``src/quantlog``, or ``None`` if not found."""
-    env = os.environ.get("QUANTLOG_REPO_PATH", "").strip()
-    if env:
-        p = Path(env)
+    for env_key in ("QUANTLOG_REPO_PATH", "QUANTLOG_ROOT"):
+        raw = os.environ.get(env_key, "").strip()
+        if not raw:
+            continue
+        p = Path(raw)
         if (p / "src" / "quantlog").is_dir():
             return p
-        return None
     candidates = [
         Path("/opt/quantbuild/quantlogv1"),
         quantbuild_project_root().parent / "quantlogv1",
