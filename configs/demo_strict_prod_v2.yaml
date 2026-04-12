@@ -1,37 +1,23 @@
 # ============================================================
-# DEMO_LOOSE — cTrader + research filters (CREDENTIALS VEREIST)
+# DEMO_STRICT (prod v2 stack) — VPS zonder cTrader
 # ============================================================
-# Vereist: CTRADER_ACCOUNT_ID + CTRADER_ACCESS_TOKEN in .env.
-# Zonder credentials: gebruik configs/demo_loose_prod_v2.yaml.
+# Zelfde strategie/broker als strict_prod_v2.yaml (Oanda + default data),
+# aparte QuantLog-map/run voor A/B met demo_loose_prod_v2.yaml.
 #
-# Research mode: meer ruis/trades om funnel te meten (signal_detected → signal_filtered).
-# Pair met demo_strict_ctrader.yaml op een tweede deployment.
+# Gebruik op VPS als je geen CTRADER_* hebt:
+#   quantmetrics build -c configs/demo_strict_prod_v2.yaml
 # ============================================================
-# Zelfde strategie/news/execution als strict_prod_v2.yaml, maar broker = cTrader.
-#
-# Credentials: zet CTRADER_ACCOUNT_ID, CTRADER_ACCESS_TOKEN, en optioneel
-# CTRADER_CLIENT_ID / CTRADER_CLIENT_SECRET in quantbuildv1/.env of in
-# quantbridgev1/.env (wordt door QuantBuild gelezen zodra QuantBridge geladen is).
-#
-# Vereist: cTrader desktop met je IC Markets-account ingelogd; Open API-app;
-# pip install -r requirements.txt in quantbridgev1 (ctrader-open-api).
-# Optioneel: QUANTBRIDGE_SRC_PATH=C:/pad/naar/quantbridgev1/src als sibling-pad niet klopt.
-#
-# Start (paper, geen --real):
-#   python quantmetrics.py build -c configs/strict_prod_v2_ctrader_icmarkets.yaml
+# Upgrades from v1:
+#   - Expansion filtered to NY/Overlap after 10:00 UTC only
+#   - London/Asia expansion blocked (0% WR London, -6R Asia)
+#   - Expansion NY+Overlap: 59.3% WR, PF 2.91, +42R in 5yr data
+#   - Trend allowed in London/Overlap/NY (no Asia)
 # ============================================================
 
 symbol: XAUUSD
 timeframes:
   - 15m
   - 1h
-
-# DRY RUN: LiveRunner roept broker.connect() alleen als source=ctrader (zie live_runner.run).
-# Zonder dit blijft de cTrader-verbinding uit tijdens paper mode; orders blijven gesimuleerd.
-data:
-  base_path: data/market_cache
-  source: ctrader
-  cache_ttl_hours: 24
 
 backtest:
   default_period_days: 1825
@@ -92,6 +78,7 @@ strategy:
     lookback: 30
     pivot_bars: 2
 
+# ---- Regime Detection ----
 regime:
   atr_period: 14
   atr_sma_period: 20
@@ -100,6 +87,7 @@ regime:
   structure_lookback: 30
   structure_pivot_bars: 2
 
+# Regime = permission layer + session-time quality filter
 regime_profiles:
   trend:
     tp_r: 2.0
@@ -126,6 +114,7 @@ regime_profiles:
     max_trades_per_session: 0
     position_size_mult: 0
 
+# ---- News Layer ----
 news:
   enabled: true
   poll_interval_seconds: 30
@@ -245,6 +234,7 @@ news:
     min_abs_impact: 0.45
     max_alerts_per_poll: 3
 
+# ---- Execution Guards ----
 execution_guards:
   max_spread_pips: 4.0
   max_slippage_r: 0.15
@@ -254,20 +244,18 @@ execution:
   check_interval_seconds: 60
   regime_update_seconds: 900
 
-# ---- Broker: echte cTrader OpenAPI (IC Markets demo) ----
+# ---- Broker ----
 broker:
-  provider: ctrader
-  mock_mode: false
-  environment: demo
+  provider: oanda
+  environment: practice
   account_id: ""
-  access_token: ""
-  client_id: ""
-  client_secret: ""
-  instrument: XAUUSD
+  token: ""
+  instrument: XAU_USD
   initial_balance: 10000
-  mock_spread: 0.2
-  mock_price: 2500.0
+  leverage: 100
+  margin_rate: 0.05
 
+# ---- Alerts ----
 monitoring:
   telegram:
     enabled: false
@@ -286,6 +274,7 @@ monitoring:
     host: "0.0.0.0"
     port: 8501
 
+# ---- AI / LLM ----
 ai:
   openai_api_key: ""
   model: gpt-4o-mini
@@ -293,19 +282,9 @@ ai:
   temperature: 0.2
   timeout_seconds: 15
 
-# Standaard alles true; hier expliciet uit voor edge-decompositie
-filters:
-  regime: false
-  session: false
-  cooldown: false
-  news: false
-  spread: false
-  position_limit: true
-  daily_loss: true
-  research_raw_first: true
-
 quantlog:
   enabled: true
-  base_path: data/quantlog_events_demo_loose
-  run_id: demo_loose
+  base_path: data/quantlog_events_demo_strict
+  run_id: demo_strict
   environment: dry_run
+  # run_id / session_id: weglaten voor auto (geen lege strings)

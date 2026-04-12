@@ -1,6 +1,9 @@
 # ============================================================
-# DEMO_STRICT — zelfde als strict_prod_v2_ctrader; aparte QuantLog-map/run
+# DEMO_STRICT — cTrader + IC-style data (CREDENTIALS VEREIST)
 # ============================================================
+# Vereist: CTRADER_ACCOUNT_ID + CTRADER_ACCESS_TOKEN in .env (of broker-sectie).
+# Zonder credentials: gebruik configs/demo_strict_prod_v2.yaml (Oanda/default data).
+#
 # Twee VPS/deployments: pair met demo_loose_ctrader.yaml voor A/B pipeline logging.
 # ============================================================
 # Zelfde strategie/news/execution als strict_prod_v2.yaml, maar broker = cTrader.
