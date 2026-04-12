@@ -30,6 +30,9 @@ openai>=1.0
 # Optional: Scheduling (live loop)
 # apscheduler>=3.10
 
+# Equity curve export (README / showcase)
+matplotlib>=3.7
+
 # Dev / testing
 pytest>=7.0
 pytest-cov

@@ -22,6 +22,19 @@ Backtested on 5 years of 15-minute data (2021-2026) across XAUUSD, GBPUSD, and U
 
 All results include realistic execution simulation (slippage + spread per instrument).
 
+### Equity curve (cumulative R)
+
+Single-config illustration: **XAUUSD**, `strict_prod_v2`, ~5y Dukascopy history (regenerate anytime; numbers below the chart are for this run, not the multi-instrument summary table).
+
+![Backtest equity cumulative R](docs/assets/equity_curve_5y.png)
+
+```bash
+# Requires full-history parquet (if your cache is only a few weeks, delete data/market_cache/<SYMBOL>/*.parquet then fetch)
+python -m src.quantbuild.app --config configs/strict_prod_v2.yaml fetch --symbol XAUUSD --timeframe 15m --days 1825 --source dukascopy
+python -m src.quantbuild.app --config configs/strict_prod_v2.yaml fetch --symbol XAUUSD --timeframe 1h --days 1825 --source dukascopy
+python scripts/export_equity_chart.py -c configs/strict_prod_v2.yaml --days 1825
+```
+
 ### Validation Protocol — All Tests Passed
 
 | Test | Method | Result | Threshold |
@@ -351,3 +364,16 @@ Notes:
 | Paper shadow | Ready | Infrastructure built, acceptance thresholds defined |
 | Micro-live | Next | Small capital validation with full logging |
 | Funded deployment | Planned | FTMO challenge + funded account operation |
+
+---
+
+## Suite ecosystem (sibling repos)
+
+| Component | GitHub |
+| --- | --- |
+| Orchestration | [roelofgootjesgit/quantmetrics_os](https://github.com/roelofgootjesgit/quantmetrics_os) |
+| QuantBuild (this repo) | [roelofgootjesgit/quantbuildE1](https://github.com/roelofgootjesgit/quantbuildE1) |
+| QuantBridge | [roelofgootjesgit/quantBridge-v.1](https://github.com/roelofgootjesgit/quantBridge-v.1) |
+| QuantLog | [roelofgootjesgit/quantlog-v.1](https://github.com/roelofgootjesgit/quantlog-v.1) |
+
+Local folder names (`quantbuildv1`, etc.) may differ from remote names; see QuantMetrics OS `scripts/clone_quant_suite.sh`.
