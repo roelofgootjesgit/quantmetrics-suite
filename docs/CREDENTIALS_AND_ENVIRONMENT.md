@@ -17,7 +17,9 @@ Dit document is de **canonieke lijst** van variabelenamen en **waar** je ze zet.
 | **Orchestrator (quantmetrics_os)** | **`quantmetrics_os/orchestrator/.env`** (gitignored): `quantmetrics.py` laadt dit bestand **met voorrang** (`override=True`) vóór elke subcommand. Zet hier **alle** secrets én paden `QUANTBUILD_ROOT`, `QUANTBRIDGE_ROOT`, optioneel `PYTHON`. Template: `quantmetrics_os/orchestrator/.env.example`. |
 | **CI / cloud** | Secret manager of pipeline-variabelen → geïnjecteerd als environment op de job-runner. |
 
-**Voetgoot — twee `.env`-bestanden:** QuantBuild’s `src/quantbuild/config.py` roept `load_dotenv(override=True)` aan op de **quantbuild**-working directory. Staat er nog een **`quantbuildv1/.env`** op de VPS, dan kan die orchestrator-waarden **overschrijven**. Kies één: óf alleen **`orchestrator/.env`** (aanbevolen met quantmetrics_os), óf alleen **`quantbuildv1/.env`** — niet beide met tegengestelde waarden.
+**Voetgoot — twee `.env`-bestanden:** `config.py` laadt bij import **`python-dotenv`** (`override=True`), typisch **`quantbuildv1/.env`** (afhankelijk van cwd/zoekpad). Staat **`CTRADER_*` alleen** in **`quantmetrics_os/orchestrator/.env`**, dan ziet een kale `cd quantbuildv1 && python -m …` die keys **niet**. Oplossing: **`scripts/vps/run_live.sh`** (sourced orchestrator-`.env` als gevonden), of **`quantmetrics.py build`**, of handmatig `source …/orchestrator/.env` vóór `python -m …`.
+
+Houd **`quantbuildv1/.env`** en **`orchestrator/.env`** liever **niet** gevuld met tegengestelde waarden — dan weet je zeker welke token actief is.
 
 **Prioriteit in code:** overrides uit de omgeving gaan vóór platte waarden in YAML waar `config.py` dat expliciet merge’t (broker, news, AI, Telegram). Houd YAML dus vrij van echte secrets.
 

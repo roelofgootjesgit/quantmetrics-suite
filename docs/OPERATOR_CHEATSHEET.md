@@ -58,7 +58,12 @@ cd /root/dev/quant/quantmetrics_os/orchestrator
 # Ctrl+B dan D om los te laten
 ```
 
-**cTrader demo-account — echte API-orders (geen cash op live broker-account):** zet **`CTRADER_*`** + **`QUANTBRIDGE_SRC_PATH`**, cTrader desktop ingelogd, QuantBridge-deps geïnstalleerd. Start met **`quantmetrics.py build --real -c configs/demo_strict_ctrader.yaml`** (of `demo_loose_ctrader.yaml` / `strict_prod_v2_ctrader_icmarkets.yaml`). Zonder **`--real`** blijft het dry-run. Direct: `python -m src.quantbuild.app --config configs/demo_strict_ctrader.yaml live --real`.
+**cTrader demo-account — echte API-orders (geen cash op live broker-account):** zet **`CTRADER_*`** + **`QUANTBRIDGE_SRC_PATH`**, cTrader desktop ingelogd, QuantBridge-deps geïnstalleerd. Start met **`quantmetrics.py build --real -c configs/demo_strict_ctrader.yaml`** (of `demo_loose_ctrader.yaml` / `strict_prod_v2_ctrader_icmarkets.yaml`). Zonder **`--real`** blijft het dry-run.
+
+**Handmatig vanuit `quantbuildv1` met secrets in `orchestrator/.env`:** `quantmetrics.py` laadt die `.env`; een kale `python -m src.quantbuild.app …` **niet**. Gebruik:  
+`chmod +x scripts/vps/run_live.sh` (eenmalig)  
+`./scripts/vps/run_live.sh --config configs/demo_strict_ctrader.yaml live --dry-run`  
+(of zet `QUANTBUILD_ORCHESTRATOR_ENV=/pad/naar/orchestrator/.env`). Anders: `source …/orchestrator/.env` vóór `python -m …`.
 
 **Zonder cTrader** (alleen Oanda practice + andere datafeeds): `demo_strict_prod_v2.yaml` / `demo_loose_prod_v2.yaml` + `OANDA_*` — zie `docs/CREDENTIALS_AND_ENVIRONMENT.md`.
 
