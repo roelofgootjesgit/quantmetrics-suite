@@ -87,8 +87,24 @@ def cmd_news_test(args: argparse.Namespace) -> int:
 def cmd_live(args: argparse.Namespace) -> int:
     """Run the bot in live/paper trading mode."""
     cfg = load_config(args.config)
-    setup_logging(cfg)
     from src.quantbuild.execution.live_runner import LiveRunner
+    from src.quantbuild.version import __version__
+
+    mode_line = "DRY_RUN (no broker orders)" if args.dry_run else "REAL (broker orders)"
+    cfg_line = str(args.config).replace("\\", "/") if args.config else "(CONFIG_PATH env or configs/default.yaml)"
+    sym = cfg.get("symbol", "?")
+    broker = cfg.get("broker") or {}
+    prov = broker.get("provider", "?")
+    dsrc = (cfg.get("data") or {}).get("source", "?")
+    bar = "=" * 58
+    print(f"\n{bar}", flush=True)
+    print(f"  QuantBuild v{__version__}  —  STARTING LIVE", flush=True)
+    print(f"  {mode_line}", flush=True)
+    print(f"  config: {cfg_line}", flush=True)
+    print(f"  symbol={sym}  broker={prov}  data.source={dsrc}", flush=True)
+    print(f"{bar}\n", flush=True)
+
+    setup_logging(cfg)
     runner = LiveRunner(cfg, dry_run=args.dry_run)
     runner.run()
     return 0
