@@ -8,6 +8,12 @@
 #
 # Gebruik op VPS als je geen CTRADER_* hebt:
 #   quantmetrics build -c configs/demo_strict_prod_v2.yaml
+#
+# Demo LIVE (orders naar Oanda **practice** — geen echt geld, wél echte API-orders):
+#   - Zet OANDA_ACCOUNT_ID + OANDA_TOKEN in env; pip install oandapyV20
+#   - Start met:  python -m src.quantbuild.app --config configs/demo_strict_prod_v2.yaml live --real
+#   - Of:        quantmetrics.py build --real -c configs/demo_strict_prod_v2.yaml
+#   Standaard (zonder --real) = dry-run: geen orders.
 # ============================================================
 # Upgrades from v1:
 #   - Expansion filtered to NY/Overlap after 10:00 UTC only
@@ -288,5 +294,5 @@ quantlog:
   enabled: true
   base_path: data/quantlog_events_demo_strict
   run_id: demo_strict
-  environment: dry_run
+  # environment: weglaten — dan volgt QuantLog `live --dry-run` vs `live --real` automatisch
   # run_id / session_id: weglaten voor auto (geen lege strings)

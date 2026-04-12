@@ -7,6 +7,9 @@
 # Oanda-keys: OANDA_* in os.environ — docs/CREDENTIALS_AND_ENVIRONMENT.md
 #
 #   quantmetrics build -c configs/demo_loose_prod_v2.yaml
+#
+# Demo LIVE (Oanda practice + echte API-orders): zie demo_strict_prod_v2.yaml header;
+#   quantmetrics.py build --real -c configs/demo_loose_prod_v2.yaml
 # ============================================================
 # Upgrades from v1:
 #   - Expansion filtered to NY/Overlap after 10:00 UTC only
@@ -298,5 +301,5 @@ quantlog:
   enabled: true
   base_path: data/quantlog_events_demo_loose
   run_id: demo_loose
-  environment: dry_run
+  # environment: weglaten — volgt CLI --dry-run vs --real
   # run_id / session_id: weglaten voor auto (geen lege strings)

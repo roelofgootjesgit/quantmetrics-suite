@@ -58,7 +58,9 @@ cd /root/dev/quant/quantmetrics_os/orchestrator
 # Ctrl+B dan D om los te laten
 ```
 
-*(Voeg `--dry-run` of `--real` toe zoals je policy is; zie `quantmetrics.py --help`.)*
+**Demo strict/loose + Oanda practice — echte orders (paper account):** zet `OANDA_ACCOUNT_ID` / `OANDA_TOKEN`, `pip install oandapyV20` (staat in `requirements.txt`), start met **`quantmetrics.py build --real -c configs/demo_strict_prod_v2.yaml`** (of `demo_loose_prod_v2.yaml`). Zonder **`--real`** blijft het dry-run. Direct: `python -m src.quantbuild.app --config configs/demo_strict_prod_v2.yaml live --real`.
+
+*(Zie ook `quantmetrics.py build --help`.)*
 
 ### 0.4 QuantLog “live” controleren
 
