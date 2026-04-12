@@ -62,6 +62,8 @@ cd /root/dev/quant/quantmetrics_os/orchestrator
 
 **Demo losser (funnel / minder `regime_block`):** **`configs/demo_loose_ctrader.yaml`** — `filters.regime` uit, lossere entry-regels; QuantLog-pad `data/quantlog_events_demo_loose`. Gebruik expliciet `-c configs/demo_loose_ctrader.yaml` (niet alleen strict hernoemen).
 
+**cTrader connect faalt:** `set -a; source …/orchestrator/.env; set +a` en daarna **`python scripts/diagnose_ctrader_connect.py -c configs/demo_loose_ctrader.yaml`** — JSON met TCP-check, SDK-import en `failure_detail` (token wordt niet volledig gelogd).
+
 **Handmatig vanuit `quantbuildv1` met secrets in `orchestrator/.env`:** `quantmetrics.py` laadt die `.env`; een kale `python -m src.quantbuild.app …` **niet**. Gebruik:  
 `chmod +x scripts/vps/run_live.sh` (eenmalig)  
 `./scripts/vps/run_live.sh --config configs/demo_strict_ctrader.yaml live --dry-run`  

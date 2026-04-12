@@ -40,6 +40,11 @@ def main() -> int:
     connected = broker.connect()
     results["connect"] = bool(connected)
     if not connected:
+        rb = getattr(broker, "_real_bridge", None)
+        results["quantbridge_last_error"] = getattr(rb, "_last_error", None) if rb else None
+        if rb is not None:
+            client = getattr(rb, "client", None)
+            results["client_last_error"] = getattr(client, "last_error", None) if client else None
         print(json.dumps(results, indent=2))
         return 1
 

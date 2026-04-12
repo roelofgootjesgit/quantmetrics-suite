@@ -162,7 +162,15 @@ class CTraderBroker:
             if self._connected:
                 logger.info("Connected to cTrader OpenAPI via QuantBridge adapter")
             else:
-                logger.error("QuantBridge cTrader connect failed")
+                bridge = self._real_bridge
+                detail = getattr(bridge, "_last_error", None) if bridge else None
+                if not detail and bridge is not None:
+                    client = getattr(bridge, "client", None)
+                    detail = getattr(client, "last_error", None)
+                logger.error(
+                    "QuantBridge cTrader connect failed%s",
+                    f": {detail}" if detail else " (no detail; check token, account id, network)",
+                )
             return self._connected
         except Exception as e:
             logger.error("QuantBridge cTrader connect exception: %s", e)
