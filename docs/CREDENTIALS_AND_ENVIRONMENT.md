@@ -14,8 +14,10 @@ Dit document is de **canonieke lijst** van variabelenamen en **waar** je ze zet.
 | **Handmatig op de server** | `export KEY=value` in je shell, of `set -a; source /etc/quantbuild/quantbuild.env; set +a`. |
 | **Windows / lokaal** | Systeem-omgeving, PowerShell `$env:KEY="value"`, of een **lokale** `.env` naast de repo. |
 | **Repo-root `.env` (lokaal)** | Bestand staat in `.gitignore`. Bij import laadt `src/quantbuild/config.py` `python-dotenv` (`load_dotenv(override=True)`), zodat dezelfde keys in **`os.environ`** belanden. Dat is **geen** tweede bron van waarheid — alleen een handige manier om de OS-env te vullen tijdens dev. |
-| **Orchestrator (bijv. quantmetrics_os)** | Als een parent-proces subprocessen start: zet dezelfde `KEY=value` in de **omgeving van dat parent** (bijv. orchestrator-`.env` die vóór `subprocess` in `os.environ` wordt geladen). Het kind erft `os.environ`; er hoeft geen tweede “verborgen” plek te zijn. |
+| **Orchestrator (quantmetrics_os)** | **`quantmetrics_os/orchestrator/.env`** (gitignored): `quantmetrics.py` laadt dit bestand **met voorrang** (`override=True`) vóór elke subcommand. Zet hier **alle** secrets én paden `QUANTBUILD_ROOT`, `QUANTBRIDGE_ROOT`, optioneel `PYTHON`. Template: `quantmetrics_os/orchestrator/.env.example`. |
 | **CI / cloud** | Secret manager of pipeline-variabelen → geïnjecteerd als environment op de job-runner. |
+
+**Voetgoot — twee `.env`-bestanden:** QuantBuild’s `src/quantbuild/config.py` roept `load_dotenv(override=True)` aan op de **quantbuild**-working directory. Staat er nog een **`quantbuildv1/.env`** op de VPS, dan kan die orchestrator-waarden **overschrijven**. Kies één: óf alleen **`orchestrator/.env`** (aanbevolen met quantmetrics_os), óf alleen **`quantbuildv1/.env`** — niet beide met tegengestelde waarden.
 
 **Prioriteit in code:** overrides uit de omgeving gaan vóór platte waarden in YAML waar `config.py` dat expliciet merge’t (broker, news, AI, Telegram). Houd YAML dus vrij van echte secrets.
 
@@ -68,6 +70,16 @@ Dit document is de **canonieke lijst** van variabelenamen en **waar** je ze zet.
 - `QUANTBUILD_POST_RUN_CONFIG` — YAML voor post-run scripts (zie operator-cheatsheet)
 
 Zie `src/quantbuild/config.py` voor de exacte merge-logica.
+
+---
+
+## 2.1) QuantBridge installeren
+
+**Geen** `pip install -e quantbridgev1` nodig: de bridge-repo hoeft geen `pyproject.toml` te hebben. QuantBuild laadt code via **`QUANTBRIDGE_SRC_PATH`** (map `…/quantbridgev1/src`). Regressietests draai je vanuit de bridge-root met dezelfde Python als QuantBuild, bijv.:
+
+`cd "$QUANTBRIDGE_ROOT" && "$QUANTBUILD_ROOT/.venv/bin/python" scripts/run_regression_suite.py`
+
+(of `quantmetrics.py bridge regression` — zie quantmetrics_os).
 
 ---
 

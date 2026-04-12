@@ -15,7 +15,7 @@ Dit document beschrijft **hoe we samenwerken over meerdere repositories** zonder
 | **quantbuildv1** | Bot, orchestratie, productie-config, eventpad `data/quantlog_events/`, CI, VPS-systemd. **Hier documenteer je welke combinatie van andere repos je hebt getest.** |
 | **quantbridgev1** | Broker/OpenAPI-laag; wordt op de VPS als **bronpad** geladen (`QUANTBRIDGE_SRC_PATH`). Geen tweede productie-venv tenzij bewust anders afgesproken. |
 | **quantlogv1** | Event-spine: schema, validate/replay/CLI; contract met wat QuantBuild emitteert. |
-| **quantmetrics_os** | Typisch **analyse/metrics** naast de runtime-stack. Heeft meestal **geen** gedeelde VPS-venv met de bot; eigen branch/pull en eigen venv als die repo dat nodig heeft. Koppel aan QuantBuild via **exports** (JSON/summary) of gedeelde data-mappen op jouw machine — niet impliciet mengen met `quantbuildv1/.venv` tenzij je dat expliciet ontwerpt. |
+| **quantmetrics_os** | **Orchestrator** (`orchestrator/quantmetrics.py`): start QuantBuild/QuantBridge met gedeelde env. Op de VPS kun je **alle** secrets en `QUANTBUILD_ROOT` / `QUANTBRIDGE_ROOT` in **`orchestrator/.env`** zetten (zie `docs/CREDENTIALS_AND_ENVIRONMENT.md`). Gebruik dezelfde **QuantBuild `.venv`** als interpreter voor bridge-scripts tenzij je bewust splitst. Daarnaast: analyse/metrics, exports — koppel aan QuantBuild via JSON/summary of gedeelde mappen. |
 
 Paden op de VPS zijn vastgelegd in `VPS_MULTI_MODULE_DEPLOYMENT.md` (onder `/opt/quantbuild/…`). Lokaal op Windows mag je dezelfde mapnamen naast elkaar zetten, bijv. `C:\Users\…\quantbuildv1` naast siblings `quantbridgev1`, `quantlogv1`, `quantmetrics_os`.
 
