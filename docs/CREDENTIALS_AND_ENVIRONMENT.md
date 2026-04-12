@@ -59,6 +59,8 @@ Dit document is de **canonieke lijst** van variabelenamen en **waar** je ze zet.
 - `TELEGRAM_SYSTEM_LABEL`, `TELEGRAM_INSTANCE_LABEL`
 - `TELEGRAM_REPORT_INTERVAL_SECONDS`
 
+Nieuwe bot of token rotatie: **`docs/OPERATOR_CHEATSHEET.md`** §2.6 (BotFather, `getUpdates`, env zetten, revoke oude token).
+
 **Data / config**
 
 - `CONFIG_PATH` — alternatief YAML-pad

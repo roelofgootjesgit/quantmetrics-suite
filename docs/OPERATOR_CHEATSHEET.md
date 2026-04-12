@@ -163,10 +163,32 @@ Zie `docs/VPS_MULTI_MODULE_DEPLOYMENT.md`: na pull eventueel `pip install -r req
 
 ---
 
+## 2.6) Nieuwe Telegram-bot (schone start)
+
+Gebruik dit als je **opnieuw** begint (nieuwe bot, nieuwe chat, of oude token gelekt).
+
+1. Open Telegram → **@BotFather** → `/newbot` → kies weergavenaam en username → kopieer de **HTTP API token** (alleen in je **env** of secret store; **nooit** in git of YAML committen).
+2. Zoek je bot op in Telegram en stuur **`/start`** (of een willekeurig bericht) zodat er een conversatie bestaat.
+3. **Chat-ID bepalen** (voorbeelden):
+   - Eén-op-eén: na stap 2:  
+     `curl -s "https://api.telegram.org/bot<JE_TOKEN>/getUpdates"` — in de JSON zoek je `chat":{"id": …}`.
+   - **Groep:** voeg de bot toe, stuur een bericht in de groep, zelfde `getUpdates`; groep-`id` is vaak **negatief**.
+4. Zet op de VPS in **`orchestrator/.env`** of **`/etc/quantbuild/quantbuild.env`** (of export vóór start):
+   - `TELEGRAM_BOT_TOKEN=…`
+   - `TELEGRAM_CHAT_ID=…` (string; mag negatief voor groepen)
+   - `TELEGRAM_ENABLED=true`
+   - Aanrader: **`TELEGRAM_INSTANCE_LABEL=…`** (bijv. `VPS-CTRADER-2026-04`) zodat meldingen van deze run herkenbaar zijn.
+5. **YAML:** in veel demo-configs staat `monitoring.telegram.enabled: false`. Dat is oké: **`TELEGRAM_ENABLED=true` in de omgeving overschrijft** dit via `config.py` zolang token/chat_id gezet zijn. Wil je liever alles in YAML, zet daar `enabled: true` en placeholders — secrets blijven uit git via env-overrides.
+6. **Oude bot niet meer gebruiken?** Bij BotFather: `/mybots` → bot → **API Token** → **Revoke** — daarna is alleen de **nieuwe** token geldig.
+7. Verificatie: hieronder **§3 Quick Test**.
+
+---
+
 ## 3) Telegram Quick Test
 
 ```bash
 set -a; source /etc/quantbuild/quantbuild.env; set +a
+# of: set -a; source /root/dev/quant/quantmetrics_os/orchestrator/.env; set +a
 curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
   -d "chat_id=${TELEGRAM_CHAT_ID}" \
   -d "text=VPS operator test ✅"
