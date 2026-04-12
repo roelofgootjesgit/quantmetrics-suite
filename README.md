@@ -1,106 +1,162 @@
 # QuantMetrics OS
 
-**QuantMetrics OS** is de overkoepelende **orchestrator** voor de QuantMetrics-suite: één plek om **QuantBuild**, **QuantBridge** en **QuantLog** te starten met de juiste mappen, Python en configuratie. Deze repository bevat geen strategie- of brokercode zelf; die leven in aparte repos die je via een `.env`-bestand koppelt.
+**Orchestration layer for a systematic multi-asset trading suite — QuantBuild, QuantBridge, QuantLog.**
 
-## Wat doet deze repo?
+This repository is the **front door**: one place to resolve paths, environment, and subprocess entrypoints so research, execution, and observability run as a single system — not three disconnected scripts.
 
-- **`orchestrator/quantmetrics.py`** — laadt `orchestrator/.env`, lost paden op naar de drie componenten en start subprocessen (`python -m …`, scripts) met de juiste `cwd` en `PYTHONPATH`.
-- **`orchestrator/qm.ps1`** — handige PowerShell-wrapper op Windows.
-- **`docs/`** — roadmap, sprintplan en handouts (o.a. suite-start).
-- **`vscode/quant-suite.code-workspace`** — multi-root workspace om orchestrator + sibling-repos tegelijk te openen.
-- **`scripts/clone_quant_suite.sh`** — optioneel: alle suite-repos clonen/updaten en een basis-`.env` genereren (Linux/macOS/WSL).
+*Nederlandstalige details en handouts: zie [`docs/`](docs/).*
 
-## Architectuur in het kort
+### Suite repositories (GitHub)
+
+| Component | Repository |
+| --- | --- |
+| **QuantMetrics OS** (this repo) | [roelofgootjesgit/quantmetrics_os](https://github.com/roelofgootjesgit/quantmetrics_os) |
+| **QuantBuild** | [roelofgootjesgit/quantbuildE1](https://github.com/roelofgootjesgit/quantbuildE1) |
+| **QuantBridge** | [roelofgootjesgit/quantBridge-v.1](https://github.com/roelofgootjesgit/quantBridge-v.1) |
+| **QuantLog** | [roelofgootjesgit/quantlog-v.1](https://github.com/roelofgootjesgit/quantlog-v.1) |
+
+*Fork under another user? Update links or use `GITHUB_USER` in [`scripts/clone_quant_suite.sh`](scripts/clone_quant_suite.sh).*
+
+---
+
+## Suite snapshot
+
+Static badges (update URLs/query strings when you publish new validation numbers):
+
+[![Tests](https://img.shields.io/badge/tests-99%20passing-22c55e?style=flat-square)](docs/SHOWCASE.md)
+[![Profit factor](https://img.shields.io/badge/profit%20factor-5.24-0ea5e9?style=flat-square)](docs/SHOWCASE.md)
+[![Win rate](https://img.shields.io/badge/win%20rate-70%25-8b5cf6?style=flat-square)](docs/SHOWCASE.md)
+[![Max DD](https://img.shields.io/badge/max%20DD-%E2%88%927.1%25-f97316?style=flat-square)](docs/SHOWCASE.md)
+[![FTMO MC](https://img.shields.io/badge/FTMO%20MC%20pass-51.4%25-64748b?style=flat-square)](docs/SHOWCASE.md)
+
+| Metric | Value |
+| --- | --- |
+| Tests | 99 passing |
+| Profit factor | 5.24 |
+| Win rate | 70% |
+| Max drawdown | −7.1% |
+| FTMO Monte Carlo pass rate | 51.4% |
+
+### Equity curve (QuantBuild)
+
+Cumulative R from a reproducible XAUUSD backtest (`strict_prod_v2`, ~5y). Regeneration steps live in the **QuantBuild** repository README; this copy is for suite-level storytelling when someone lands on OS first:
+
+![QuantBuild backtest equity (cumulative R)](docs/assets/equity_curve_5y.png)
+
+---
+
+## Architecture
+
+![QuantMetrics suite architecture](docs/assets/quantmetrics-suite-architecture.svg)
+
+<details>
+<summary>Plain-text diagram (fallback)</summary>
 
 ```
-Marktdata / nieuws
-        ↓
-┌─────────────────────────────────────────────────────────┐
-│  QuantBuild  — signalen, risico, strategie (live loop)   │
-└─────────────────────────────────────────────────────────┘
-        ↓
-┌─────────────────────────────────────────────────────────┐
-│  QuantBridge — uitvoering: broker, orders, reconnect     │
-└─────────────────────────────────────────────────────────┘
-        ↓
-┌─────────────────────────────────────────────────────────┐
-│  QuantLog    — events (JSONL), validatie, dagrapporten   │
-└─────────────────────────────────────────────────────────┘
-        ↓
-   Analyse, metrics, verbetering van strategieën
+                    ┌──────────────────┐
+                    │  QuantMetrics OS  │  paths, env, unified CLI
+                    └─────────┬────────┘
+                              │
+   Market data ───────────────┼──────────────────────────────┐
+                              ▼                              │
+                    ┌──────────────────┐                     │
+                    │    QuantBuild    │  signals, risk,    │
+                    │                  │  strategy loop     │
+                    └─────────┬────────┘                     │
+                              ▼                              │
+                    ┌──────────────────┐                     │
+                    │   QuantBridge    │  broker execution, │
+                    │                  │  cTrader / IC path │
+                    └─────────┬────────┘                     │
+                              ▼                              │
+                    ┌──────────────────┐                     │
+                    │    QuantLog      │  JSONL events,      │
+                    │                  │  validate, reports  │
+                    └─────────┬────────┘                     │
+                              └──────── post-run analysis──┘
 ```
 
-### QuantBuild (Build)
+</details>
 
-- **Rol:** strategie- en signaalmotor: data verwerken, signalen, entries/exits, risico per trade, portfolio-logica.
-- **Typische output:** signalen, trade-acties, risk-beslissingen (die elders gelogd en geanalyseerd kunnen worden).
-- **Via orchestrator:** `quantmetrics build` start o.a. `python -m src.quantbuild.app … live` onder `QUANTBUILD_ROOT`. Standaardconfig staat in `QUANTBUILD_CONFIG` (bijv. `configs/strict_prod_v2.yaml`). `--real` schakelt door naar echte orders (naast paper/dry-run), afhankelijk van je YAML.
+---
 
-### QuantBridge (Bridge)
+## What each component proves
 
-- **Rol:** execution-laag: brokerkoppelingen, orders plaatsen/wijzigen/sluiten, reconnect, positie-sync, execution health.
-- **Via orchestrator:** `quantmetrics bridge smoke` (o.a. cTrader smoke, `--mode mock` of `openapi`) en `quantmetrics bridge regression` voor de regressiesuite. Config via `QUANTBRIDGE_CONFIG` (bijv. `configs/ctrader_icmarkets_demo.yaml`).
-- **Let op:** QuantBuild kan de bridge dynamisch laden; daarvoor hoort het pad naar de bridge-**src** vaak in de omgeving (bijv. `QUANTBRIDGE_SRC_PATH`) — zie de handout onder **Documentatie**.
+| Component | What it demonstrates |
+| --- | --- |
+| **QuantMetrics OS** | You treat the stack as **production software**: explicit wiring, reproducible launches, and a clear seam between orchestration and domain code. |
+| **QuantBuild** | **Systematic edge**: backtests, risk gates, prop-style constraints (e.g. FTMC), and a test-backed signal/risk core — not a discretionary script. |
+| **QuantBridge** | **Real execution discipline**: broker integration, smoke/regression paths, and operational concerns (reconnect, health) separated from alpha. |
+| **QuantLog** | **Auditability**: append-only structured events, validation, and day-level scoring — the feedback loop that turns logs into improvements. |
 
-### QuantLog (Log)
+---
 
-- **Rol:** gestructureerde events (signalen, trades, risk-blokkades, fouten, sessies, …), audit en replay; basis voor dagelijkse samenvattingen en scores.
-- **Event-map:** standaard `<QUANTBUILD_ROOT>/data/quantlog_events` met dagmappen `YYYY-MM-DD`, tenzij je `QUANTLOG_EVENTS_ROOT` zet.
-- **Via orchestrator:** `quantmetrics log <subcommando> …` roept `python -m quantlog.cli` aan onder `QUANTLOG_ROOT`. `quantmetrics post-run <datum>` draait achter elkaar: `validate-events`, `summarize-day`, `score-run` op die dagmap.
+## What lives in *this* repo
 
-## Vereisten
+| Path | Role |
+| --- | --- |
+| `orchestrator/quantmetrics.py` | Loads `orchestrator/.env`, resolves sibling repo roots, runs `python -m …` and scripts with correct `cwd` / `PYTHONPATH`. |
+| `orchestrator/qm.ps1` | Windows-friendly wrapper. |
+| `orchestrator/config.example.env` | Template for `QUANTBUILD_ROOT`, `QUANTBRIDGE_ROOT`, `QUANTLOG_ROOT`, optional `PYTHON`, configs. |
+| `orchestrator/config.vps.example.env` | VPS / Linux layout hints. |
+| `vscode/quant-suite.code-workspace` | Multi-root workspace (OS + Build + Bridge + Log). |
+| `scripts/clone_quant_suite.sh` | Optional clone/update helper and baseline `.env`. |
+| `docs/` | Roadmap, sprint plan, suite handouts. |
 
-- Python op je systeem (of per repo een venv; zet `PYTHON` in `.env` als je een andere binary wilt).
-- **Drie aparte repositories** (Build, Bridge, Log) uitgecheckt op je machine — typisch als broermappen naast `quantmetrics_os`.
+Strategy, broker adapters, and event schemas live in the **sibling repositories**, not here.
 
-Aanbevolen layout:
+---
+
+## Quick start
+
+**Layout** (sibling folders under one parent):
 
 ```text
 <parent>/
-  quantmetrics_os/     ← deze repo
-  quantbuildv1/        ← QuantBuild
-  quantbridgev1/       ← QuantBridge
-  quantlogv1/          ← QuantLog
+  quantmetrics_os/     ← this repo
+  quantbuildv1/
+  quantbridgev1/
+  quantlogv1/
 ```
 
-## Snelstart
+**Steps**
 
-1. Kopieer de environment-template:
-
-   ```text
-   orchestrator/config.example.env  →  orchestrator/.env
-   ```
-
-2. Pas in `.env` de paden `QUANTBUILD_ROOT`, `QUANTBRIDGE_ROOT` en `QUANTLOG_ROOT` aan naar jouw lokale clones.
-
-3. Controleer of alles klopt:
+1. Copy `orchestrator/config.example.env` → `orchestrator/.env` and set the three `*_ROOT` paths.
+2. From `orchestrator/`:
 
    ```powershell
-   cd orchestrator
    python quantmetrics.py check
    ```
 
-   Op Windows kan ook: `.\qm.ps1 check`
+   On Windows you can use `.\qm.ps1 check`.
 
-4. Voorbeelden:
+3. Examples:
 
-   | Doel | Commando |
-   |------|----------|
-   | Paden tonen | `python quantmetrics.py check` |
-   | QuantBuild live (paper, geen `--real`) | `python quantmetrics.py build -c configs/strict_prod_v2.yaml` |
-   | QuantBridge rooktest (mock) | `python quantmetrics.py bridge smoke --mode mock` |
-   | QuantLog (voorbeeld) | `python quantmetrics.py log validate-events -- --path <pad-naar-dagmap>` |
-   | Na een handelsdag | `python quantmetrics.py post-run 2026-04-11` |
-   | Telegram start/stop (als in QuantBuild-YAML geconfigureerd) | `python quantmetrics.py notify start build bridge log` |
+   | Goal | Command |
+   | --- | --- |
+   | Show resolved paths | `python quantmetrics.py check` |
+   | QuantBuild live (paper; no `--real`) | `python quantmetrics.py build -c configs/strict_prod_v2.yaml` |
+   | QuantBridge smoke (mock) | `python quantmetrics.py bridge smoke --mode mock` |
+   | QuantLog validate events | `python quantmetrics.py log validate-events -- --path <day-folder>` |
+   | After a session | `python quantmetrics.py post-run YYYY-MM-DD` |
 
-Gebruik `python quantmetrics.py --help` en `python quantmetrics.py <commando> --help` voor alle opties.
+Use `python quantmetrics.py --help` and per-subcommand `--help` for full options.
 
-## Documentatie in deze repo
+**QuantBuild + live bridge:** set `QUANTBRIDGE_SRC_PATH` to QuantBridge’s `src` directory so Build can load the bridge module — see [Suite start handout](docs/SUITE_START_HANDOUT.md).
 
-- [Suite starten (handout)](docs/SUITE_START_HANDOUT.md) — `.env`, veelgebruikte commando’s, VS Code-workspace, `QUANTBRIDGE_SRC_PATH`.
-- [Roadmap (platform)](docs/Roadmap_os.md) — visie, componenten, verbeterlus.
-- [Sprintplan](docs/QUANTMETRICS_SPRINT_PLAN.md) — planning.
+---
 
-## VPS / Linux
+## Requirements
 
-Zie `orchestrator/config.vps.example.env` voor voorbeelden met absolute paden op een server.
+- Python on the host (or per-repo venvs); override with `PYTHON` in `.env` if needed.
+- Cloned **QuantBuild**, **QuantBridge**, and **QuantLog** repos with paths in `.env`.
+
+---
+
+## Documentation
+
+- [GitHub profile README (template to paste)](docs/GITHUB_PROFILE_README.md) — landing page for `github.com/<you>/<you>`.
+- [Suite showcase (technical CV)](docs/SHOWCASE.md) — problem, architecture rationale, validation, deployment roadmap.
+- [Suite start (handout)](docs/SUITE_START_HANDOUT.md) — `.env`, common commands, workspace, `QUANTBRIDGE_SRC_PATH`.
+- [Roadmap](docs/Roadmap_os.md)
+- [Sprint plan](docs/QUANTMETRICS_SPRINT_PLAN.md)
