@@ -18,8 +18,8 @@ yfinance>=0.2
 # Optional: LLM sentiment
 openai>=1.0
 
-# Oanda broker (required for `live --real` with provider oanda)
-oandapyV20>=0.7
+# Optional: Oanda broker (only if `broker.provider: oanda` in your YAML)
+# oandapyV20>=0.7
 
 # Optional: Telegram alerts
 # python-telegram-bot>=20

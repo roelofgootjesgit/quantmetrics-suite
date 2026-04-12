@@ -10,8 +10,9 @@
 # pip install -r requirements.txt in quantbridgev1 (ctrader-open-api).
 # Optioneel: QUANTBRIDGE_SRC_PATH=C:/pad/naar/quantbridgev1/src als sibling-pad niet klopt.
 #
-# Start (paper, geen --real):
-#   python quantmetrics.py build -c configs/strict_prod_v2_ctrader_icmarkets.yaml
+# Start (dry-run):
+#   quantmetrics.py build -c configs/strict_prod_v2_ctrader_icmarkets.yaml
+# Demo-account orders: quantmetrics.py build --real -c configs/strict_prod_v2_ctrader_icmarkets.yaml
 # ============================================================
 
 symbol: XAUUSD
@@ -289,4 +290,4 @@ ai:
 quantlog:
   enabled: true
   base_path: data/quantlog_events
-  environment: dry_run
+  # environment: weglaten — volgt CLI --dry-run vs --real

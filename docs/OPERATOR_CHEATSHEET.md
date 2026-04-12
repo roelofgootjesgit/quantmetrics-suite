@@ -54,11 +54,13 @@ QUANTBUILD_ROOT=/root/dev/quant/quantbuildv1 ./scripts/vps/start_weekrun.sh
 ```bash
 tmux new -s qb
 cd /root/dev/quant/quantmetrics_os/orchestrator
-/root/dev/quant/quantbuildv1/.venv/bin/python quantmetrics.py build -c configs/strict_prod_v2.yaml
+/root/dev/quant/quantbuildv1/.venv/bin/python quantmetrics.py build -c configs/demo_strict_ctrader.yaml
 # Ctrl+B dan D om los te laten
 ```
 
-**Demo strict/loose + Oanda practice — echte orders (paper account):** zet `OANDA_ACCOUNT_ID` / `OANDA_TOKEN`, `pip install oandapyV20` (staat in `requirements.txt`), start met **`quantmetrics.py build --real -c configs/demo_strict_prod_v2.yaml`** (of `demo_loose_prod_v2.yaml`). Zonder **`--real`** blijft het dry-run. Direct: `python -m src.quantbuild.app --config configs/demo_strict_prod_v2.yaml live --real`.
+**cTrader demo-account — echte API-orders (geen cash op live broker-account):** zet **`CTRADER_*`** + **`QUANTBRIDGE_SRC_PATH`**, cTrader desktop ingelogd, QuantBridge-deps geïnstalleerd. Start met **`quantmetrics.py build --real -c configs/demo_strict_ctrader.yaml`** (of `demo_loose_ctrader.yaml` / `strict_prod_v2_ctrader_icmarkets.yaml`). Zonder **`--real`** blijft het dry-run. Direct: `python -m src.quantbuild.app --config configs/demo_strict_ctrader.yaml live --real`.
+
+**Zonder cTrader** (alleen Oanda practice + andere datafeeds): `demo_strict_prod_v2.yaml` / `demo_loose_prod_v2.yaml` + `OANDA_*` — zie `docs/CREDENTIALS_AND_ENVIRONMENT.md`.
 
 *(Zie ook `quantmetrics.py build --help`.)*
 

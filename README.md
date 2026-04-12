@@ -278,13 +278,15 @@ python scripts/portfolio_adaptive_sim.py
 # Validation protocol
 python scripts/validation_protocol.py
 
-# Live paper shadow
+# Live dry-run — Oanda-only profile (fallback without cTrader)
 python -m src.quantbuild.app --config configs/strict_prod_v2.yaml live --dry-run
+# Live dry-run — IC Markets cTrader + QuantBridge (primary execution path for most VPS setups)
+python -m src.quantbuild.app --config configs/demo_strict_ctrader.yaml live --dry-run
 ```
 
 ### cTrader Live via QuantBridge
 
-QuantBuild executes through `quantbridgev1` OpenAPI transport on your IC Markets cTrader demo.
+QuantBuild executes through `quantbridgev1` OpenAPI transport on your IC Markets cTrader demo. Use **`CTRADER_*`** and **`QUANTBRIDGE_SRC_PATH`** in the environment (`docs/CREDENTIALS_AND_ENVIRONMENT.md`). Oanda env vars apply only to YAML with `broker.provider: oanda`.
 
 ```powershell
 # 1. Market data smoke test (verify Dukascopy feed works)

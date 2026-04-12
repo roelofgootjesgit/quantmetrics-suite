@@ -1,15 +1,12 @@
 # ============================================================
-# DEMO_LOOSE (prod v2 stack) — VPS zonder cTrader, research filters
+# DEMO_LOOSE (prod v2 stack) — FALLBACK zonder cTrader (Oanda + research filters)
 # ============================================================
-# Zelfde broker/data als strict_prod_v2.yaml; filters uit + research_raw_first.
-# Pair met demo_strict_prod_v2.yaml voor A/B QuantLog-funnel.
+# Primaire stack met IC/cTrader: demo_loose_ctrader.yaml + CTRADER_* .
+# Dit bestand: Oanda practice + research_raw_first; pair met demo_strict_prod_v2.yaml (A/B).
 #
-# Oanda-keys: OANDA_* in os.environ — docs/CREDENTIALS_AND_ENVIRONMENT.md
+# Oanda-keys alleen nodig voor dit profiel: OANDA_* — CREDENTIALS doc.
 #
 #   quantmetrics build -c configs/demo_loose_prod_v2.yaml
-#
-# Demo LIVE (Oanda practice + echte API-orders): zie demo_strict_prod_v2.yaml header;
-#   quantmetrics.py build --real -c configs/demo_loose_prod_v2.yaml
 # ============================================================
 # Upgrades from v1:
 #   - Expansion filtered to NY/Overlap after 10:00 UTC only

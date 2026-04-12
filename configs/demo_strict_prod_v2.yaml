@@ -1,19 +1,17 @@
 # ============================================================
-# DEMO_STRICT (prod v2 stack) — VPS zonder cTrader
+# DEMO_STRICT (prod v2 stack) — FALLBACK zonder cTrader (Oanda practice)
 # ============================================================
-# Zelfde strategie/broker als strict_prod_v2.yaml (Oanda + default data),
-# aparte QuantLog-map/run voor A/B met demo_loose_prod_v2.yaml.
+# Alleen gebruiken als je géén IC Markets / cTrader + QuantBridge draait.
+# Primaire execution voor jullie stack: configs/demo_strict_ctrader.yaml + CTRADER_* .
 #
-# Oanda-keys: OANDA_ACCOUNT_ID / OANDA_TOKEN in os.environ — docs/CREDENTIALS_AND_ENVIRONMENT.md
+# Dit profiel: zelfde strategie als strict_prod_v2.yaml maar broker = Oanda practice +
+# default datafeeds (geen ctrader source).
 #
-# Gebruik op VPS als je geen CTRADER_* hebt:
+# Oanda-keys (alleen voor dit profiel): OANDA_ACCOUNT_ID / OANDA_TOKEN — CREDENTIALS doc.
+#
 #   quantmetrics build -c configs/demo_strict_prod_v2.yaml
 #
-# Demo LIVE (orders naar Oanda **practice** — geen echt geld, wél echte API-orders):
-#   - Zet OANDA_ACCOUNT_ID + OANDA_TOKEN in env; pip install oandapyV20
-#   - Start met:  python -m src.quantbuild.app --config configs/demo_strict_prod_v2.yaml live --real
-#   - Of:        quantmetrics.py build --real -c configs/demo_strict_prod_v2.yaml
-#   Standaard (zonder --real) = dry-run: geen orders.
+# Live orders op Oanda practice: live --real + oandapyV20 (zie requirements optioneel).
 # ============================================================
 # Upgrades from v1:
 #   - Expansion filtered to NY/Overlap after 10:00 UTC only

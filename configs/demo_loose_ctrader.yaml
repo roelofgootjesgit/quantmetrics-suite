@@ -3,7 +3,7 @@
 # ============================================================
 # Vereist: CTRADER_ACCOUNT_ID + CTRADER_ACCESS_TOKEN in os.environ. Zie
 # docs/CREDENTIALS_AND_ENVIRONMENT.md.
-# Zonder credentials: gebruik configs/demo_loose_prod_v2.yaml.
+# Zonder credentials: tijdelijk configs/demo_loose_prod_v2.yaml (Oanda-fallback).
 #
 # Research mode: meer ruis/trades om funnel te meten (signal_detected → signal_filtered).
 # Pair met demo_strict_ctrader.yaml op een tweede deployment.
@@ -17,8 +17,8 @@
 # pip install -r requirements.txt in quantbridgev1 (ctrader-open-api).
 # Optioneel: QUANTBRIDGE_SRC_PATH=C:/pad/naar/quantbridgev1/src als sibling-pad niet klopt.
 #
-# Start (paper, geen --real):
-#   python quantmetrics.py build -c configs/strict_prod_v2_ctrader_icmarkets.yaml
+# Start: quantmetrics.py build -c configs/demo_loose_ctrader.yaml
+# API-orders demo-account: quantmetrics.py build --real -c configs/demo_loose_ctrader.yaml
 # ============================================================
 
 symbol: XAUUSD
@@ -308,4 +308,4 @@ quantlog:
   enabled: true
   base_path: data/quantlog_events_demo_loose
   run_id: demo_loose
-  environment: dry_run
+  # environment: weglaten — volgt CLI --dry-run vs --real

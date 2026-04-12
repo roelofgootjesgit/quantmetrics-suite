@@ -3,7 +3,7 @@
 # ============================================================
 # Vereist: CTRADER_ACCOUNT_ID + CTRADER_ACCESS_TOKEN in os.environ (systemd env-file,
 # export, of lokaal gitignored .env via dotenv). Zie docs/CREDENTIALS_AND_ENVIRONMENT.md.
-# Zonder credentials: gebruik configs/demo_strict_prod_v2.yaml (Oanda/default data).
+# Zonder credentials: tijdelijk configs/demo_strict_prod_v2.yaml (Oanda-fallback, geen cTrader).
 #
 # Twee VPS/deployments: pair met demo_loose_ctrader.yaml voor A/B pipeline logging.
 # ============================================================
@@ -16,8 +16,11 @@
 # pip install -r requirements.txt in quantbridgev1 (ctrader-open-api).
 # Optioneel: QUANTBRIDGE_SRC_PATH=C:/pad/naar/quantbridgev1/src als sibling-pad niet klopt.
 #
-# Start (paper, geen --real):
-#   python quantmetrics.py build -c configs/strict_prod_v2_ctrader_icmarkets.yaml
+# Start (dry-run):
+#   quantmetrics.py build -c configs/demo_strict_ctrader.yaml
+# Demo-account orders via API (naast dry-run simulatie uit):
+#   quantmetrics.py build --real -c configs/demo_strict_ctrader.yaml
+#   python -m src.quantbuild.app --config configs/demo_strict_ctrader.yaml live --real
 # ============================================================
 
 symbol: XAUUSD
@@ -296,4 +299,4 @@ quantlog:
   enabled: true
   base_path: data/quantlog_events_demo_strict
   run_id: demo_strict
-  environment: dry_run
+  # environment: weglaten — volgt CLI --dry-run vs --real

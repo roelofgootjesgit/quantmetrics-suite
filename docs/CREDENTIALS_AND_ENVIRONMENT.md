@@ -25,21 +25,25 @@ Dit document is de **canonieke lijst** van variabelenamen en **waar** je ze zet.
 
 ## 2) Variabelen die QuantBuild herkent (namen)
 
-**Broker — Oanda**
+**Primaire stack (VPS / IC Markets cTrader):** execution loopt via **QuantBridge** + **cTrader OpenAPI**. Zet **`CTRADER_*`** en **`QUANTBRIDGE_SRC_PATH`** in de omgeving. Zie `configs/demo_strict_ctrader.yaml`, `strict_prod_v2_ctrader_icmarkets.yaml`, `docs/OPERATOR_CHEATSHEET.md`.
 
-- `OANDA_ACCOUNT_ID`
-- `OANDA_TOKEN`
-
-**Broker — cTrader (via QuantBridge)**
+**Broker — cTrader (via QuantBridge) — standaard voor productie-demo**
 
 - `CTRADER_ACCOUNT_ID`
 - `CTRADER_ACCESS_TOKEN`
 - `CTRADER_CLIENT_ID`
 - `CTRADER_CLIENT_SECRET`
 
-**QuantBridge-pad (geen secret, wel verplicht op VPS voor cTrader-pad)**
+**QuantBridge-pad (geen secret, wel nodig voor cTrader)**
 
-- `QUANTBRIDGE_SRC_PATH` — bijv. `/opt/quantbuild/quantbridgev1/src`
+- `QUANTBRIDGE_SRC_PATH` — bijv. `/root/dev/quant/quantbridgev1/src`
+
+**Broker — Oanda (alleen als je een YAML gebruikt met `broker.provider: oanda`)**
+
+- `OANDA_ACCOUNT_ID`
+- `OANDA_TOKEN`  
+
+*Niet nodig voor cTrader.* Gebruik alleen bij profielen zoals `strict_prod_v2.yaml` / `demo_*_prod_v2.yaml` (fallback **zonder** bridge).
 
 **News / AI**
 

@@ -279,5 +279,5 @@ ai:
 quantlog:
   enabled: true
   base_path: data/quantlog_events
-  environment: dry_run
+  # environment: weglaten — volgt CLI --dry-run vs --real
   # run_id / session_id: weglaten voor auto (geen lege strings)
