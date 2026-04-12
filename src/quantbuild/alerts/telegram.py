@@ -1,9 +1,50 @@
 """Telegram alerts for trade events, reports, and operational events."""
+from __future__ import annotations
+
 import logging
 from datetime import datetime, timezone
+from html import escape
 from typing import Any
 
 logger = logging.getLogger(__name__)
+
+
+def format_suite_run_summary(
+    cfg: dict[str, Any],
+    *,
+    config_path_display: str,
+    execution_mode: str,
+) -> str:
+    """HTML snippet for suite start/stop (escaped values)."""
+    broker = cfg.get("broker") or {}
+    data = cfg.get("data") or {}
+    sym = cfg.get("symbol", "")
+    ql = cfg.get("quantlog") or {}
+    st = cfg.get("strategy") or {}
+    exec_g = cfg.get("execution_guards") or {}
+    filt = cfg.get("filters") or {}
+    if filt:
+        filt_preview = ", ".join(f"{k}={filt.get(k)}" for k in sorted(filt.keys()))
+        filt_line = f"Filters: <code>{escape(filt_preview[:240])}</code>"
+    else:
+        filt_line = "Filters: <i>(default strict)</i>"
+    lines = [
+        "<b>Settings</b>",
+        f"Config: <code>{escape(config_path_display)}</code>",
+        f"Execution: <b>{escape(execution_mode)}</b>",
+        f"Symbol: <code>{escape(str(sym))}</code>",
+        f"Broker: <code>{escape(str(broker.get('provider', '?')))}</code> · "
+        f"env <code>{escape(str(broker.get('environment', '?')))}</code> · "
+        f"instrument <code>{escape(str(broker.get('instrument', '')))}</code>",
+        f"Data source: <code>{escape(str(data.get('source', '?')))}</code>",
+        f"QuantLog: {'on' if ql.get('enabled') else 'off'} · "
+        f"<code>{escape(str(ql.get('base_path', '')))}</code> · "
+        f"run_id <code>{escape(str(ql.get('run_id', '')))}</code>",
+        f"Strategy: <code>{escape(str(st.get('name', '')))}</code>",
+        f"Guards: max_open=<code>{escape(str(exec_g.get('max_open_positions', '?')))}</code>",
+        filt_line,
+    ]
+    return "\n".join(lines)
 
 
 class TelegramAlerter:
@@ -232,27 +273,31 @@ class TelegramAlerter:
         )
         return self._send(text)
 
-    def alert_suite_start(self, components: list[str]) -> bool:
+    def alert_suite_start(self, components: list[str], *, extra_html: str = "") -> bool:
         """QuantMetrics OS: suite came up; `components` are labels (build, bridge, log, …)."""
         if not self._alerts_cfg.get("suite_lifecycle", True):
             return False
-        labels = ", ".join(f"<code>{c}</code>" for c in components) or "<i>(none listed)</i>"
+        labels = ", ".join(f"<code>{escape(c)}</code>" for c in components) or "<i>(none listed)</i>"
         text = (
             f"▶️ <b>QUANTMETRICS SUITE START</b>\n"
             f"Components: {labels}\n"
             f"Time: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}"
         )
+        if extra_html.strip():
+            text += "\n\n" + extra_html.strip()
         return self._send(text)
 
-    def alert_suite_stop(self, components: list[str], reason: str = "") -> bool:
+    def alert_suite_stop(self, components: list[str], reason: str = "", *, extra_html: str = "") -> bool:
         if not self._alerts_cfg.get("suite_lifecycle", True):
             return False
-        labels = ", ".join(f"<code>{c}</code>" for c in components) or "<i>(none listed)</i>"
+        labels = ", ".join(f"<code>{escape(c)}</code>" for c in components) or "<i>(none listed)</i>"
         text = (
             f"⏹️ <b>QUANTMETRICS SUITE STOP</b>\n"
             f"Components: {labels}\n"
         )
         if reason.strip():
-            text += f"Reason: {reason.strip()[:300]}\n"
+            text += f"Reason: {escape(reason.strip()[:300])}\n"
         text += f"Time: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}"
+        if extra_html.strip():
+            text += "\n\n" + extra_html.strip()
         return self._send(text)

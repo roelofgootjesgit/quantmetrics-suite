@@ -1,10 +1,11 @@
 """CLI entrypoint: backtest, fetch, live, news-test."""
 import argparse
+import os
 import sys
-from datetime import datetime
+from html import escape
 from pathlib import Path
 
-from src.quantbuild.config import load_config
+from src.quantbuild.config import load_config, quantbuild_repo_root
 from src.quantbuild.logging_config import setup_logging
 
 
@@ -97,17 +98,50 @@ def cmd_suite_notify(args: argparse.Namespace) -> int:
     """Send suite start/stop Telegram using monitoring.telegram (for QuantMetrics OS orchestrator)."""
     cfg = load_config(args.config)
     setup_logging(cfg)
-    from src.quantbuild.alerts.telegram import TelegramAlerter
+    from src.quantbuild.alerts.telegram import TelegramAlerter, format_suite_run_summary
+    from src.quantbuild.version import __version__, git_revision_short
 
     alerter = TelegramAlerter(cfg)
     if not alerter.enabled:
         print("Telegram disabled or missing bot_token/chat_id; skipping suite notify.", file=sys.stderr)
         return 0
     comps = [c.strip() for c in args.components if c and str(c).strip()]
-    if args.event == "start":
-        ok = alerter.alert_suite_start(comps)
+
+    if getattr(args, "real", False):
+        execution_mode = "real (orders)"
+    elif getattr(args, "dry_run", False):
+        execution_mode = "dry_run"
     else:
-        ok = alerter.alert_suite_stop(comps, reason=getattr(args, "reason", "") or "")
+        execution_mode = os.environ.get("QUANTBUILD_EXECUTION_MODE", "unspecified").strip() or "unspecified"
+
+    version_html = (
+        f"<b>QuantBuild</b> v{escape(__version__)} "
+        f"<code>(git {escape(git_revision_short())})</code>"
+    )
+    extra_html = version_html
+    if args.config:
+        raw = Path(args.config)
+        try:
+            if raw.is_absolute():
+                config_display = str(raw.relative_to(quantbuild_repo_root())).replace("\\", "/")
+            else:
+                config_display = str(raw).replace("\\", "/")
+        except ValueError:
+            config_display = str(raw).replace("\\", "/")
+        extra_html += "\n\n" + format_suite_run_summary(
+            cfg,
+            config_path_display=config_display,
+            execution_mode=execution_mode,
+        )
+
+    if args.event == "start":
+        ok = alerter.alert_suite_start(comps, extra_html=extra_html)
+    else:
+        ok = alerter.alert_suite_stop(
+            comps,
+            reason=getattr(args, "reason", "") or "",
+            extra_html=extra_html,
+        )
     if not ok:
         print("Suite notify: Telegram send failed.", file=sys.stderr)
         return 1
@@ -151,10 +185,21 @@ def main() -> int:
         help="Which parts of the suite are up/down, e.g. build bridge log",
     )
     sn.add_argument("--reason", default="", help="Optional reason (mainly for stop)")
+    mode_g = sn.add_mutually_exclusive_group()
+    mode_g.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Label this message as dry_run (matches default `live` without --real)",
+    )
+    mode_g.add_argument(
+        "--real",
+        action="store_true",
+        help="Label this message as real execution",
+    )
     sn.set_defaults(func=cmd_suite_notify)
 
     args = parser.parse_args()
-    if hasattr(args, "real") and args.real:
+    if getattr(args, "command", None) == "live" and getattr(args, "real", False):
         args.dry_run = False
     return args.func(args)
 

@@ -64,6 +64,21 @@ cd /root/dev/quant/quantmetrics_os/orchestrator
 
 *(Zie ook `quantmetrics.py build --help`.)*
 
+**Telegram bij suite start/stop (versie + instellingen):** zet in je YAML `monitoring.telegram.enabled: true` + bot/chat (of env-vars). Daarna:
+
+- **Start vóór live:**  
+  `quantmetrics.py build --notify-start -c configs/demo_strict_ctrader.yaml`  
+  (stuurt `suite-notify start` met **QuantBuild-versie**, **git short SHA** — of `QUANTBUILD_GIT_REVISION` — en **samenvatting**: config-pad, dry_run/real, symbol, broker, data source, QuantLog, strategy, guards, filters).  
+  Optioneel: `--notify-components "build bridge quantlog"` (default).
+
+- **Handmatig zelfde bericht:**  
+  `python -m src.quantbuild.app --config configs/demo_strict_ctrader.yaml suite-notify start build bridge quantlog --dry-run`  
+  of `--real` i.p.v. `--dry-run`.
+
+- **Stop** (bijv. bij `systemctl stop`, of handmatig):  
+  `python -m src.quantbuild.app --config configs/demo_strict_ctrader.yaml suite-notify stop build bridge quantlog --reason "systemd stop"`  
+  Zelfde versie/instellingenblok als bij start. In systemd: `ExecStopPost=.../python -m src.quantbuild.app --config ... suite-notify stop ...` (paden aanpassen).
+
 ### 0.4 QuantLog “live” controleren
 
 ```bash
