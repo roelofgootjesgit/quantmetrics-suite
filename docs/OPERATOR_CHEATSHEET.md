@@ -2,7 +2,97 @@
 
 Korte operationele sheet voor dagelijkse run op VPS.
 
-**Secrets:** staan in de **OS-omgeving**; op de VPS in `/etc/quantbuild/quantbuild.env` (systemd `EnvironmentFile=`). Lijst met alle variabelenamen: **`docs/CREDENTIALS_AND_ENVIRONMENT.md`**.
+**Secrets:** staan in de **OS-omgeving**; op de VPS in `/etc/quantbuild/quantbuild.env` (systemd `EnvironmentFile=`) **of** in **`quantmetrics_os/orchestrator/.env`** als je via de orchestrator start. Lijst met alle variabelenamen: **`docs/CREDENTIALS_AND_ENVIRONMENT.md`**.
+
+---
+
+## 0) Week start — suite aan, incl. QuantLog + logs
+
+**Doel:** de bot draait de hele week door; **QuantLog** append’t **JSONL** onder `data/quantlog_events/<UTC-datum>/` (als `quantlog.enabled` in je YAML aan staat); je hebt **file logs** + optioneel **nightly** validate/summary.
+
+### 0.1 Code en venv (eenmalig per week of na wijzigingen)
+
+Pas `/opt/quantbuild/…` aan naar jouw pad (bijv. `/root/dev/quant/quantbuildv1`):
+
+```bash
+export QB=/root/dev/quant/quantbuildv1
+cd "$QB" && git pull --ff-only
+cd /root/dev/quant/quantbridgev1 && git pull --ff-only
+cd /root/dev/quant/quantlogv1 && git pull --ff-only
+cd /root/dev/quant/quantmetrics_os && git pull --ff-only
+
+cd "$QB" && source .venv/bin/activate
+pip install -r requirements.txt   # alleen als requirements gewijzigd
+pip install -e /root/dev/quant/quantlogv1   # nodig voor quantlog_post_run / CLI
+```
+
+### 0.2 Secrets
+
+Zorg dat **alle** keys gezet zijn (systemd-`EnvironmentFile` **of** `orchestrator/.env` vóór `quantmetrics.py`). Zie **`docs/CREDENTIALS_AND_ENVIRONMENT.md`**.
+
+### 0.3 Runtime starten (kies één)
+
+**A — systemd** (units moeten naar jouw `WorkingDirectory` / `ExecStart`-pad wijzen; standaard in repo = `/opt/quantbuild/quantbuildv1`):
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable quantbuild-ctrader-demo.service
+sudo systemctl restart quantbuild-ctrader-demo.service
+sudo systemctl status quantbuild-ctrader-demo.service --no-pager
+```
+
+Snelle week-kick via script (zelfde service-naam, zie §0.4 voor env-vars):
+
+```bash
+cd /root/dev/quant/quantbuildv1
+chmod +x scripts/vps/start_weekrun.sh
+QUANTBUILD_ROOT=/root/dev/quant/quantbuildv1 ./scripts/vps/start_weekrun.sh
+```
+
+**B — tmux + orchestrator** (geen systemd, wél `orchestrator/.env`):
+
+```bash
+tmux new -s qb
+cd /root/dev/quant/quantmetrics_os/orchestrator
+/root/dev/quant/quantbuildv1/.venv/bin/python quantmetrics.py build -c configs/strict_prod_v2.yaml
+# Ctrl+B dan D om los te laten
+```
+
+*(Voeg `--dry-run` of `--real` toe zoals je policy is; zie `quantmetrics.py --help`.)*
+
+### 0.4 QuantLog “live” controleren
+
+```bash
+cd /root/dev/quant/quantbuildv1
+DAY=$(date -u +%Y-%m-%d)
+ls -la "data/quantlog_events/$DAY"
+tail -n 5 "data/quantlog_events/$DAY/quantbuild.jsonl"
+```
+
+Zie je geen map/bestand: check YAML `quantlog:` (`enabled`, `base_path`) en of de bot echt draait.
+
+### 0.5 Nightly rapport (validate + summarize vorige UTC-dag)
+
+**Timer** (eenmalig): standaard unit-bestanden gebruiken `/opt/quantbuild/quantbuildv1` — pas **`deploy/systemd/quantbuild-quantlog-report.service`** naar jouw pad aan **of** kopieer handmatig naar `/etc/systemd/system/` met juiste paden, daarna `install_quantlog_nightly_timer.sh` (of handmatig `systemctl enable --now` op timer). Zie §9.
+
+**Handmatig nu** (zonder systemd, jouw pad):
+
+```bash
+export QUANTBUILD_ROOT=/root/dev/quant/quantbuildv1
+export QUANTBUILD_POST_RUN_CONFIG=configs/strict_prod_v2.yaml
+export QUANTLOG_REPO_PATH=/root/dev/quant/quantlogv1
+cd "$QUANTBUILD_ROOT" && source .venv/bin/activate
+mkdir -p logs
+bash scripts/vps/quantlog_nightly.sh 2>&1 | tee -a logs/quantlog_nightly_manual.log
+```
+
+*(Alleen nodig als je geen timer hebt; de timer schrijft naar `logs/quantlog_nightly.log` via systemd.)*
+
+### 0.6 Logs volgen
+
+- **File log** (cTrader-demo unit): `tail -f …/logs/runtime_ctrader_demo.log`
+- **Journald:** `journalctl -u quantbuild-ctrader-demo.service -f`
+- **Orchestrator / stdout:** output in je tmux-paneel
 
 ---
 
