@@ -2,6 +2,8 @@
 
 Korte operationele sheet voor dagelijkse run op VPS.
 
+**Secrets:** staan in de **OS-omgeving**; op de VPS in `/etc/quantbuild/quantbuild.env` (systemd `EnvironmentFile=`). Lijst met alle variabelenamen: **`docs/CREDENTIALS_AND_ENVIRONMENT.md`**.
+
 ---
 
 ## 1) Daily Check (copy/paste)

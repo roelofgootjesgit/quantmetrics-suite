@@ -261,6 +261,8 @@ quantbuildv1/
 
 ## Quick Start
 
+**Credentials:** zet secrets in de **omgeving** (`os.environ`). Lokaal kun je `.env` (uit `.env.example`) gebruiken; die staat in `.gitignore` en wordt bij import geladen. Zie **`docs/CREDENTIALS_AND_ENVIRONMENT.md`**.
+
 ```bash
 python -m venv .venv
 .venv\Scripts\activate

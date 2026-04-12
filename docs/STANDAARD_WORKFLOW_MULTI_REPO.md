@@ -4,6 +4,8 @@ Dit document beschrijft **hoe we samenwerken over meerdere repositories** zonder
 
 **Principe:** elke repo heeft een eigen `git`-historie; **QuantBuild** is de **integratiehub** (runtime, systemd, config, linkage-scripts, release-notities).
 
+**Credentials:** overal geldt **`docs/CREDENTIALS_AND_ENVIRONMENT.md`** — secrets leven in **`os.environ`** (VPS: systemd `EnvironmentFile`; lokaal: export of gitignored `.env` die dotenv inlaadt). Geen tokens in git of in voorbeeld-config buiten placeholders.
+
 ---
 
 ## 1) Repos en rollen

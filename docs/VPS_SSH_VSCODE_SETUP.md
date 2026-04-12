@@ -2,7 +2,7 @@
 
 Korte checklist voor **nieuwe projecten** of een **nieuwe VPS**: code op de server zetten/bijwerken en vanaf Windows **zonder wachtwoord** met VS Code op de Linux-map werken.
 
-Uitgebreide deploy (systemd, secrets, QuantBridge): zie **`VPS_DEPLOYMENT_RUNBOOK.md`**. Dagelijkse updates: **`OPERATOR_CHEATSHEET.md`**.
+Uitgebreide deploy (systemd, secrets, QuantBridge): zie **`VPS_DEPLOYMENT_RUNBOOK.md`**. Waar alle credentials thuishoren (OS env): **`docs/CREDENTIALS_AND_ENVIRONMENT.md`**. Dagelijkse updates: **`OPERATOR_CHEATSHEET.md`**.
 
 ---
 

@@ -1,16 +1,16 @@
 # ============================================================
 # DEMO_STRICT — cTrader + IC-style data (CREDENTIALS VEREIST)
 # ============================================================
-# Vereist: CTRADER_ACCOUNT_ID + CTRADER_ACCESS_TOKEN in .env (of broker-sectie).
+# Vereist: CTRADER_ACCOUNT_ID + CTRADER_ACCESS_TOKEN in os.environ (systemd env-file,
+# export, of lokaal gitignored .env via dotenv). Zie docs/CREDENTIALS_AND_ENVIRONMENT.md.
 # Zonder credentials: gebruik configs/demo_strict_prod_v2.yaml (Oanda/default data).
 #
 # Twee VPS/deployments: pair met demo_loose_ctrader.yaml voor A/B pipeline logging.
 # ============================================================
 # Zelfde strategie/news/execution als strict_prod_v2.yaml, maar broker = cTrader.
 #
-# Credentials: zet CTRADER_ACCOUNT_ID, CTRADER_ACCESS_TOKEN, en optioneel
-# CTRADER_CLIENT_ID / CTRADER_CLIENT_SECRET in quantbuildv1/.env of in
-# quantbridgev1/.env (wordt door QuantBuild gelezen zodra QuantBridge geladen is).
+# Credentials: zelfde CTRADER_*-namen in de OS-omgeving (aanbevolen). Optioneel fallback:
+# quantbridgev1/.env bij launch_live_safe — productie: alles via systemd EnvironmentFile.
 #
 # Vereist: cTrader desktop met je IC Markets-account ingelogd; Open API-app;
 # pip install -r requirements.txt in quantbridgev1 (ctrader-open-api).

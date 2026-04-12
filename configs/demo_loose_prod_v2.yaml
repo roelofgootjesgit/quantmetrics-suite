@@ -4,6 +4,8 @@
 # Zelfde broker/data als strict_prod_v2.yaml; filters uit + research_raw_first.
 # Pair met demo_strict_prod_v2.yaml voor A/B QuantLog-funnel.
 #
+# Oanda-keys: OANDA_* in os.environ — docs/CREDENTIALS_AND_ENVIRONMENT.md
+#
 #   quantmetrics build -c configs/demo_loose_prod_v2.yaml
 # ============================================================
 # Upgrades from v1:

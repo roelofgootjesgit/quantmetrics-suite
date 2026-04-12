@@ -4,6 +4,8 @@
 # Zelfde strategie/broker als strict_prod_v2.yaml (Oanda + default data),
 # aparte QuantLog-map/run voor A/B met demo_loose_prod_v2.yaml.
 #
+# Oanda-keys: OANDA_ACCOUNT_ID / OANDA_TOKEN in os.environ — docs/CREDENTIALS_AND_ENVIRONMENT.md
+#
 # Gebruik op VPS als je geen CTRADER_* hebt:
 #   quantmetrics build -c configs/demo_strict_prod_v2.yaml
 # ============================================================

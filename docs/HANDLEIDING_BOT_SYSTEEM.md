@@ -128,8 +128,10 @@ Optionele dependencies (commentaar tot je ze nodig hebt):
 python -m venv .venv
 .venv\Scripts\activate          # Windows
 pip install -r requirements.txt
-cp .env.example .env            # Vul credentials in
+cp .env.example .env            # Alleen lokaal: placeholders → echte waarden (gitignored)
 ```
+
+Voor **QuantBuild E1** geldt: credentials horen in **`os.environ`**; een repo-`.env` is optionele dev-hulp (wordt door `python-dotenv` ingeladen). Canonieke namen en VPS/systemd: **`docs/CREDENTIALS_AND_ENVIRONMENT.md`** in de quantbuildv1-repo.
 
 ---
 

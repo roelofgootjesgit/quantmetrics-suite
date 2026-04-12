@@ -2,7 +2,7 @@
 
 Dit document is bedoeld om **hetzelfde te kopiëren of te linken in elke repo** (QuantBuild, QuantBridge, QuantLog, scripts). Zo blijft push/pull op de VPS voorspelbaar: één Python-versie, vaste paden, geen gemixte venv’s.
 
-Gerelateerd: `docs/STANDAARD_WORKFLOW_MULTI_REPO.md` (proces: losse repos, PR-volgorde, release-set), `docs/VPS_DEPLOYMENT_RUNBOOK.md` (stappen + systemd), `docs/OPERATOR_CHEATSHEET.md` (dagelijkse commands). QuantLog-repo: `docs/VPS_SYNC.md` (uitbreiding alleen voor de derde clone — **dit** bestand blijft de bron voor venv + volgorde).
+Gerelateerd: `docs/STANDAARD_WORKFLOW_MULTI_REPO.md` (proces: losse repos, PR-volgorde, release-set), `docs/VPS_DEPLOYMENT_RUNBOOK.md` (stappen + systemd), `docs/OPERATOR_CHEATSHEET.md` (dagelijkse commands), **`docs/CREDENTIALS_AND_ENVIRONMENT.md`** (alle secrets via `os.environ` / systemd env-file). QuantLog-repo: `docs/VPS_SYNC.md` (uitbreiding alleen voor de derde clone — **dit** bestand blijft de bron voor venv + volgorde).
 
 ---
 
@@ -34,7 +34,7 @@ Pas paden alleen aan als je weet waarom; anders houd je dit vast:
 /opt/quantbuild/quantbuildv1     ← hoofd-app, hier staat de .venv van de bot
 /opt/quantbuild/quantbridgev1      ← library / OpenAPI-laag (geen tweede bot-venv nodig tenzij je bewust dev-test doet)
 /opt/quantbuild/quantlogv1         ← event spine (validate / replay / CLI); geen eigen productie-venv
-/etc/quantbuild/quantbuild.env       ← secrets + QUANTBRIDGE_SRC_PATH (niet in git)
+/etc/quantbuild/quantbuild.env       ← alle secrets + niet-gevoelige overrides (QUANTBRIDGE_SRC_PATH, …); niet in git — zie docs/CREDENTIALS_AND_ENVIRONMENT.md
 ```
 
 JSONL-eventdagen staan **niet** in de QuantLog-repo: typisch onder QuantBuild, bv. `quantbuildv1/data/quantlog_events/<YYYY-MM-DD>/` (via config `quantlog.base_path`).

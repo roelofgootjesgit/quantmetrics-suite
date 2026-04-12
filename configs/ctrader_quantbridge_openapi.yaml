@@ -1,4 +1,5 @@
-# QuantBuild live-demo profile using QuantBridge cTrader OpenAPI adapter
+# QuantBuild live-demo profile using QuantBridge cTrader OpenAPI adapter.
+# Secrets: CTRADER_* via os.environ — docs/CREDENTIALS_AND_ENVIRONMENT.md (YAML hier leeg laten).
 symbol: XAUUSD
 
 data:

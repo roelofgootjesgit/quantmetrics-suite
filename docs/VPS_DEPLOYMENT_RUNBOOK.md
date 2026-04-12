@@ -2,6 +2,8 @@
 
 Praktische handleiding om QuantBuild + QuantBridge op een Linux VPS te deployen en 1 week stabiel te laten draaien met echte orders op een cTrader demo-account.
 
+**Secrets en env-variabelen:** de **bron van waarheid** is altijd de **OS-omgeving** (`os.environ`) — op de VPS typisch via systemd `EnvironmentFile`. Volledige lijst en afspraken: **`docs/CREDENTIALS_AND_ENVIRONMENT.md`**.
+
 **Editor / SSH-key / VS Code Remote:** zie `docs/VPS_SSH_VSCODE_SETUP.md` (start-checklist voor nieuwe VPS of nieuwe machine).
 
 ---
@@ -68,7 +70,7 @@ pip install -r requirements.txt
 
 ## 5) Secrets en Environment
 
-Gebruik environment vars, geen secrets in YAML committen.
+Gebruik **alleen** environment-variabelen voor credentials; commit **geen** secrets in YAML of git. Zie **`docs/CREDENTIALS_AND_ENVIRONMENT.md`** voor alle ondersteunde namen en voor orchestrator/subprocess.
 
 ```bash
 export CTRADER_ACCOUNT_ID="..."

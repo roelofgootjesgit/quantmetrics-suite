@@ -3,9 +3,8 @@
 # ============================================================
 # Zelfde strategie/news/execution als strict_prod_v2.yaml, maar broker = cTrader.
 #
-# Credentials: zet CTRADER_ACCOUNT_ID, CTRADER_ACCESS_TOKEN, en optioneel
-# CTRADER_CLIENT_ID / CTRADER_CLIENT_SECRET in quantbuildv1/.env of in
-# quantbridgev1/.env (wordt door QuantBuild gelezen zodra QuantBridge geladen is).
+# Credentials: CTRADER_* in os.environ (zie docs/CREDENTIALS_AND_ENVIRONMENT.md).
+# Optioneel fallback quantbridgev1/.env bij launch scripts; productie: systemd env-file.
 #
 # Vereist: cTrader desktop met je IC Markets-account ingelogd; Open API-app;
 # pip install -r requirements.txt in quantbridgev1 (ctrader-open-api).

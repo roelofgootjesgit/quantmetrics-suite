@@ -27,7 +27,7 @@ Zonder voorschrift, wel helder maken:
 1. **Betrouwbaarheid:** geen handmatige copy-paste; herstart VPS mag geen “gat” geven als dat te voorkomen is.
 2. **Tijd:** dagelijks (of elk uur) een **bekend venster** — bijv. “na NY close” of “06:00 UTC”.
 3. **Analyse:** mentor kan trends zien (latency, fouten, block-reasons, fill quality, nieuws/LLM-paden) zonder op de VPS te moeten inloggen — *tenzij* jullie bewust alles on-prem op de VPS houden.
-4. **Privacy & veiligheid:** geen API-keys of wachtwoorden in JSON; eventueel account-id’s pseudonimiseren in exports.
+4. **Privacy & veiligheid:** geen API-keys of wachtwoorden in JSON; keys horen in de **OS-omgeving** (zie `docs/CREDENTIALS_AND_ENVIRONMENT.md`). Eventueel account-id’s pseudonimiseren in exports.
 5. **Reproduceerbaarheid:** vaste paden, vaste schema’s (event_version), zodat analyse-scripts niet elke week breken.
 
 ---
