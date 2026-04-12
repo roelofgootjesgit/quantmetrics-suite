@@ -174,6 +174,17 @@ class LiveRunner:
                     "python scripts/check_quantlog_linkage.py — events will still be written."
                 )
 
+        # Filter / research toggles (YAML `filters:` — all default True = current strict behavior)
+        _filt = self.cfg.get("filters") or {}
+        self._filter_regime: bool = bool(_filt.get("regime", True))
+        self._filter_session: bool = bool(_filt.get("session", True))
+        self._filter_cooldown: bool = bool(_filt.get("cooldown", True))
+        self._filter_news: bool = bool(_filt.get("news", True))
+        self._filter_position_limit: bool = bool(_filt.get("position_limit", True))
+        self._filter_daily_loss: bool = bool(_filt.get("daily_loss", True))
+        self._filter_spread: bool = bool(_filt.get("spread", True))
+        self._research_raw_first: bool = bool(_filt.get("research_raw_first", False))
+
         # News layer
         self._news_poller = None
         self._news_gate = None
@@ -596,6 +607,99 @@ class LiveRunner:
             payload=payload,
         )
 
+    def _emit_signal_detected(
+        self,
+        *,
+        trace_id: str,
+        signal_id: str,
+        direction: str,
+        strength: float,
+        bar_timestamp: str,
+        regime: Optional[str],
+        session: str,
+        modules_hint: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        if not self._quantlog:
+            return
+        payload: Dict[str, Any] = {
+            "signal_id": signal_id,
+            "type": "sqe_entry",
+            "direction": direction,
+            "strength": strength,
+            "bar_timestamp": bar_timestamp,
+            "session": session,
+            "regime": regime or "none",
+        }
+        if modules_hint:
+            payload["modules"] = modules_hint
+        self._quantlog.emit(
+            event_type="signal_detected",
+            trace_id=trace_id,
+            account_id=self._account_id,
+            strategy_id="sqe_live_runner",
+            symbol=self.cfg.get("symbol", "XAUUSD"),
+            payload=payload,
+        )
+
+    def _emit_signal_filtered(
+        self,
+        *,
+        trace_id: str,
+        signal_id: Optional[str],
+        raw_reason: str,
+        extra: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        if not self._quantlog:
+            return
+        from src.quantbuild.execution.quantlog_no_action import canonical_no_action_reason
+
+        payload: Dict[str, Any] = {
+            "filter_reason": canonical_no_action_reason(raw_reason),
+            "raw_reason": raw_reason,
+        }
+        if signal_id:
+            payload["signal_id"] = signal_id
+        if extra:
+            payload["detail"] = extra
+        self._quantlog.emit(
+            event_type="signal_filtered",
+            trace_id=trace_id,
+            account_id=self._account_id,
+            strategy_id="sqe_live_runner",
+            symbol=self.cfg.get("symbol", "XAUUSD"),
+            payload=payload,
+        )
+
+    def _emit_trade_executed(
+        self,
+        *,
+        trace_id: str,
+        signal_id: Optional[str],
+        direction: str,
+        trade_id: str,
+        regime: Optional[str],
+        session: str,
+    ) -> None:
+        if not self._quantlog:
+            return
+        payload: Dict[str, Any] = {
+            "direction": direction,
+            "trade_id": trade_id,
+            "session": session,
+            "regime": regime or "none",
+        }
+        if signal_id:
+            payload["signal_id"] = signal_id
+        self._quantlog.emit(
+            event_type="trade_executed",
+            trace_id=trace_id,
+            account_id=self._account_id,
+            strategy_id="sqe_live_runner",
+            symbol=self.cfg.get("symbol", "XAUUSD"),
+            order_ref=str(trade_id),
+            payload=payload,
+        )
+
     def _log_decision_cycle(
         self,
         now: datetime,
@@ -632,6 +736,439 @@ class LiveRunner:
             reason,
         )
 
+    def _compute_sqe_signal_state(
+        self, data_15m: pd.DataFrame
+    ) -> tuple[Any, int, Dict[str, Any], List[str], bool, bool]:
+        """SQE precompute + last-bar LONG/SHORT flags (shared by standard and research paths)."""
+        sqe_cfg = get_sqe_default_config()
+        strategy_cfg = self.cfg.get("strategy", {}) or {}
+        if strategy_cfg:
+            from src.quantbuild.backtest.engine import _deep_merge
+
+            _deep_merge(sqe_cfg, strategy_cfg)
+        precomputed_df = _compute_modules_once(data_15m, sqe_cfg)
+        long_entries = run_sqe_conditions(data_15m, "LONG", sqe_cfg, _precomputed_df=precomputed_df)
+        short_entries = run_sqe_conditions(data_15m, "SHORT", sqe_cfg, _precomputed_df=precomputed_df)
+        last_idx = len(data_15m) - 1
+        signals_to_check: List[str] = []
+        if long_entries.iloc[last_idx]:
+            signals_to_check.append("LONG")
+        if short_entries.iloc[last_idx]:
+            signals_to_check.append("SHORT")
+        long_signal = bool(long_entries.iloc[last_idx])
+        short_signal = bool(short_entries.iloc[last_idx])
+        return precomputed_df, last_idx, sqe_cfg, signals_to_check, long_signal, short_signal
+
+    def _check_signals_research_raw_first(
+        self,
+        now: datetime,
+        regime: Optional[str],
+        regime_profiles: Dict[str, Any],
+        current_session: str,
+        position_ok: bool,
+        daily_loss_ok: bool,
+        cycle_trace_id: str,
+    ) -> None:
+        """Compute SQE before regime/session gates; log signal_detected then signal_filtered or execute."""
+
+        if self._filter_position_limit and not position_ok:
+            logger.debug("Position limit reached (%d)", self._max_open_positions)
+            pre_ctx = self._runner_pre_signal_decision_context(
+                eval_stage="position_limit_block",
+                regime=regime,
+                session=current_session,
+                max_open_positions=self._max_open_positions,
+            )
+            self._emit_signal_evaluated(
+                trace_id=cycle_trace_id,
+                direction="NONE",
+                confidence=0.0,
+                regime=regime,
+                setup=False,
+                eval_stage="position_limit_block",
+                decision_context=pre_ctx,
+            )
+            self._log_decision_cycle(
+                now=now,
+                action="no_trade",
+                reason="position_limit_block",
+                regime=regime,
+                killzone=current_session,
+                position_ok=position_ok,
+                daily_loss_ok=daily_loss_ok,
+            )
+            self._emit_trade_action(
+                trace_id=cycle_trace_id,
+                decision="NO_ACTION",
+                reason="position_limit_block",
+                session=current_session,
+                regime=regime,
+                decision_context=pre_ctx,
+            )
+            return
+
+        if self._filter_daily_loss and not daily_loss_ok:
+            logger.warning("Daily loss limit reached (%.2fR)", self._daily_pnl_r)
+            pre_ctx = self._runner_pre_signal_decision_context(
+                eval_stage="daily_loss_block",
+                regime=regime,
+                session=current_session,
+                daily_pnl_r=float(self._daily_pnl_r),
+            )
+            self._emit_signal_evaluated(
+                trace_id=cycle_trace_id,
+                direction="NONE",
+                confidence=0.0,
+                regime=regime,
+                setup=False,
+                eval_stage="daily_loss_block",
+                decision_context=pre_ctx,
+            )
+            self._log_decision_cycle(
+                now=now,
+                action="no_trade",
+                reason="daily_loss_block",
+                regime=regime,
+                killzone=current_session,
+                position_ok=position_ok,
+                daily_loss_ok=daily_loss_ok,
+            )
+            self._emit_trade_action(
+                trace_id=cycle_trace_id,
+                decision="NO_ACTION",
+                reason="daily_loss_block",
+                session=current_session,
+                regime=regime,
+                decision_context=pre_ctx,
+            )
+            return
+
+        data_15m, source_actual = self._load_recent_data("15m", bars=300)
+        if data_15m.empty or len(data_15m) < MIN_BARS_FOR_SIGNAL:
+            symbol = self.cfg.get("symbol", "XAUUSD")
+            last_ts = str(data_15m.index[-1]) if not data_15m.empty else "None"
+            logger.warning(
+                "signal_warmup_check symbol=%s timeframe=15m required=%d "
+                "received=%d last_ts=%s source=%s_cache",
+                symbol,
+                MIN_BARS_FOR_SIGNAL,
+                len(data_15m),
+                last_ts,
+                source_actual,
+            )
+            pre_ctx = self._runner_pre_signal_decision_context(
+                eval_stage="bars_missing",
+                regime=regime,
+                session=current_session,
+                source_actual=source_actual,
+                bar_count=len(data_15m),
+                min_bars=MIN_BARS_FOR_SIGNAL,
+            )
+            self._emit_signal_evaluated(
+                trace_id=cycle_trace_id,
+                direction="NONE",
+                confidence=0.0,
+                regime=regime,
+                setup=False,
+                eval_stage="bars_missing",
+                decision_context=pre_ctx,
+            )
+            self._log_decision_cycle(
+                now=now,
+                action="no_trade",
+                reason="bars_missing",
+                regime=regime,
+                killzone=current_session,
+                source_actual=source_actual,
+                bars_ok=False,
+                position_ok=position_ok,
+                daily_loss_ok=daily_loss_ok,
+            )
+            self._emit_trade_action(
+                trace_id=cycle_trace_id,
+                decision="NO_ACTION",
+                reason="bars_missing",
+                session=current_session,
+                regime=regime,
+                decision_context=pre_ctx,
+            )
+            return
+
+        latest_ts = data_15m.index[-1]
+        if self._filter_cooldown and self._last_bar_ts is not None and latest_ts <= self._last_bar_ts:
+            pre_ctx = self._runner_pre_signal_decision_context(
+                eval_stage="same_bar_already_processed",
+                regime=regime,
+                session=current_session,
+                latest_bar_ts=str(latest_ts),
+                last_processed_bar_ts=str(self._last_bar_ts),
+            )
+            self._emit_signal_evaluated(
+                trace_id=cycle_trace_id,
+                direction="NONE",
+                confidence=0.0,
+                regime=regime,
+                setup=False,
+                eval_stage="same_bar_already_processed",
+                decision_context=pre_ctx,
+            )
+            self._log_decision_cycle(
+                now=now,
+                action="no_trade",
+                reason="same_bar_already_processed",
+                regime=regime,
+                killzone=current_session,
+                source_actual=source_actual,
+                bars_ok=True,
+                position_ok=position_ok,
+                daily_loss_ok=daily_loss_ok,
+            )
+            self._emit_trade_action(
+                trace_id=cycle_trace_id,
+                decision="NO_ACTION",
+                reason="same_bar_already_processed",
+                session=current_session,
+                regime=regime,
+                decision_context=pre_ctx,
+            )
+            return
+        if self._filter_cooldown:
+            self._last_bar_ts = latest_ts
+
+        precomputed_df, last_idx, sqe_cfg, signals_to_check, long_signal, short_signal = (
+            self._compute_sqe_signal_state(data_15m)
+        )
+
+        if not signals_to_check:
+            logger.debug("No entry signals at %s", now.strftime("%H:%M"))
+            long_ctx = sqe_decision_context_at_bar(precomputed_df, "LONG", last_idx, sqe_cfg)
+            short_ctx = sqe_decision_context_at_bar(precomputed_df, "SHORT", last_idx, sqe_cfg)
+            long_ctx["session"] = current_session
+            short_ctx["session"] = current_session
+            if regime is not None:
+                long_ctx["regime"] = regime
+                short_ctx["regime"] = regime
+            pre_ctx = self._runner_pre_signal_decision_context(
+                eval_stage="no_entry_signal",
+                regime=regime,
+                session=current_session,
+                long=long_ctx,
+                short=short_ctx,
+            )
+            self._emit_signal_evaluated(
+                trace_id=cycle_trace_id,
+                direction="NONE",
+                confidence=0.0,
+                regime=regime,
+                setup=False,
+                eval_stage="no_entry_signal",
+                decision_context=pre_ctx,
+            )
+            self._log_decision_cycle(
+                now=now,
+                action="no_trade",
+                reason="no_entry_signal",
+                regime=regime,
+                killzone=current_session,
+                source_actual=source_actual,
+                bars_ok=True,
+                long_signal=long_signal,
+                short_signal=short_signal,
+                position_ok=position_ok,
+                daily_loss_ok=daily_loss_ok,
+            )
+            self._emit_trade_action(
+                trace_id=cycle_trace_id,
+                decision="NO_ACTION",
+                reason="no_entry_signal",
+                session=current_session,
+                regime=regime,
+                decision_context=pre_ctx,
+            )
+            return
+
+        pending: List[tuple[str, str, str, Dict[str, Any]]] = []
+        for direction in signals_to_check:
+            trace_id = self._new_trace_id()
+            signal_id = str(uuid4())
+            sqe_ctx = sqe_decision_context_at_bar(precomputed_df, direction, last_idx, sqe_cfg)
+            sqe_ctx["session"] = current_session
+            if regime is not None:
+                sqe_ctx["regime"] = regime
+            mod_keys = ("mss_confirmed", "sweep_detected", "fvg_in_zone", "displacement_trigger")
+            modules_hint = {k: sqe_ctx[k] for k in mod_keys if k in sqe_ctx}
+            self._emit_signal_detected(
+                trace_id=trace_id,
+                signal_id=signal_id,
+                direction=direction,
+                strength=1.0,
+                bar_timestamp=str(data_15m.index[last_idx]),
+                regime=regime,
+                session=current_session,
+                modules_hint=modules_hint or None,
+            )
+            pending.append((direction, trace_id, signal_id, sqe_ctx))
+
+        rp = regime_profiles.get(regime, {}) if regime else {}
+        if self._filter_regime and regime and rp.get("skip", False):
+            for _d, tid, sid, _sqe in pending:
+                self._emit_signal_filtered(
+                    trace_id=tid, signal_id=sid, raw_reason="regime_block"
+                )
+            pre_ctx = self._runner_pre_signal_decision_context(
+                eval_stage="regime_block", regime=regime, session=current_session
+            )
+            self._emit_signal_evaluated(
+                trace_id=cycle_trace_id,
+                direction="NONE",
+                confidence=0.0,
+                regime=regime,
+                setup=False,
+                eval_stage="regime_block",
+                decision_context=pre_ctx,
+            )
+            self._log_decision_cycle(
+                now=now,
+                action="no_trade",
+                reason="regime_block",
+                regime=regime,
+                killzone=current_session,
+                source_actual=source_actual,
+                long_signal=long_signal,
+                short_signal=short_signal,
+                position_ok=position_ok,
+                daily_loss_ok=daily_loss_ok,
+            )
+            self._emit_trade_action(
+                trace_id=cycle_trace_id,
+                decision="NO_ACTION",
+                reason="regime_block",
+                session=current_session,
+                regime=regime,
+                decision_context=pre_ctx,
+            )
+            return
+
+        if self._filter_session and regime:
+            allowed_sessions = rp.get("allowed_sessions")
+            if allowed_sessions and current_session not in allowed_sessions:
+                for _d, tid, sid, _sqe in pending:
+                    self._emit_signal_filtered(
+                        trace_id=tid, signal_id=sid, raw_reason="outside_killzone"
+                    )
+                pre_ctx = self._runner_pre_signal_decision_context(
+                    eval_stage="outside_killzone",
+                    regime=regime,
+                    session=current_session,
+                    allowed_sessions=list(allowed_sessions),
+                )
+                self._emit_signal_evaluated(
+                    trace_id=cycle_trace_id,
+                    direction="NONE",
+                    confidence=0.0,
+                    regime=regime,
+                    setup=False,
+                    eval_stage="outside_killzone",
+                    decision_context=pre_ctx,
+                )
+                self._log_decision_cycle(
+                    now=now,
+                    action="no_trade",
+                    reason="outside_killzone",
+                    regime=regime,
+                    killzone=current_session,
+                    source_actual=source_actual,
+                    long_signal=long_signal,
+                    short_signal=short_signal,
+                    position_ok=position_ok,
+                    daily_loss_ok=daily_loss_ok,
+                )
+                self._emit_trade_action(
+                    trace_id=cycle_trace_id,
+                    decision="NO_ACTION",
+                    reason="outside_killzone",
+                    session=current_session,
+                    regime=regime,
+                    decision_context=pre_ctx,
+                )
+                return
+            min_hour = rp.get("min_hour_utc")
+            if min_hour is not None and now.hour < min_hour:
+                for _d, tid, sid, _sqe in pending:
+                    self._emit_signal_filtered(
+                        trace_id=tid, signal_id=sid, raw_reason="time_filter_block"
+                    )
+                pre_ctx = self._runner_pre_signal_decision_context(
+                    eval_stage="time_filter_block",
+                    regime=regime,
+                    session=current_session,
+                    min_hour_utc=min_hour,
+                    hour_utc=now.hour,
+                )
+                self._emit_signal_evaluated(
+                    trace_id=cycle_trace_id,
+                    direction="NONE",
+                    confidence=0.0,
+                    regime=regime,
+                    setup=False,
+                    eval_stage="time_filter_block",
+                    decision_context=pre_ctx,
+                )
+                self._log_decision_cycle(
+                    now=now,
+                    action="no_trade",
+                    reason="time_filter_block",
+                    regime=regime,
+                    killzone=current_session,
+                    source_actual=source_actual,
+                    long_signal=long_signal,
+                    short_signal=short_signal,
+                    position_ok=position_ok,
+                    daily_loss_ok=daily_loss_ok,
+                )
+                self._emit_trade_action(
+                    trace_id=cycle_trace_id,
+                    decision="NO_ACTION",
+                    reason="time_filter_block",
+                    session=current_session,
+                    regime=regime,
+                    decision_context=pre_ctx,
+                )
+                return
+
+        for direction, trace_id, signal_id, sqe_ctx in pending:
+            self._emit_signal_evaluated(
+                trace_id=trace_id,
+                direction=direction,
+                confidence=1.0,
+                regime=regime,
+                decision_context=sqe_ctx,
+            )
+            action, reason = self._evaluate_and_execute(
+                direction,
+                data_15m,
+                now,
+                regime,
+                trace_id,
+                current_session,
+                strategy_decision_context=sqe_ctx,
+                signal_id=signal_id,
+            )
+            self._log_decision_cycle(
+                now=now,
+                action=action,
+                reason=reason,
+                regime=regime,
+                killzone=current_session,
+                source_actual=source_actual,
+                bias=direction.lower(),
+                bars_ok=True,
+                long_signal=long_signal,
+                short_signal=short_signal,
+                position_ok=position_ok,
+                daily_loss_ok=daily_loss_ok,
+            )
+
     def _check_signals(self, now: datetime):
         """Evaluate SQE entry signals and submit orders when criteria are met."""
         regime = self.get_effective_regime()
@@ -643,10 +1180,22 @@ class LiveRunner:
         # One trace for pre-signal exits in this cycle (PLATFORM_ROADMAP P3 / QUANTBUILD_ROADMAP).
         cycle_trace_id = self._new_trace_id()
 
+        if self._research_raw_first:
+            self._check_signals_research_raw_first(
+                now,
+                regime,
+                regime_profiles,
+                current_session,
+                position_ok,
+                daily_loss_ok,
+                cycle_trace_id,
+            )
+            return
+
         # Regime skip
         if regime:
             rp = regime_profiles.get(regime, {})
-            if rp.get("skip", False):
+            if self._filter_regime and rp.get("skip", False):
                 logger.debug("Regime %s -> skip", regime)
                 pre_ctx = self._runner_pre_signal_decision_context(
                     eval_stage="regime_block", regime=regime, session=current_session
@@ -680,83 +1229,84 @@ class LiveRunner:
                 return
 
             # Per-regime session/time filter
-            allowed_sessions = rp.get("allowed_sessions")
-            if allowed_sessions and current_session not in allowed_sessions:
-                logger.debug("Regime %s session %s not allowed", regime, current_session)
-                pre_ctx = self._runner_pre_signal_decision_context(
-                    eval_stage="outside_killzone",
-                    regime=regime,
-                    session=current_session,
-                    allowed_sessions=list(allowed_sessions),
-                )
-                self._emit_signal_evaluated(
-                    trace_id=cycle_trace_id,
-                    direction="NONE",
-                    confidence=0.0,
-                    regime=regime,
-                    setup=False,
-                    eval_stage="outside_killzone",
-                    decision_context=pre_ctx,
-                )
-                self._log_decision_cycle(
-                    now=now,
-                    action="no_trade",
-                    reason="outside_killzone",
-                    regime=regime,
-                    killzone=current_session,
-                    position_ok=position_ok,
-                    daily_loss_ok=daily_loss_ok,
-                )
-                self._emit_trade_action(
-                    trace_id=cycle_trace_id,
-                    decision="NO_ACTION",
-                    reason="outside_killzone",
-                    session=current_session,
-                    regime=regime,
-                    decision_context=pre_ctx,
-                )
-                return
+            if self._filter_session:
+                allowed_sessions = rp.get("allowed_sessions")
+                if allowed_sessions and current_session not in allowed_sessions:
+                    logger.debug("Regime %s session %s not allowed", regime, current_session)
+                    pre_ctx = self._runner_pre_signal_decision_context(
+                        eval_stage="outside_killzone",
+                        regime=regime,
+                        session=current_session,
+                        allowed_sessions=list(allowed_sessions),
+                    )
+                    self._emit_signal_evaluated(
+                        trace_id=cycle_trace_id,
+                        direction="NONE",
+                        confidence=0.0,
+                        regime=regime,
+                        setup=False,
+                        eval_stage="outside_killzone",
+                        decision_context=pre_ctx,
+                    )
+                    self._log_decision_cycle(
+                        now=now,
+                        action="no_trade",
+                        reason="outside_killzone",
+                        regime=regime,
+                        killzone=current_session,
+                        position_ok=position_ok,
+                        daily_loss_ok=daily_loss_ok,
+                    )
+                    self._emit_trade_action(
+                        trace_id=cycle_trace_id,
+                        decision="NO_ACTION",
+                        reason="outside_killzone",
+                        session=current_session,
+                        regime=regime,
+                        decision_context=pre_ctx,
+                    )
+                    return
 
-            min_hour = rp.get("min_hour_utc")
-            if min_hour is not None and now.hour < min_hour:
-                logger.debug("Regime %s hour %d < min %d", regime, now.hour, min_hour)
-                pre_ctx = self._runner_pre_signal_decision_context(
-                    eval_stage="time_filter_block",
-                    regime=regime,
-                    session=current_session,
-                    min_hour_utc=min_hour,
-                    hour_utc=now.hour,
-                )
-                self._emit_signal_evaluated(
-                    trace_id=cycle_trace_id,
-                    direction="NONE",
-                    confidence=0.0,
-                    regime=regime,
-                    setup=False,
-                    eval_stage="time_filter_block",
-                    decision_context=pre_ctx,
-                )
-                self._log_decision_cycle(
-                    now=now,
-                    action="no_trade",
-                    reason="time_filter_block",
-                    regime=regime,
-                    killzone=current_session,
-                    position_ok=position_ok,
-                    daily_loss_ok=daily_loss_ok,
-                )
-                self._emit_trade_action(
-                    trace_id=cycle_trace_id,
-                    decision="NO_ACTION",
-                    reason="time_filter_block",
-                    session=current_session,
-                    regime=regime,
-                    decision_context=pre_ctx,
-                )
-                return
+                min_hour = rp.get("min_hour_utc")
+                if min_hour is not None and now.hour < min_hour:
+                    logger.debug("Regime %s hour %d < min %d", regime, now.hour, min_hour)
+                    pre_ctx = self._runner_pre_signal_decision_context(
+                        eval_stage="time_filter_block",
+                        regime=regime,
+                        session=current_session,
+                        min_hour_utc=min_hour,
+                        hour_utc=now.hour,
+                    )
+                    self._emit_signal_evaluated(
+                        trace_id=cycle_trace_id,
+                        direction="NONE",
+                        confidence=0.0,
+                        regime=regime,
+                        setup=False,
+                        eval_stage="time_filter_block",
+                        decision_context=pre_ctx,
+                    )
+                    self._log_decision_cycle(
+                        now=now,
+                        action="no_trade",
+                        reason="time_filter_block",
+                        regime=regime,
+                        killzone=current_session,
+                        position_ok=position_ok,
+                        daily_loss_ok=daily_loss_ok,
+                    )
+                    self._emit_trade_action(
+                        trace_id=cycle_trace_id,
+                        decision="NO_ACTION",
+                        reason="time_filter_block",
+                        session=current_session,
+                        regime=regime,
+                        decision_context=pre_ctx,
+                    )
+                    return
 
         # Position limit
-        if not position_ok:
+        if self._filter_position_limit and not position_ok:
             logger.debug("Position limit reached (%d)", self._max_open_positions)
             pre_ctx = self._runner_pre_signal_decision_context(
                 eval_stage="position_limit_block",
@@ -793,7 +1343,7 @@ class LiveRunner:
             return
 
         # Daily loss limit
-        if not daily_loss_ok:
+        if self._filter_daily_loss and not daily_loss_ok:
             logger.warning("Daily loss limit reached (%.2fR)", self._daily_pnl_r)
             pre_ctx = self._runner_pre_signal_decision_context(
                 eval_stage="daily_loss_block",
@@ -878,9 +1428,9 @@ class LiveRunner:
             )
             return
 
-        # Detect if we're on a new bar
+        # Detect if we're on a new bar (cooldown filter)
         latest_ts = data_15m.index[-1]
-        if self._last_bar_ts is not None and latest_ts <= self._last_bar_ts:
+        if self._filter_cooldown and self._last_bar_ts is not None and latest_ts <= self._last_bar_ts:
             pre_ctx = self._runner_pre_signal_decision_context(
                 eval_stage="same_bar_already_processed",
                 regime=regime,
@@ -917,28 +1467,13 @@ class LiveRunner:
                 decision_context=pre_ctx,
             )
             return  # Already processed this bar
-        self._last_bar_ts = latest_ts
+        if self._filter_cooldown:
+            self._last_bar_ts = latest_ts
 
         # Compute SQE signals
-        sqe_cfg = get_sqe_default_config()
-        strategy_cfg = self.cfg.get("strategy", {}) or {}
-        if strategy_cfg:
-            from src.quantbuild.backtest.engine import _deep_merge
-            _deep_merge(sqe_cfg, strategy_cfg)
-
-        precomputed_df = _compute_modules_once(data_15m, sqe_cfg)
-        long_entries = run_sqe_conditions(data_15m, "LONG", sqe_cfg, _precomputed_df=precomputed_df)
-        short_entries = run_sqe_conditions(data_15m, "SHORT", sqe_cfg, _precomputed_df=precomputed_df)
-
-        # Check the latest bar for signals
-        last_idx = len(data_15m) - 1
-        signals_to_check: List[str] = []
-        if long_entries.iloc[last_idx]:
-            signals_to_check.append("LONG")
-        if short_entries.iloc[last_idx]:
-            signals_to_check.append("SHORT")
-        long_signal = bool(long_entries.iloc[last_idx])
-        short_signal = bool(short_entries.iloc[last_idx])
+        precomputed_df, last_idx, sqe_cfg, signals_to_check, long_signal, short_signal = (
+            self._compute_sqe_signal_state(data_15m)
+        )
 
         if not signals_to_check:
             logger.debug("No entry signals at %s", now.strftime("%H:%M"))
@@ -990,11 +1525,24 @@ class LiveRunner:
 
         for direction in signals_to_check:
             trace_id = self._new_trace_id()
+            signal_id = str(uuid4())
             confidence = 1.0
             sqe_ctx = sqe_decision_context_at_bar(precomputed_df, direction, last_idx, sqe_cfg)
             sqe_ctx["session"] = current_session
             if regime is not None:
                 sqe_ctx["regime"] = regime
+            mod_keys = ("mss_confirmed", "sweep_detected", "fvg_in_zone", "displacement_trigger")
+            modules_hint = {k: sqe_ctx[k] for k in mod_keys if k in sqe_ctx}
+            self._emit_signal_detected(
+                trace_id=trace_id,
+                signal_id=signal_id,
+                direction=direction,
+                strength=confidence,
+                bar_timestamp=str(data_15m.index[last_idx]),
+                regime=regime,
+                session=current_session,
+                modules_hint=modules_hint or None,
+            )
             self._emit_signal_evaluated(
                 trace_id=trace_id,
                 direction=direction,
@@ -1010,6 +1558,7 @@ class LiveRunner:
                 trace_id,
                 current_session,
                 strategy_decision_context=sqe_ctx,
+                signal_id=signal_id,
             )
             self._log_decision_cycle(
                 now=now,
@@ -1035,6 +1584,7 @@ class LiveRunner:
         trace_id: str,
         session: str,
         strategy_decision_context: Optional[Dict[str, Any]] = None,
+        signal_id: Optional[str] = None,
     ) -> tuple[str, str]:
         """Run final checks and submit order for a signal."""
         strategy_decision_context = dict(strategy_decision_context or {})
@@ -1048,7 +1598,7 @@ class LiveRunner:
 
         # NewsGate check
         news_boost = 1.0
-        if self._news_gate:
+        if self._news_gate and self._filter_news:
             gate_result = self._news_gate.check_gate(now, direction)
             if not gate_result["allowed"]:
                 logger.info("NewsGate blocks %s: %s", direction, gate_result["reason"])
@@ -1069,6 +1619,10 @@ class LiveRunner:
                         {"blocked_by": "news_block", "detail": gate_result.get("reason")}
                     ),
                 )
+                if signal_id:
+                    self._emit_signal_filtered(
+                        trace_id=trace_id, signal_id=signal_id, raw_reason="news_block"
+                    )
                 return "no_trade", "news_block"
             news_boost = gate_result.get("boost", 1.0)
 
@@ -1115,6 +1669,10 @@ class LiveRunner:
                         }
                     ),
                 )
+                if signal_id:
+                    self._emit_signal_filtered(
+                        trace_id=trace_id, signal_id=signal_id, raw_reason="llm_advice_block"
+                    )
                 return "no_trade", "llm_advice_block"
             advice_mult = float(advice.get("risk_multiplier", 1.0) or 1.0)
             news_boost *= advice_mult
@@ -1135,7 +1693,7 @@ class LiveRunner:
             )
 
         # Spread guard
-        spread_issue = self._check_spread_guard()
+        spread_issue = self._check_spread_guard() if self._filter_spread else None
         if spread_issue:
             logger.info("Spread guard blocks entry: %s", spread_issue)
             self._emit_guard_decision(
@@ -1153,6 +1711,10 @@ class LiveRunner:
                 regime=regime,
                 decision_context=_with_exec({"blocked_by": "spread_block", "detail": spread_issue}),
             )
+            if signal_id:
+                self._emit_signal_filtered(
+                    trace_id=trace_id, signal_id=signal_id, raw_reason="spread_block"
+                )
             return "no_trade", "spread_block"
 
         # Calculate SL/TP from ATR
@@ -1177,6 +1739,10 @@ class LiveRunner:
                 regime=regime,
                 decision_context=_with_exec({"blocked_by": "atr_unavailable"}),
             )
+            if signal_id:
+                self._emit_signal_filtered(
+                    trace_id=trace_id, signal_id=signal_id, raw_reason="atr_unavailable"
+                )
             return "no_trade", "atr_unavailable"
 
         tp_r = rp.get("tp_r", self.cfg.get("backtest", {}).get("tp_r", 2.0))
@@ -1202,6 +1768,10 @@ class LiveRunner:
                     regime=regime,
                     decision_context=_with_exec({"blocked_by": "price_unavailable"}),
                 )
+                if signal_id:
+                    self._emit_signal_filtered(
+                        trace_id=trace_id, signal_id=signal_id, raw_reason="price_unavailable"
+                    )
                 return "no_trade", "price_unavailable"
             entry_price = price_info["ask"] if direction == "LONG" else price_info["bid"]
         else:
@@ -1237,6 +1807,10 @@ class LiveRunner:
                 regime=regime,
                 decision_context=_with_exec({"blocked_by": "risk_block"}),
             )
+            if signal_id:
+                self._emit_signal_filtered(
+                    trace_id=trace_id, signal_id=signal_id, raw_reason="risk_block"
+                )
             return "no_trade", "risk_block"
 
         logger.info(
@@ -1276,6 +1850,10 @@ class LiveRunner:
                     regime=regime,
                     decision_context=_with_exec({"blocked_by": "execution_exception"}),
                 )
+                if signal_id:
+                    self._emit_signal_filtered(
+                        trace_id=trace_id, signal_id=signal_id, raw_reason="execution_exception"
+                    )
                 return "no_trade", "execution_exception"
 
             if exec_result.status != "filled":
@@ -1291,6 +1869,10 @@ class LiveRunner:
                         {"blocked_by": "execution_reject", "detail": str(exec_result.message)}
                     ),
                 )
+                if signal_id:
+                    self._emit_signal_filtered(
+                        trace_id=trace_id, signal_id=signal_id, raw_reason="execution_reject"
+                    )
                 return "no_trade", "execution_reject"
 
             trade_id = exec_result.broker_order_id or f"UNK_{now.strftime('%H%M%S')}"
@@ -1320,6 +1902,10 @@ class LiveRunner:
                     regime=regime,
                     decision_context=_with_exec({"blocked_by": "slippage_block"}),
                 )
+                if signal_id:
+                    self._emit_signal_filtered(
+                        trace_id=trace_id, signal_id=signal_id, raw_reason="slippage_block"
+                    )
                 return "no_trade", "slippage_block"
 
         # Register with order manager
@@ -1373,6 +1959,14 @@ class LiveRunner:
                 regime=regime,
                 decision_context=enter_ctx,
             )
+            self._emit_trade_executed(
+                trace_id=trace_id,
+                signal_id=signal_id,
+                direction=direction,
+                trade_id=trade_id,
+                regime=regime,
+                session=session,
+            )
             return "order_intent", "all_conditions_met"
         self._emit_trade_action(
             trace_id=trace_id,
@@ -1382,6 +1976,14 @@ class LiveRunner:
             session=session,
             regime=regime,
             decision_context=enter_ctx,
+        )
+        self._emit_trade_executed(
+            trace_id=trace_id,
+            signal_id=signal_id,
+            direction=direction,
+            trade_id=trade_id,
+            regime=regime,
+            session=session,
         )
         return "order_filled", "all_conditions_met"
 

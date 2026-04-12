@@ -78,6 +78,14 @@ def _validate_payload(event_type: str, payload: dict) -> None:
         dc = payload.get("decision_context")
         if dc is not None:
             assert isinstance(dc, dict), "decision_context must be a dict when present"
+    elif event_type == "signal_detected":
+        for k in ("signal_id", "type", "direction", "strength", "bar_timestamp"):
+            assert k in payload, f"signal_detected missing {k}"
+    elif event_type == "signal_filtered":
+        assert "filter_reason" in payload, "signal_filtered missing filter_reason"
+    elif event_type == "trade_executed":
+        for k in ("direction", "trade_id"):
+            assert k in payload, f"trade_executed missing {k}"
 
 
 def test_minimal_fixture_jsonl_contract() -> None:
@@ -124,6 +132,22 @@ def test_quantlog_emitter_matches_contract(tmp_path) -> None:
     )
     _validate_envelope(ev)
     _validate_payload("trade_action", ev["payload"])
+    ev2 = emitter.emit(
+        event_type="signal_detected",
+        trace_id="trace_emit_1",
+        payload={
+            "signal_id": "sig_test_1",
+            "type": "sqe_entry",
+            "direction": "LONG",
+            "strength": 1.0,
+            "bar_timestamp": "2026-06-02T10:00:00Z",
+            "session": "London",
+            "regime": "trend",
+        },
+        timestamp_utc=ts,
+    )
+    _validate_envelope(ev2)
+    _validate_payload("signal_detected", ev2["payload"])
     written = (base / "2026-06-02" / "quantbuild.jsonl").read_text(encoding="utf-8").strip()
     assert json.loads(written.splitlines()[0])["run_id"] == "run_emit_test"
 

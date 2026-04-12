@@ -2,7 +2,7 @@
 
 Dit document is bedoeld om **hetzelfde te kopiëren of te linken in elke repo** (QuantBuild, QuantBridge, QuantLog, scripts). Zo blijft push/pull op de VPS voorspelbaar: één Python-versie, vaste paden, geen gemixte venv’s.
 
-Gerelateerd: `docs/VPS_DEPLOYMENT_RUNBOOK.md` (stappen + systemd), `docs/OPERATOR_CHEATSHEET.md` (dagelijkse commands). QuantLog-repo: `docs/VPS_SYNC.md` (uitbreiding alleen voor de derde clone — **dit** bestand blijft de bron voor venv + volgorde).
+Gerelateerd: `docs/STANDAARD_WORKFLOW_MULTI_REPO.md` (proces: losse repos, PR-volgorde, release-set), `docs/VPS_DEPLOYMENT_RUNBOOK.md` (stappen + systemd), `docs/OPERATOR_CHEATSHEET.md` (dagelijkse commands). QuantLog-repo: `docs/VPS_SYNC.md` (uitbreiding alleen voor de derde clone — **dit** bestand blijft de bron voor venv + volgorde).
 
 ---
 

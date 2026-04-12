@@ -3,11 +3,16 @@
 from __future__ import annotations
 
 import json
+import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
+
+from filelock import FileLock, Timeout
+
+logger = logging.getLogger(__name__)
 
 
 def _utc_now_iso() -> str:
@@ -75,8 +80,17 @@ class QuantLogEmitter:
             event["symbol"] = symbol
 
         target = self._target_file(ts)
-        with target.open("a", encoding="utf-8") as handle:
-            handle.write(json.dumps(event, ensure_ascii=True))
-            handle.write("\n")
+        lock_path = target.with_suffix(target.suffix + ".lock")
+        try:
+            with FileLock(str(lock_path), timeout=30):
+                with target.open("a", encoding="utf-8") as handle:
+                    handle.write(json.dumps(event, ensure_ascii=True))
+                    handle.write("\n")
+        except Timeout:
+            logger.error(
+                "QuantLog file lock timeout (%s) — another process may hold the lock; event not written",
+                lock_path,
+            )
+            raise
         return event
 
