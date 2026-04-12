@@ -4,6 +4,8 @@ Korte operationele sheet voor dagelijkse run op VPS.
 
 **Secrets:** staan in de **OS-omgeving**; op de VPS in `/etc/quantbuild/quantbuild.env` (systemd `EnvironmentFile=`) **of** in **`quantmetrics_os/orchestrator/.env`** als je via de orchestrator start. Lijst met alle variabelenamen: **`docs/CREDENTIALS_AND_ENVIRONMENT.md`**.
 
+**Huidige cTrader-demo VPS:** `WorkingDirectory` = `/opt/quantbuild/quantbuild_e1_v1` (niet de repo-standaard `quantbuildv1`). **Runtime file log:** `/opt/quantbuild/quantbuild_e1_v1/logs/runtime_ctrader_demo.log` — einde week / review: `tail -n 200` of `tail -f` op dit pad. Twijfel → `systemctl show quantbuild-ctrader-demo.service -p WorkingDirectory`.
+
 ---
 
 ## 0) Week start — suite aan, incl. QuantLog + logs
@@ -124,7 +126,7 @@ bash scripts/vps/quantlog_nightly.sh 2>&1 | tee -a logs/quantlog_nightly_manual.
 
 ### 0.6 Logs volgen
 
-- **File log** (cTrader-demo unit): `tail -f …/logs/runtime_ctrader_demo.log`
+- **File log** (cTrader-demo unit, huidige VPS): `tail -f /opt/quantbuild/quantbuild_e1_v1/logs/runtime_ctrader_demo.log` — elders vaak `…/quantbuildv1/logs/runtime_ctrader_demo.log`
 - **Journald:** `journalctl -u quantbuild-ctrader-demo.service -f`
 - **Orchestrator / stdout:** output in je tmux-paneel
 
@@ -133,9 +135,11 @@ bash scripts/vps/quantlog_nightly.sh 2>&1 | tee -a logs/quantlog_nightly_manual.
 ## 1) Daily Check (copy/paste)
 
 ```bash
-cd /opt/quantbuild/quantbuildv1
 sudo systemctl is-active quantbuild-ctrader-demo.service
-tail -n 80 logs/runtime_ctrader_demo.log
+# Huidige VPS (e1):
+tail -n 80 /opt/quantbuild/quantbuild_e1_v1/logs/runtime_ctrader_demo.log
+# Andere install (repo-standaard):
+# cd /opt/quantbuild/quantbuildv1 && tail -n 80 logs/runtime_ctrader_demo.log
 ```
 
 Snelle signalen:
@@ -237,7 +241,8 @@ sudo systemctl status quantbuild-ctrader-demo.service --no-pager
 ## 6) Logs
 
 ```bash
-tail -f /opt/quantbuild/quantbuildv1/logs/runtime_ctrader_demo.log
+tail -f /opt/quantbuild/quantbuild_e1_v1/logs/runtime_ctrader_demo.log
+# repo-standaard: tail -f /opt/quantbuild/quantbuildv1/logs/runtime_ctrader_demo.log
 journalctl -u quantbuild-ctrader-demo.service -n 120 --no-pager
 ```
 
@@ -250,7 +255,7 @@ journalctl -u quantbuild-ctrader-demo.service -n 120 --no-pager
 ```bash
 sudo systemctl restart quantbuild-ctrader-demo.service
 sudo systemctl status quantbuild-ctrader-demo.service --no-pager
-tail -n 120 /opt/quantbuild/quantbuildv1/logs/runtime_ctrader_demo.log
+tail -n 120 /opt/quantbuild/quantbuild_e1_v1/logs/runtime_ctrader_demo.log
 ```
 
 ### B) cTrader connect fails
