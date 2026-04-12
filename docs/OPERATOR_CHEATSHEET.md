@@ -86,6 +86,8 @@ mkdir -p logs
 bash scripts/vps/quantlog_nightly.sh 2>&1 | tee -a logs/quantlog_nightly_manual.log
 ```
 
+`QUANTBUILD_POST_RUN_CONFIG` moet dezelfde logische setup zijn als je runtime-config: **`quantlog.enabled: true`** en hetzelfde **`quantlog.base_path`** als waar JSONL naartoe schrijft. Staat `enabled` niet in jouw YAML, dan blijft na merge **`default.yaml` → false** en stopt `quantlog_post_run.py` met exit 2 — ook al bestaat er wél JSONL. Oplossing: `git pull` (demo/prod YAML’s in repo zetten `enabled: true`) of handmatig `enabled: true` toevoegen.
+
 *(Alleen nodig als je geen timer hebt; de timer schrijft naar `logs/quantlog_nightly.log` via systemd.)*
 
 ### 0.6 Logs volgen

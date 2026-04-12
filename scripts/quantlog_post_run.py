@@ -83,7 +83,13 @@ def main() -> int:
 
     ql_cfg = cfg.get("quantlog", {}) or {}
     if not bool(ql_cfg.get("enabled", False)):
-        print("QuantLog is disabled in config; nothing to validate.")
+        print(
+            "QuantLog is disabled in the resolved config (quantlog.enabled is false or missing).\n"
+            "Nothing to validate. Note: configs/default.yaml sets quantlog.enabled: false; if your "
+            "YAML only sets base_path and omits enabled, the merge keeps enabled=false.\n"
+            "Fix: add under quantlog: `enabled: true` (and matching base_path), or git pull — "
+            "demo_strict_prod_v2.yaml / strict_prod_v2.yaml in repo already set enabled: true."
+        )
         return 2
 
     events_base = Path(str(ql_cfg.get("base_path", "data/quantlog_events")))
