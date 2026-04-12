@@ -8,7 +8,21 @@ from dotenv import load_dotenv
 
 load_dotenv(override=True)
 
-_DEFAULT_PATH = Path(__file__).resolve().parents[2] / "configs" / "default.yaml"
+
+def quantbuild_repo_root() -> Path:
+    """Directory containing ``configs/default.yaml`` (QuantBuild checkout root).
+
+    Walks upward from this file so layout stays correct if ``config.py`` moves
+    within ``src/``. Falls back to two parents above this file (``src/quantbuild`` → repo root).
+    """
+    start = Path(__file__).resolve().parent
+    for d in (start, *start.parents):
+        if (d / "configs" / "default.yaml").is_file():
+            return d
+    return Path(__file__).resolve().parents[2]
+
+
+_DEFAULT_PATH = quantbuild_repo_root() / "configs" / "default.yaml"
 
 
 def load_config(path: str | Path | None = None) -> Dict[str, Any]:
@@ -21,8 +35,7 @@ def load_config(path: str | Path | None = None) -> Dict[str, Any]:
     cfg_path = path or os.getenv("CONFIG_PATH") or _DEFAULT_PATH
     cfg_path = Path(cfg_path)
     if not cfg_path.is_absolute():
-        base = Path(__file__).resolve().parents[2]
-        cfg_path = base / cfg_path
+        cfg_path = quantbuild_repo_root() / cfg_path
 
     merged = dict(default)
     if cfg_path.exists() and cfg_path != _DEFAULT_PATH:

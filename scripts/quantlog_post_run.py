@@ -17,7 +17,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-from src.quantbuild.config import load_config
+from src.quantbuild.config import load_config, quantbuild_repo_root
 from src.quantbuild.quantlog_repo import resolve_quantlog_repo_path
 
 
@@ -93,6 +93,8 @@ def main() -> int:
         return 2
 
     events_base = Path(str(ql_cfg.get("base_path", "data/quantlog_events")))
+    if not events_base.is_absolute():
+        events_base = quantbuild_repo_root() / events_base
     day_path = events_base / args.date
     if not day_path.exists():
         raise RuntimeError(f"QuantLog day path does not exist: {day_path}")

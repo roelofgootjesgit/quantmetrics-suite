@@ -1,6 +1,12 @@
 """Tests for environment overrides in config loader."""
 
-from src.quantbuild.config import load_config
+from src.quantbuild.config import load_config, quantbuild_repo_root
+
+
+def test_quantbuild_repo_root_finds_default_yaml():
+    root = quantbuild_repo_root()
+    assert (root / "configs" / "default.yaml").is_file()
+    assert (root / "src" / "quantbuild" / "config.py").is_file()
 
 
 def test_news_and_ai_env_overrides(tmp_path, monkeypatch):
