@@ -1,5 +1,7 @@
 # VPS deployment alignment — meerdere modules (QuantBuild, QuantBridge, QuantLog)
 
+**Suite-labels:** QuantBuild — Signal Engine · QuantBridge — Execution Engine · QuantLog — Observability Layer · QuantOS — Orchestrator (optioneel, map `quantmetrics_os`).
+
 Dit document is bedoeld om **hetzelfde te kopiëren of te linken in elke repo** (QuantBuild, QuantBridge, QuantLog, scripts). Zo blijft push/pull op de VPS voorspelbaar: één Python-versie, vaste paden, geen gemixte venv’s.
 
 Gerelateerd: `docs/STANDAARD_WORKFLOW_MULTI_REPO.md` (proces: losse repos, PR-volgorde, release-set), `docs/VPS_DEPLOYMENT_RUNBOOK.md` (stappen + systemd), `docs/OPERATOR_CHEATSHEET.md` (dagelijkse commands), **`docs/CREDENTIALS_AND_ENVIRONMENT.md`** (alle secrets via `os.environ` / systemd env-file). QuantLog-repo: `docs/VPS_SYNC.md` (uitbreiding alleen voor de derde clone — **dit** bestand blijft de bron voor venv + volgorde).
@@ -64,6 +66,20 @@ De live service start vanuit QuantBuild; die laadt `quantbridge` via `sys.path` 
 Hetzelfde principe: één interpreter (3.10.x) in QuantBuild’s venv. Na pull in `quantlogv1`: **herstart systemd** (als je runtime QuantLog-code pad gebruikt) en/of opnieuw `pip install -e …/quantlogv1` in QuantBuild’s venv als je de CLI zo aanroept.
 
 Als je **wél** nieuwe pip-packages in QuantBridge introduceert: voeg ze toe aan QuantBuild `requirements.txt` (of documenteer een expliciete tweede venv — dat is een uitzondering, niet de standaard). QuantLog heeft normaal **geen** extra runtime-deps buiten de stdlib; blijft dat zo, dan volstaat `PYTHONPATH` of één `pip install -e`.
+
+### 4.1 QuantLog Ops Console (Streamlit) — eigen `.venv` (bewuste uitzondering)
+
+De **live bot** blijft §2 volgen: **één** interpreter, `quantbuildv1/.venv`. Dat wijzigen we niet.
+
+De **QuantLog Ops Console** is een **aparte, read-only web-UI** (Streamlit + `pandas` via `pyproject.toml` optional `ops`). Die draait **niet** in de trading hot path. Een **eigen** virtualenv in dezelfde `quantlogv1`-repo (bijv. `pip install -e ".[ops]"` in `quantlogv1/.venv`) is daarom aanbevolen:
+
+| Reden | Toelichting |
+|-------|-------------|
+| Blast radius | Upgrade van Streamlit/UI-deps raakt **niet** `requirements.txt` van QuantBuild en niet je live-runner. |
+| Suite-contract | Blijft **Python 3.10.x** — maak de console-venv met dezelfde major/minor als de bot (zie §2). Geen gemixte minors op één VPS. |
+| Scheiding rollen | Bot-venv = uitvoering + QuantLog CLI/post_run zoals hierboven; console-venv = alleen operator UI tegen JSONL op schijf. |
+
+**systemd** voor de Ops Console moet **`ExecStart=`** laten wijzen naar **`…/quantlogv1/.venv/bin/python`**, niet naar QuantBuild’s `.venv`. Deploy-stappen en env-vars: QuantLog-repo **`docs/VPS Deploy Handboek — QuantLog Ops Console v0.1.md`**.
 
 ---
 
@@ -201,6 +217,7 @@ In logs: geen `No module named ...` na een pull — zo ja, vrijwel altijd verkee
 - [ ] `QUANTBRIDGE_SRC_PATH` wijst naar `.../quantbridgev1/src`  
 - [ ] `systemctl restart` uitgevoerd  
 - [ ] Log + Telegram (indien aan) gecontroleerd  
+- [ ] QuantLog Ops Console gewijzigd? → `pip install -e ".[ops]"` in **`quantlogv1/.venv`** (niet in QuantBuild’s venv) + `systemctl restart` van de console-unit (zie §4.1)
 
 ---
 
@@ -213,4 +230,4 @@ Versie-regel onderaan helpt: `Last aligned: YYYY-MM-DD — Python 3.10, paths /o
 
 ---
 
-*Last aligned: 2026-04-01 — Python 3.10 contract, QuantBridge + QuantLog + QuantBuild pull order, single QuantBuild venv.*
+*Last aligned: 2026-04-19 — Python 3.10 contract, QuantBridge + QuantLog + QuantBuild pull order, single QuantBuild venv; QuantLog Ops Console (§4.1) optional eigen venv in `quantlogv1`.*
