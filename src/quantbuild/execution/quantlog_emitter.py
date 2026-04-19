@@ -27,9 +27,14 @@ class QuantLogEmitter:
     run_id: str
     session_id: str
     source_system: str = "quantbuild"
+    # When set, every emit appends to this file only (no per-day folders); backtest uses this.
+    consolidated_path: Path | None = None
     source_seq: int = field(default=0, init=False)
 
     def _target_file(self, timestamp_utc: str) -> Path:
+        if self.consolidated_path is not None:
+            self.consolidated_path.parent.mkdir(parents=True, exist_ok=True)
+            return self.consolidated_path
         day = timestamp_utc.split("T", maxsplit=1)[0]
         day_dir = self.base_path / day
         day_dir.mkdir(parents=True, exist_ok=True)

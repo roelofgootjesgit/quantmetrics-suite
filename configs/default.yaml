@@ -1,5 +1,8 @@
 # Quantbuild E1 v1 — Default Configuration
 
+# PRODUCTION | EDGE_DISCOVERY — see docs/2 operating modes for my XAUUSD.md
+system_mode: PRODUCTION
+
 symbol: XAUUSD
 timeframes:
   - 15m

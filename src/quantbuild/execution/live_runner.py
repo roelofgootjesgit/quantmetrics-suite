@@ -53,6 +53,7 @@ from src.quantbuild.strategies.sqe_xauusd import (
 from src.quantbuild.strategy_modules.regime.detector import (
     RegimeDetector, REGIME_EXPANSION, REGIME_COMPRESSION, REGIME_TREND,
 )
+from src.quantbuild.policy.system_mode import SYSTEM_MODE_PRODUCTION, resolve_effective_filters
 
 logger = logging.getLogger(__name__)
 
@@ -158,16 +159,22 @@ class LiveRunner:
                     "python scripts/check_quantlog_linkage.py — events will still be written."
                 )
 
-        # Filter / research toggles (YAML `filters:` — all default True = current strict behavior)
-        _filt = self.cfg.get("filters") or {}
-        self._filter_regime: bool = bool(_filt.get("regime", True))
-        self._filter_session: bool = bool(_filt.get("session", True))
-        self._filter_cooldown: bool = bool(_filt.get("cooldown", True))
-        self._filter_news: bool = bool(_filt.get("news", True))
-        self._filter_position_limit: bool = bool(_filt.get("position_limit", True))
-        self._filter_daily_loss: bool = bool(_filt.get("daily_loss", True))
-        self._filter_spread: bool = bool(_filt.get("spread", True))
-        self._research_raw_first: bool = bool(_filt.get("research_raw_first", False))
+        # Filter / research toggles: resolved from `system_mode` + optional `filters:` overrides
+        mode, eff_filters = resolve_effective_filters(cfg)
+        self._system_mode: str = mode
+        self._filter_regime: bool = eff_filters["regime"]
+        self._filter_session: bool = eff_filters["session"]
+        self._filter_cooldown: bool = eff_filters["cooldown"]
+        self._filter_news: bool = eff_filters["news"]
+        self._filter_position_limit: bool = eff_filters["position_limit"]
+        self._filter_daily_loss: bool = eff_filters["daily_loss"]
+        self._filter_spread: bool = eff_filters["spread"]
+        self._research_raw_first: bool = eff_filters["research_raw_first"]
+        logger.info(
+            "LiveRunner system_mode=%s effective_filters=%s",
+            mode,
+            {k: eff_filters[k] for k in sorted(eff_filters)},
+        )
 
         # News layer
         self._news_poller = None
@@ -489,6 +496,7 @@ class LiveRunner:
             "eval_stage": eval_stage,
             "session": session,
             "regime": regime or "none",
+            "system_mode": getattr(self, "_system_mode", SYSTEM_MODE_PRODUCTION),
         }
         ctx.update(extra)
         return ctx
@@ -622,6 +630,7 @@ class LiveRunner:
         payload: Dict[str, Any] = {
             "decision": decision,
             "reason": eff_reason,
+            "system_mode": getattr(self, "_system_mode", SYSTEM_MODE_PRODUCTION),
         }
         if side:
             payload["side"] = side

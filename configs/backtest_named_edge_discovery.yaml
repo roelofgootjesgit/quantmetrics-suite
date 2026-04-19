@@ -1,0 +1,18 @@
+# EDGE_DISCOVERY — volledig kalenderjaar 2025 + vaste QuantLog-runnaam.
+#
+# Output: data/quantlog_events/runs/bt_2025_full_edge_discovery.jsonl
+#
+# Data: zie comments in backtest_named_production.yaml (fetch 15m + 1h).
+#
+#   python -m src.quantbuild.app --config configs/backtest_named_edge_discovery.yaml backtest
+
+extends: system_mode_edge_discovery.yaml
+
+backtest:
+  start_date: "2025-01-01"
+  end_date: "2025-12-31"
+
+quantlog:
+  consolidated_run_file: true
+  run_id: bt_2025_full_edge_discovery
+  session_id: bt_2025_full_year

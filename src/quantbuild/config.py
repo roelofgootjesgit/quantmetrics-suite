@@ -25,6 +25,42 @@ def quantbuild_repo_root() -> Path:
 _DEFAULT_PATH = quantbuild_repo_root() / "configs" / "default.yaml"
 
 
+def _resolve_extends_path(raw: str, referencing_file: Path) -> Path:
+    """Resolve ``extends`` path relative to the referencing YAML directory."""
+    root = quantbuild_repo_root()
+    p = Path(raw.strip())
+    if p.is_absolute():
+        return p
+    cand = (referencing_file.resolve().parent / p).resolve()
+    if cand.is_file():
+        return cand
+    alt = (root / "configs" / p.name).resolve()
+    if alt.is_file():
+        return alt
+    alt2 = (root / p).resolve()
+    return alt2
+
+
+def _load_yaml_with_extends(path: Path, visited: set[Path]) -> Dict[str, Any]:
+    """Load one YAML file and recursively merge ``extends`` parents (parent first, child wins)."""
+    path = path.resolve()
+    if path in visited:
+        raise ValueError(f"Configuration extends cycle detected at {path}")
+    visited.add(path)
+    if not path.is_file():
+        raise FileNotFoundError(f"Config file not found: {path}")
+    with open(path, "r", encoding="utf-8") as f:
+        raw = yaml.safe_load(f) or {}
+    extends_raw = raw.pop("extends", None)
+    merged_file: Dict[str, Any] = {}
+    if extends_raw:
+        parent_path = _resolve_extends_path(str(extends_raw), path)
+        parent_data = _load_yaml_with_extends(parent_path, visited)
+        _deep_merge(merged_file, parent_data)
+    _deep_merge(merged_file, raw)
+    return merged_file
+
+
 def load_config(path: str | Path | None = None) -> Dict[str, Any]:
     """Load config from YAML; merge with default; override from env."""
     default: Dict[str, Any] = {}
@@ -39,8 +75,7 @@ def load_config(path: str | Path | None = None) -> Dict[str, Any]:
 
     merged = dict(default)
     if cfg_path.exists() and cfg_path != _DEFAULT_PATH:
-        with open(cfg_path, "r", encoding="utf-8") as f:
-            overrides = yaml.safe_load(f) or {}
+        overrides = _load_yaml_with_extends(cfg_path, set())
         _deep_merge(merged, overrides)
 
     if os.getenv("DATA_PATH"):

@@ -109,6 +109,7 @@ class TestBacktestQuantLog:
                 "environment": "backtest",
                 "run_id": "bt_test_run",
                 "session_id": "bt_test_session",
+                "consolidated_run_file": True,
             },
             "news": {"enabled": False},
         }
@@ -116,14 +117,61 @@ class TestBacktestQuantLog:
         trades = run_backtest(cfg, precomputed_regime=precomputed)
         assert len(trades) >= 1
 
-        day = str(df.index[150].date())
-        jsonl_path = ql_dir / day / "quantbuild.jsonl"
-        assert jsonl_path.is_file(), f"missing {jsonl_path}"
+        jsonl_path = ql_dir / "runs" / "bt_test_run.jsonl"
+        assert jsonl_path.is_file(), f"missing consolidated {jsonl_path}"
         lines = jsonl_path.read_text(encoding="utf-8").strip().splitlines()
         assert lines, "empty quantbuild jsonl"
 
         types = [json.loads(line)["event_type"] for line in lines]
         assert "signal_evaluated" in types
+        assert "signal_detected" in types
         assert "trade_action" in types
         assert "risk_guard_decision" in types
+        assert "order_submitted" in types
+        assert "order_filled" in types
         assert "trade_executed" in types
+
+        trade_ev = next(e for e in (json.loads(line) for line in lines) if e["event_type"] == "trade_executed")
+        assert trade_ev["payload"].get("signal_id", "").startswith("sig_bt_")
+
+
+class TestSystemModeBacktest:
+    """PRODUCTION vs EDGE_DISCOVERY: same candidate, regime skip blocks only in production."""
+
+    def test_edge_discovery_bypasses_regime_skip(self, monkeypatch, tmp_path):
+        import src.quantbuild.backtest.engine as eng
+
+        df = _make_ohlcv(320)
+        precomputed = pd.Series("expansion", index=df.index)
+
+        def fake_load_parquet(base_path, symbol, timeframe, start=None, end=None):
+            if timeframe == "15m":
+                return df
+            return pd.DataFrame()
+
+        def fake_run_sqe(data, direction, sqe_cfg, _precomputed_df=None):
+            out = pd.Series(False, index=data.index)
+            if direction == "LONG":
+                out.iloc[150] = True
+            return out
+
+        monkeypatch.setattr(eng, "load_parquet", fake_load_parquet)
+        monkeypatch.setattr(eng, "ensure_data", lambda **kwargs: df)
+        monkeypatch.setattr(eng, "run_sqe_conditions", fake_run_sqe)
+
+        base_cfg = {
+            "symbol": "XAUUSD",
+            "timeframes": ["15m"],
+            "data": {"base_path": str(tmp_path / "data")},
+            "backtest": {"default_period_days": 365, "tp_r": 2.0, "sl_r": 1.0, "session_mode": "extended"},
+            "risk": {"max_daily_loss_r": 99.0, "equity_kill_switch_pct": 99.0},
+            "strategy": {},
+            "news": {"enabled": False},
+            "regime_profiles": {"expansion": {"skip": True}},
+        }
+
+        trades_prod = eng.run_backtest({**base_cfg, "system_mode": "PRODUCTION"}, precomputed_regime=precomputed)
+        assert len(trades_prod) == 0
+
+        trades_edge = eng.run_backtest({**base_cfg, "system_mode": "EDGE_DISCOVERY"}, precomputed_regime=precomputed)
+        assert len(trades_edge) >= 1

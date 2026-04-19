@@ -109,6 +109,7 @@ def cmd_live(args: argparse.Namespace) -> int:
     print(f"  {mode_line}", flush=True)
     print(f"  config: {cfg_line}", flush=True)
     print(f"  symbol={sym}  broker={prov}  data.source={dsrc}", flush=True)
+    print(f"  system_mode={str(cfg.get('system_mode') or 'PRODUCTION')}", flush=True)
     print(f"{bar}\n", flush=True)
 
     setup_logging(cfg, command=args.command)
