@@ -217,7 +217,14 @@ class TelegramAlerter:
         *,
         hourly_no_action: dict[str, int] | None = None,
         hourly_enter: int = 0,
+        hourly_signal_eval_new_bar: int = 0,
+        hourly_signal_eval_same_bar: int = 0,
         activity_caption: str = "",
+        telemetry_eval_stage: str | None = None,
+        telemetry_latest_bar_ts: str | None = None,
+        telemetry_last_processed_bar_ts: str | None = None,
+        telemetry_source_actual: str | None = None,
+        bar_lag_minutes: float | None = None,
     ) -> bool:
         if not self.status_report_enabled():
             return False
@@ -247,10 +254,43 @@ class TelegramAlerter:
             for rk, rv in sorted(na.items(), key=lambda x: (-x[1], x[0])):
                 act_lines.append(f"  • <code>{rk}</code>: {rv}")
             act_lines.append(f"ENTER (opened): <b>{hourly_enter}</b>")
+            act_lines.append(
+                f"<code>signal_evaluated</code> (new bar): <b>{hourly_signal_eval_new_bar}</b>"
+            )
+            act_lines.append(
+                f"<code>signal_evaluated</code> (same bar): <b>{hourly_signal_eval_same_bar}</b>"
+            )
             activity_block = "\n".join(act_lines) + "\n\n"
+        telem_lines: list[str] = []
+        if (
+            telemetry_eval_stage is not None
+            or telemetry_latest_bar_ts is not None
+            or telemetry_last_processed_bar_ts is not None
+            or telemetry_source_actual is not None
+            or bar_lag_minutes is not None
+        ):
+            telem_lines.append("<b>Bar / eval telemetry</b>")
+            telem_lines.append(
+                f"eval_stage: <code>{escape(str(telemetry_eval_stage or 'n/a'))}</code>"
+            )
+            telem_lines.append(
+                f"latest_bar_ts: <code>{escape(str(telemetry_latest_bar_ts or 'n/a'))}</code>"
+            )
+            telem_lines.append(
+                f"last_processed_bar_ts: <code>{escape(str(telemetry_last_processed_bar_ts or 'n/a'))}</code>"
+            )
+            if isinstance(bar_lag_minutes, (int, float)):
+                telem_lines.append(f"bar_lag_minutes: <b>{float(bar_lag_minutes):.2f}</b>")
+            else:
+                telem_lines.append("bar_lag_minutes: <i>n/a</i>")
+            telem_lines.append(
+                f"source_actual (last eval): <code>{escape(str(telemetry_source_actual or 'n/a'))}</code>"
+            )
+        telemetry_block = ("\n".join(telem_lines) + "\n\n") if telem_lines else ""
         text = (
             f"📡 <b>STATUS REPORT</b>\n"
             f"{activity_block}"
+            f"{telemetry_block}"
             f"Symbol: {symbol}\n"
             f"Mode: {mode}\n"
             f"Regime: {regime}\n"

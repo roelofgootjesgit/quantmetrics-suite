@@ -9,11 +9,8 @@ import numpy as np
 import pandas as pd
 
 import src.quantbuild.execution.live_runner as live_runner_mod
-from src.quantbuild.execution.live_runner import (
-    LiveRunner,
-    _resolve_quantlog_run_id,
-    _resolve_quantlog_session_id,
-)
+from src.quantbuild.execution.live_runner import LiveRunner
+from src.quantbuild.execution.quantlog_ids import resolve_quantlog_run_id, resolve_quantlog_session_id
 
 
 def _minimal_cfg():
@@ -61,31 +58,31 @@ class TestQuantLogRunSessionIds:
         monkeypatch.delenv("QUANTBUILD_RUN_ID", raising=False)
 
     def test_empty_config_run_id_uses_default_prefix(self):
-        rid = _resolve_quantlog_run_id({})
+        rid = resolve_quantlog_run_id({})
         assert rid.startswith("qb_run_")
         assert len(rid) > len("qb_run_")
 
     def test_whitespace_run_id_falls_through_to_default(self):
-        rid = _resolve_quantlog_run_id({"run_id": "  "})
+        rid = resolve_quantlog_run_id({"run_id": "  "})
         assert rid.startswith("qb_run_")
 
     def test_explicit_run_id_preserved(self):
-        assert _resolve_quantlog_run_id({"run_id": "my_run"}) == "my_run"
+        assert resolve_quantlog_run_id({"run_id": "my_run"}) == "my_run"
 
     def test_env_quantbuild_run_id_when_config_empty(self, monkeypatch):
         monkeypatch.delenv("INVOCATION_ID", raising=False)
         monkeypatch.setenv("QUANTBUILD_RUN_ID", "from_env")
-        rid = _resolve_quantlog_run_id({"run_id": ""})
+        rid = resolve_quantlog_run_id({"run_id": ""})
         assert rid == "from_env"
 
     def test_invocation_id_when_no_config(self, monkeypatch):
         monkeypatch.delenv("QUANTBUILD_RUN_ID", raising=False)
         monkeypatch.setenv("INVOCATION_ID", "systemd-abc")
-        rid = _resolve_quantlog_run_id({})
+        rid = resolve_quantlog_run_id({})
         assert rid == "systemd-abc"
 
     def test_empty_session_id_gets_default_prefix(self):
-        sid = _resolve_quantlog_session_id({"session_id": ""})
+        sid = resolve_quantlog_session_id({"session_id": ""})
         assert sid.startswith("qb_session_")
 
     def test_quantlog_emitter_non_empty_ids_with_empty_yaml(self):

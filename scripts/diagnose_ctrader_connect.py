@@ -4,7 +4,7 @@
 Run from quantbuildv1 root with the same environment as live (orchestrator .env), e.g.:
 
   cd /root/dev/quant/quantbuildv1
-  set -a && source ../quantmetrics_os/orchestrator/.env && set +a
+  set -a && source ../quantmetrics_os/orchestrator/.env && set +a   # QuantOS
   .venv/bin/python scripts/diagnose_ctrader_connect.py -c configs/demo_loose_ctrader.yaml
 
 Does not print full access tokens.

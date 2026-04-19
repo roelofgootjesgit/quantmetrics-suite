@@ -1,6 +1,8 @@
-# Standaard workflow — losse repos (QuantBuild ecosysteem)
+# Standaard workflow — losse repos (Quant suite)
 
 Dit document beschrijft **hoe we samenwerken over meerdere repositories** zonder monorepo of submodules. Het is de **proces-laag** bovenop de technische VPS-afspraken in `docs/VPS_MULTI_MODULE_DEPLOYMENT.md` en de **copy/paste** commando’s in `docs/OPERATOR_CHEATSHEET.md`.
+
+**Productnamen:** **QuantOS** — Orchestrator · **QuantBuild** — Signal Engine · **QuantBridge** — Execution Engine · **QuantLog** — Observability Layer. **Clone-mappen** blijven o.a. `quantmetrics_os`, `quantbuildv1` (zie `quantmetrics_os/scripts/clone_quant_suite.sh`).
 
 **Principe:** elke repo heeft een eigen `git`-historie; **QuantBuild** is de **integratiehub** (runtime, systemd, config, linkage-scripts, release-notities).
 
@@ -15,7 +17,7 @@ Dit document beschrijft **hoe we samenwerken over meerdere repositories** zonder
 | **quantbuildv1** | Bot, orchestratie, productie-config, eventpad `data/quantlog_events/`, CI, VPS-systemd. **Hier documenteer je welke combinatie van andere repos je hebt getest.** |
 | **quantbridgev1** | Broker/OpenAPI-laag; wordt op de VPS als **bronpad** geladen (`QUANTBRIDGE_SRC_PATH`). Geen tweede productie-venv tenzij bewust anders afgesproken. |
 | **quantlogv1** | Event-spine: schema, validate/replay/CLI; contract met wat QuantBuild emitteert. |
-| **quantmetrics_os** | **Orchestrator** (`orchestrator/quantmetrics.py`): start QuantBuild/QuantBridge met gedeelde env. Op de VPS kun je **alle** secrets en `QUANTBUILD_ROOT` / `QUANTBRIDGE_ROOT` in **`orchestrator/.env`** zetten (zie `docs/CREDENTIALS_AND_ENVIRONMENT.md`). Gebruik dezelfde **QuantBuild `.venv`** als interpreter voor bridge-scripts tenzij je bewust splitst. Daarnaast: analyse/metrics, exports — koppel aan QuantBuild via JSON/summary of gedeelde mappen. |
+| **quantmetrics_os** (**QuantOS** — Orchestrator) | **`orchestrator/quantmetrics.py`**: start QuantBuild/QuantBridge met gedeelde env. Op de VPS kun je **alle** secrets en `QUANTBUILD_ROOT` / `QUANTBRIDGE_ROOT` in **`orchestrator/.env`** zetten (zie `docs/CREDENTIALS_AND_ENVIRONMENT.md`). Gebruik dezelfde **QuantBuild `.venv`** als interpreter voor bridge-scripts tenzij je bewust splitst. Daarnaast: analyse/metrics, exports — koppel aan QuantBuild via JSON/summary of gedeelde mappen. |
 
 Paden op de VPS zijn vastgelegd in `VPS_MULTI_MODULE_DEPLOYMENT.md` (onder `/opt/quantbuild/…`). Lokaal op Windows mag je dezelfde mapnamen naast elkaar zetten, bijv. `C:\Users\…\quantbuildv1` naast siblings `quantbridgev1`, `quantlogv1`, `quantmetrics_os`.
 
@@ -81,7 +83,7 @@ Werk **contract-first**: wie het **externe contract** wijzigt (QuantLog-schema, 
 1. **QuantBridge** — als de transportlaag of signatures veranderen waar QuantBuild op leunt.  
 2. **QuantLog** — als JSONL/schema/validator/replay veranderen.  
 3. **QuantBuild** — integratie, `check_quantlog_linkage`, configs, documentatie.  
-4. **quantmetrics_os** — wanneer je alleen analyse of downstream rapportage wijzigt; vaak **parallel** of na een QuantBuild-export, niet in de kritieke pad van `systemctl restart`.
+4. **quantmetrics_os** (QuantOS) — wanneer je alleen analyse of downstream rapportage wijzigt; vaak **parallel** of na een QuantBuild-export, niet in de kritieke pad van `systemctl restart`.
 
 Als **alleen** QuantBuild feature-werk doet zonder contractwijziging: normale feature branch in quantbuildv1 volstaat.
 
@@ -109,7 +111,7 @@ Volgorde staat uitgewerkt in `docs/VPS_MULTI_MODULE_DEPLOYMENT.md` §5.4 en in `
 4. Alleen in **QuantBuild** `.venv`: `pip install -r requirements.txt` indien nodig; optioneel `pip install -e …/quantlogv1` als je die workflow gebruikt.  
 5. **`systemctl restart` één keer** aan het eind.
 
-**quantmetrics_os** hoort hier alleen als je die **op dezelfde server** bewust deployt; standaard draait de bot **zonder** metrics-repo op de VPS.
+**QuantOS** (`quantmetrics_os`) hoort hier alleen als je die **op dezelfde server** bewust deployt; standaard draait de bot **zonder** orchestrator-repo op de VPS.
 
 ---
 
@@ -148,4 +150,4 @@ Volgorde staat uitgewerkt in `docs/VPS_MULTI_MODULE_DEPLOYMENT.md` §5.4 en in `
 
 ---
 
-*Aanmaak: 2026-04-12 — losse repos, QuantBuild als hub, optioneel quantmetrics_os naast de runtime-stack. Massa-push scripts: 2026-04-12.*
+*Aanmaak: 2026-04-12 — losse repos, QuantBuild als hub, optioneel QuantOS (`quantmetrics_os`) naast de runtime-stack. Massa-push scripts: 2026-04-12.*

@@ -27,6 +27,8 @@ from src.quantbuild.data.sessions import session_from_timestamp, ENTRY_SESSIONS
 from src.quantbuild.alerts.telegram import TelegramAlerter
 from src.quantbuild.execution.broker_factory import create_broker
 from src.quantbuild.execution.quantlog_emitter import QuantLogEmitter
+from src.quantbuild.execution.signal_evaluated_desk_grade import build_desk_grade_payload
+from src.quantbuild.execution.quantlog_ids import resolve_quantlog_run_id, resolve_quantlog_session_id
 from src.quantbuild.quantlog_repo import resolve_quantlog_repo_path
 from src.quantbuild.execution.order_manager import OrderManager
 from src.quantbuild.execution.position_monitor import PositionMonitor
@@ -55,37 +57,8 @@ from src.quantbuild.strategy_modules.regime.detector import (
 logger = logging.getLogger(__name__)
 
 MIN_BARS_FOR_SIGNAL = 100
-
-
-def _resolve_quantlog_run_id(ql_cfg: Dict[str, Any]) -> str:
-    """Stable non-empty run_id: explicit config wins, else env, else timestamp default.
-
-    YAML often sets ``run_id: ""`` intending "auto"; ``dict.get`` would otherwise yield
-    an empty string and skip the default — that breaks QuantLog correlatie (P1).
-    """
-    raw = ql_cfg.get("run_id")
-    if raw is not None:
-        s = str(raw).strip()
-        if s:
-            return s
-    for env_key in ("QUANTBUILD_RUN_ID", "INVOCATION_ID"):
-        v = os.environ.get(env_key, "").strip()
-        if v:
-            return v
-    return f"qb_run_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
-
-
-def _resolve_quantlog_session_id(ql_cfg: Dict[str, Any]) -> str:
-    """Non-empty session_id: explicit config, else QUANTBUILD_SESSION_ID, else random."""
-    raw = ql_cfg.get("session_id")
-    if raw is not None:
-        s = str(raw).strip()
-        if s:
-            return s
-    env_sid = os.environ.get("QUANTBUILD_SESSION_ID", "").strip()
-    if env_sid:
-        return env_sid
-    return f"qb_session_{uuid4().hex[:10]}"
+# Entry session: warn when 15m series last index is this many minutes behind wall clock (UTC).
+STALE_BAR_LAG_WARN_MINUTES = 16.0
 
 
 class LiveRunner:
@@ -150,6 +123,17 @@ class LiveRunner:
         self._report_interval_seconds = self._telegram.report_interval_seconds(default_seconds=3600)
         self._hourly_no_action_counts: Counter[str] = Counter()
         self._hourly_enter_count: int = 0
+        self._hourly_signal_eval_new_bar: int = 0
+        self._hourly_signal_eval_same_bar: int = 0
+        # Last signal_evaluated telemetry (status report + stale-bar guard).
+        self._telemetry_eval_stage: Optional[str] = None
+        self._telemetry_latest_bar_ts: Optional[str] = None
+        self._telemetry_last_processed_bar_ts: Optional[str] = None
+        self._telemetry_source_actual: Optional[str] = None
+        self._stale_bar_warn_latched: bool = False
+        # Desk-grade signal_evaluated: same-bar poll counts + last eval_stage string per bar timestamp.
+        self._same_bar_skip_by_bar_ts: Dict[str, int] = {}
+        self._eval_stage_by_bar_ts: Dict[str, str] = {}
 
         # QuantLog integration
         self._quantlog: Optional[QuantLogEmitter] = None
@@ -157,8 +141,8 @@ class LiveRunner:
         if bool(ql_cfg.get("enabled", False)):
             ql_base = Path(str(ql_cfg.get("base_path", "data/quantlog_events")))
             ql_env = str(ql_cfg.get("environment", "dry_run" if dry_run else "live"))
-            run_id = _resolve_quantlog_run_id(ql_cfg)
-            session_id = _resolve_quantlog_session_id(ql_cfg)
+            run_id = resolve_quantlog_run_id(ql_cfg)
+            session_id = resolve_quantlog_session_id(ql_cfg)
             self._quantlog = QuantLogEmitter(
                 base_path=ql_base,
                 source_component="live_runner",
@@ -520,14 +504,63 @@ class LiveRunner:
         eval_stage: Optional[str] = None,
         decision_context: Optional[Dict[str, Any]] = None,
     ) -> None:
+        if eval_stage == "same_bar_already_processed":
+            self._hourly_signal_eval_same_bar += 1
+        else:
+            self._hourly_signal_eval_new_bar += 1
+
+        self._telemetry_eval_stage = eval_stage or self._telemetry_eval_stage
+        if decision_context:
+            lb = decision_context.get("latest_bar_ts")
+            if lb is not None:
+                self._telemetry_latest_bar_ts = str(lb)
+            lp = decision_context.get("last_processed_bar_ts")
+            if lp is not None:
+                self._telemetry_last_processed_bar_ts = str(lp)
+            sa = decision_context.get("source_actual")
+            if sa is not None:
+                self._telemetry_source_actual = str(sa)
+
+        poll_ts = datetime.now(timezone.utc)
+        bar_ts_key: Optional[str] = None
+        if isinstance(decision_context, dict):
+            lb = decision_context.get("latest_bar_ts")
+            if lb is not None:
+                bar_ts_key = str(lb)
+        prev_stage = (
+            self._eval_stage_by_bar_ts.get(bar_ts_key) if bar_ts_key else None
+        )
+        skip_for_bar = 0
+        if eval_stage == "same_bar_already_processed" and bar_ts_key:
+            skip_for_bar = self._same_bar_skip_by_bar_ts.get(bar_ts_key, 0) + 1
+            self._same_bar_skip_by_bar_ts[bar_ts_key] = skip_for_bar
+        new_bar_detected = bool(
+            eval_stage and eval_stage not in ("same_bar_already_processed", "bars_missing")
+        )
+        if bar_ts_key and eval_stage:
+            self._eval_stage_by_bar_ts[bar_ts_key] = eval_stage
+
         if not self._quantlog:
             return
+        desk_extra = build_desk_grade_payload(
+            eval_stage=eval_stage,
+            decision_context=decision_context,
+            setup=setup,
+            direction=direction,
+            confidence=confidence,
+            same_bar_skip_count_for_bar=skip_for_bar,
+            previous_eval_stage_on_bar=prev_stage,
+            poll_ts=poll_ts,
+            bar_ts_str=bar_ts_key,
+            new_bar_detected=new_bar_detected,
+        )
         payload: Dict[str, Any] = {
             "signal_type": "sqe_entry",
             "signal_direction": direction,
             "confidence": confidence,
             "regime": regime or "none",
         }
+        payload.update(desk_extra)
         if not setup:
             payload["setup"] = False
         if eval_stage:
@@ -605,6 +638,93 @@ class LiveRunner:
             strategy_id="sqe_live_runner",
             symbol=self.cfg.get("symbol", "XAUUSD"),
             payload=payload,
+        )
+
+    def _bar_lag_minutes(self, now: datetime) -> Optional[float]:
+        """Wall-clock UTC lag vs last 15m bar index (telemetry from last signal_evaluated)."""
+        raw = self._telemetry_latest_bar_ts
+        if not raw:
+            return None
+        try:
+            ts = pd.Timestamp(raw)
+            if ts.tzinfo is None:
+                ts = ts.tz_localize("UTC")
+            else:
+                ts = ts.tz_convert("UTC")
+            now_ts = pd.Timestamp(now.astimezone(timezone.utc))
+            return float((now_ts - ts).total_seconds() / 60.0)
+        except Exception:
+            return None
+
+    def _emit_market_data_stale_warning(
+        self,
+        *,
+        trace_id: str,
+        bar_lag_minutes: float,
+        latest_bar_ts_utc: str,
+        session: str,
+        threshold_minutes: float,
+        source_actual: Optional[str],
+    ) -> None:
+        if not self._quantlog:
+            return
+        payload: Dict[str, Any] = {
+            "symbol": str(self.cfg.get("symbol", "XAUUSD")),
+            "bar_lag_minutes": round(float(bar_lag_minutes), 2),
+            "latest_bar_ts_utc": latest_bar_ts_utc,
+            "session": session,
+            "threshold_minutes": float(threshold_minutes),
+        }
+        if source_actual:
+            payload["source_actual"] = source_actual
+        self._quantlog.emit(
+            event_type="market_data_stale_warning",
+            trace_id=trace_id,
+            account_id=self._account_id,
+            strategy_id="sqe_live_runner",
+            symbol=self.cfg.get("symbol", "XAUUSD"),
+            payload=payload,
+            severity="warn",
+        )
+
+    def _maybe_emit_market_data_stale_warning(self, now: datetime, session: str) -> None:
+        """Once per stale episode while in ENTRY_SESSIONS and bar lag exceeds threshold."""
+        if session not in ENTRY_SESSIONS:
+            return
+        lag = self._bar_lag_minutes(now)
+        if lag is None:
+            return
+        if lag <= STALE_BAR_LAG_WARN_MINUTES:
+            self._stale_bar_warn_latched = False
+            return
+        if self._stale_bar_warn_latched:
+            return
+        self._stale_bar_warn_latched = True
+        latest = self._telemetry_latest_bar_ts or ""
+        src = self._telemetry_source_actual
+        tid = self._new_trace_id()
+        if not self._quantlog:
+            logger.warning(
+                "market_data_stale: bar_lag_minutes=%.2f latest_bar_ts=%s session=%s "
+                "(QuantLog disabled — no market_data_stale_warning event)",
+                lag,
+                latest,
+                session,
+            )
+            return
+        self._emit_market_data_stale_warning(
+            trace_id=tid,
+            bar_lag_minutes=lag,
+            latest_bar_ts_utc=latest,
+            session=session,
+            threshold_minutes=STALE_BAR_LAG_WARN_MINUTES,
+            source_actual=src,
+        )
+        logger.warning(
+            "Emitted market_data_stale_warning: bar_lag_minutes=%.2f latest_bar_ts=%s session=%s",
+            lag,
+            latest,
+            session,
         )
 
     def _emit_signal_detected(
@@ -954,6 +1074,11 @@ class LiveRunner:
                 session=current_session,
                 long=long_ctx,
                 short=short_ctx,
+                latest_bar_ts=str(data_15m.index[-1]),
+                last_processed_bar_ts=str(self._last_bar_ts)
+                if self._last_bar_ts is not None
+                else None,
+                source_actual=source_actual,
             )
             self._emit_signal_evaluated(
                 trace_id=cycle_trace_id,
@@ -1137,12 +1262,15 @@ class LiveRunner:
                 return
 
         for direction, trace_id, signal_id, sqe_ctx in pending:
+            bar_iso = str(data_15m.index[last_idx])
+            emit_ctx = dict(sqe_ctx)
+            emit_ctx["latest_bar_ts"] = bar_iso
             self._emit_signal_evaluated(
                 trace_id=trace_id,
                 direction=direction,
                 confidence=1.0,
                 regime=regime,
-                decision_context=sqe_ctx,
+                decision_context=emit_ctx,
             )
             action, reason = self._evaluate_and_execute(
                 direction,
@@ -1490,6 +1618,11 @@ class LiveRunner:
                 session=current_session,
                 long=long_ctx,
                 short=short_ctx,
+                latest_bar_ts=str(data_15m.index[-1]),
+                last_processed_bar_ts=str(self._last_bar_ts)
+                if self._last_bar_ts is not None
+                else None,
+                source_actual=source_actual,
             )
             self._emit_signal_evaluated(
                 trace_id=cycle_trace_id,
@@ -1543,12 +1676,14 @@ class LiveRunner:
                 session=current_session,
                 modules_hint=modules_hint or None,
             )
+            emit_ctx = dict(sqe_ctx)
+            emit_ctx["latest_bar_ts"] = str(data_15m.index[last_idx])
             self._emit_signal_evaluated(
                 trace_id=trace_id,
                 direction=direction,
                 confidence=confidence,
                 regime=regime,
-                decision_context=sqe_ctx,
+                decision_context=emit_ctx,
             )
             action, reason = self._evaluate_and_execute(
                 direction,
@@ -2217,6 +2352,7 @@ class LiveRunner:
             "interval": f"Activity past ~{mins} min",
         }.get(reason, "Activity since last report")
 
+        bar_lag = self._bar_lag_minutes(now)
         sent = self._telegram.alert_status_report(
             symbol=self.cfg.get("symbol", "XAUUSD"),
             mode=mode,
@@ -2234,12 +2370,21 @@ class LiveRunner:
             account_currency=account_currency,
             hourly_no_action=dict(self._hourly_no_action_counts),
             hourly_enter=self._hourly_enter_count,
+            hourly_signal_eval_new_bar=self._hourly_signal_eval_new_bar,
+            hourly_signal_eval_same_bar=self._hourly_signal_eval_same_bar,
             activity_caption=activity_caption,
+            telemetry_eval_stage=self._telemetry_eval_stage,
+            telemetry_latest_bar_ts=self._telemetry_latest_bar_ts,
+            telemetry_last_processed_bar_ts=self._telemetry_last_processed_bar_ts,
+            telemetry_source_actual=self._telemetry_source_actual,
+            bar_lag_minutes=bar_lag,
         )
         if sent:
             self._last_status_report = now
             self._hourly_no_action_counts.clear()
             self._hourly_enter_count = 0
+            self._hourly_signal_eval_new_bar = 0
+            self._hourly_signal_eval_same_bar = 0
             logger.info("Telegram status report sent (%s)", reason)
 
     # ── Main Loop ─────────────────────────────────────────────────────
@@ -2311,6 +2456,7 @@ class LiveRunner:
                 session = session_from_timestamp(now, mode=session_mode)
                 if session in ENTRY_SESSIONS:
                     self._check_signals(now)
+                    self._maybe_emit_market_data_stale_warning(now, session)
 
                 # Monitor positions
                 self._monitor_positions()

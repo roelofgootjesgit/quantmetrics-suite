@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Push alle ecosysteem-repos in één keer (losse git-remotes).
 # Standaard: sibling-mappen onder de ouder van quantbuildv1.
+# Mappen: QuantBuild (quantbuildv1), QuantBridge (quantbridgev1), QuantLog (quantlogv1), QuantOS (quantmetrics_os).
 #
 # Usage:
 #   ./scripts/dev/push_all_repos.sh

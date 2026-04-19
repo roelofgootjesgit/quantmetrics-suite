@@ -9,11 +9,19 @@ envvps.txt
 dist/
 build/
 data/market_cache/
+data/market_cache_dukascopy/
 data/news_cache/
 data/quantlog_events/
 data/state.json
-logs/
+/logs/
 *.parquet
 .cursor/
 decision.json
 reports/
+
+# Strategy-test outputs (configs blijven in git)
+strategy_tests/logs/*.log
+strategy_tests/runs/*
+!strategy_tests/runs/.gitkeep
+strategy_tests/quantlog_events/**
+!strategy_tests/quantlog_events/.gitkeep

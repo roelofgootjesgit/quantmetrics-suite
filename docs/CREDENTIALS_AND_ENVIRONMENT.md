@@ -14,10 +14,10 @@ Dit document is de **canonieke lijst** van variabelenamen en **waar** je ze zet.
 | **Handmatig op de server** | `export KEY=value` in je shell, of `set -a; source /etc/quantbuild/quantbuild.env; set +a`. |
 | **Windows / lokaal** | Systeem-omgeving, PowerShell `$env:KEY="value"`, of een **lokale** `.env` naast de repo. |
 | **Repo-root `.env` (lokaal)** | Bestand staat in `.gitignore`. Bij import laadt `src/quantbuild/config.py` `python-dotenv` (`load_dotenv(override=True)`), zodat dezelfde keys in **`os.environ`** belanden. Dat is **geen** tweede bron van waarheid — alleen een handige manier om de OS-env te vullen tijdens dev. |
-| **Orchestrator (quantmetrics_os)** | **`quantmetrics_os/orchestrator/.env`** (gitignored): `quantmetrics.py` laadt dit bestand **met voorrang** (`override=True`) vóór elke subcommand. Zet hier **alle** secrets én paden `QUANTBUILD_ROOT`, `QUANTBRIDGE_ROOT`, optioneel `PYTHON`. Template: `quantmetrics_os/orchestrator/.env.example`. |
+| **Orchestrator (QuantOS — map `quantmetrics_os`)** | **`quantmetrics_os/orchestrator/.env`** (gitignored): `quantmetrics.py` laadt dit bestand **met voorrang** (`override=True`) vóór elke subcommand. Zet hier **alle** secrets én paden `QUANTBUILD_ROOT`, `QUANTBRIDGE_ROOT`, optioneel `PYTHON`. Template: `quantmetrics_os/orchestrator/.env.example`. |
 | **CI / cloud** | Secret manager of pipeline-variabelen → geïnjecteerd als environment op de job-runner. |
 
-**Voetgoot — twee `.env`-bestanden:** `config.py` laadt bij import **`python-dotenv`** (`override=True`), typisch **`quantbuildv1/.env`** (afhankelijk van cwd/zoekpad). Staat **`CTRADER_*` alleen** in **`quantmetrics_os/orchestrator/.env`**, dan ziet een kale `cd quantbuildv1 && python -m …` die keys **niet**. Oplossing: **`scripts/vps/run_live.sh`** (sourced orchestrator-`.env` als gevonden), of **`quantmetrics.py build`**, of handmatig `source …/orchestrator/.env` vóór `python -m …`.
+**Voetgoot — twee `.env`-bestanden:** `config.py` laadt bij import **`python-dotenv`** (`override=True`), typisch **`quantbuildv1/.env`** (afhankelijk van cwd/zoekpad). Staat **`CTRADER_*` alleen** in **QuantOS** **`quantmetrics_os/orchestrator/.env`**, dan ziet een kale `cd quantbuildv1 && python -m …` die keys **niet**. Oplossing: **`scripts/vps/run_live.sh`** (sourced orchestrator-`.env` als gevonden), of **`quantmetrics.py build`**, of handmatig `source …/orchestrator/.env` vóór `python -m …`.
 
 Houd **`quantbuildv1/.env`** en **`orchestrator/.env`** liever **niet** gevuld met tegengestelde waarden — dan weet je zeker welke token actief is.
 
@@ -88,7 +88,7 @@ Zie `src/quantbuild/config.py` voor de exacte merge-logica.
 
 `cd "$QUANTBRIDGE_ROOT" && "$QUANTBUILD_ROOT/.venv/bin/python" scripts/run_regression_suite.py`
 
-(of `quantmetrics.py bridge regression` — zie quantmetrics_os).
+(of `quantmetrics.py bridge regression` — zie QuantOS-repo `quantmetrics_os`).
 
 ---
 

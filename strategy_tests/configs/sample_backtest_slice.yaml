@@ -1,0 +1,33 @@
+# Strategy-test voorbeeld — logs + QuantLog onder strategy_tests/ (pad t.o.v. repo-root).
+# JSONL: strategy_tests/quantlog_events/<YYYY-MM-DD UTC van de bar>/quantbuild.jsonl
+# (evt. twee dagen: run_start op eerste bar, run_complete op laatste bar).
+#
+#   python -m src.quantbuild.app --config strategy_tests/configs/sample_backtest_slice.yaml backtest
+
+symbol: XAUUSD
+timeframes:
+  - 15m
+  - 1h
+
+data:
+  base_path: data/market_cache
+
+backtest:
+  start_date: "2026-04-15"
+  end_date: "2026-04-17"
+  tp_r: 2.0
+  sl_r: 1.0
+
+risk:
+  max_daily_loss_r: 3.0
+
+logging:
+  file_path: strategy_tests/logs/quantbuild.log
+
+quantlog:
+  enabled: true
+  base_path: strategy_tests/quantlog_events
+  environment: backtest
+
+news:
+  enabled: false

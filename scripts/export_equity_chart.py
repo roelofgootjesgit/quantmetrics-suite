@@ -50,7 +50,7 @@ def main() -> int:
     parser.add_argument(
         "--no-sibling-copy",
         action="store_true",
-        help="Do not copy PNG to ../quantmetrics_os/docs/assets/ if that folder exists",
+        help="Do not copy PNG to sibling QuantOS checkout ../quantmetrics_os/docs/assets/ if that folder exists",
     )
     args = parser.parse_args()
 
@@ -89,7 +89,7 @@ def main() -> int:
     ax.plot(times, cum_r, color="#047857", linewidth=1.4, label="Cumulative R")
     ax.fill_between(times, cum_r, alpha=0.12, color="#047857")
     ax.axhline(0, color="#94a3b8", linewidth=0.8, linestyle="--")
-    ax.set_title("QuantBuild — backtest equity (cumulative R)", fontsize=13, fontweight="600", color="#0f172a")
+    ax.set_title("QuantBuild — Signal Engine — backtest equity (cumulative R)", fontsize=13, fontweight="600", color="#0f172a")
     ax.set_xlabel("Date (UTC)")
     ax.set_ylabel("Cumulative R")
     ax.grid(True, alpha=0.25)

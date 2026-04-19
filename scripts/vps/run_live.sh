@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run QuantBuild CLI with the same env as quantmetrics_os (orchestrator .env).
+# Run QuantBuild CLI with the same env as QuantOS (quantmetrics_os/orchestrator .env).
 # Use this on the VPS when you normally keep CTRADER_* in orchestrator/.env but
 # start manually from quantbuildv1 — plain `python -m ...` does NOT load that file.
 #
@@ -40,7 +40,7 @@ if [[ -n "$_sourced" ]]; then
   echo "run_live: loaded environment from $_sourced" >&2
 else
   echo "run_live: no orchestrator .env found; using shell + quantbuildv1/.env only (python-dotenv)." >&2
-  echo "run_live: set QUANTBUILD_ORCHESTRATOR_ENV or create ../quantmetrics_os/orchestrator/.env" >&2
+  echo "run_live: set QUANTBUILD_ORCHESTRATOR_ENV or create ../quantmetrics_os/orchestrator/.env (QuantOS)" >&2
 fi
 
 _PY="${PYTHON:-${_ROOT}/.venv/bin/python}"

@@ -2,7 +2,7 @@
 
 Korte operationele sheet voor dagelijkse run op VPS.
 
-**Secrets:** staan in de **OS-omgeving**; op de VPS in `/etc/quantbuild/quantbuild.env` (systemd `EnvironmentFile=`) **of** in **`quantmetrics_os/orchestrator/.env`** als je via de orchestrator start. Lijst met alle variabelenamen: **`docs/CREDENTIALS_AND_ENVIRONMENT.md`**.
+**Secrets:** staan in de **OS-omgeving**; op de VPS in `/etc/quantbuild/quantbuild.env` (systemd `EnvironmentFile=`) **of** in **QuantOS** **`quantmetrics_os/orchestrator/.env`** als je via de orchestrator start. Lijst met alle variabelenamen: **`docs/CREDENTIALS_AND_ENVIRONMENT.md`**.
 
 **Huidige cTrader-demo VPS:** `WorkingDirectory` = `/opt/quantbuild/quantbuild_e1_v1` (niet de repo-standaard `quantbuildv1`). **Runtime file log:** `/opt/quantbuild/quantbuild_e1_v1/logs/runtime_ctrader_demo.log` — einde week / review: `tail -n 200` of `tail -f` op dit pad. Twijfel → `systemctl show quantbuild-ctrader-demo.service -p WorkingDirectory`.
 
@@ -92,14 +92,21 @@ cd /root/dev/quant/quantmetrics_os/orchestrator
 
 ### 0.4 QuantLog “live” controleren
 
+Gebruikt de **echte** `WorkingDirectory` van de draaiende unit (geen hardcoded `cd`). Unit-naam aanpassen als je service anders heet.
+
 ```bash
-cd /root/dev/quant/quantbuildv1
-DAY=$(date -u +%Y-%m-%d)
-ls -la "data/quantlog_events/$DAY"
-tail -n 5 "data/quantlog_events/$DAY/quantbuild.jsonl"
+DAY=$(date -u +%F)
+WORKDIR=$(systemctl show quantbuild-ctrader-demo.service -p WorkingDirectory --value)
+LOG="$WORKDIR/data/quantlog_events/$DAY/quantbuild.jsonl"
+
+echo "=== $DAY Event Log ==="
+echo "File: $LOG"
+echo
+echo "=== Last 5 entries ==="
+tail -n 5 "$LOG" | jq . 2>/dev/null || tail -n 5 "$LOG"
 ```
 
-Zie je geen map/bestand: check YAML `quantlog:` (`enabled`, `base_path`) en of de bot echt draait.
+Zie je geen map/bestand: check YAML `quantlog:` (`enabled`, `base_path`) en of de bot echt draait. (`jq` is optioneel; zonder `jq` vallen de laatste regels terug op ruwe JSONL.)
 
 ### 0.5 Nightly rapport (validate + summarize vorige UTC-dag)
 

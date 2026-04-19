@@ -1,5 +1,6 @@
 # Push all ecosystem repos in one go (separate git remotes).
 # Default: sibling folders under the parent directory of quantbuildv1.
+# Folders: QuantBuild (quantbuildv1), QuantBridge (quantbridgev1), QuantLog (quantlogv1), QuantOS (quantmetrics_os).
 #
 # Usage:
 #   .\scripts\dev\push_all_repos.ps1

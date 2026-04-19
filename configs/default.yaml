@@ -34,6 +34,8 @@ logging:
   level: INFO
   format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
   file_path: logs/quantbuild.log
+  # Per run: logs/<command>_quantbuild_<YYYY-MM-DD_HH-MM-SSZ>.log (UTC). Set false for one append-only file.
+  timestamp_suffix: true
 
 quantlog:
   enabled: false

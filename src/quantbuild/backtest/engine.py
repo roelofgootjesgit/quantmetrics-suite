@@ -7,9 +7,10 @@ Supports:
   - NewsHistory replay for backtesting with historical news
 """
 import logging
-from datetime import datetime, timedelta
+from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+from uuid import uuid4
 
 import numpy as np
 import pandas as pd
@@ -20,8 +21,51 @@ from src.quantbuild.data.sessions import session_from_timestamp, ENTRY_SESSIONS
 from src.quantbuild.io.parquet_loader import load_parquet, ensure_data
 from src.quantbuild.strategies.sqe_xauusd import run_sqe_conditions, get_sqe_default_config, _compute_modules_once
 from src.quantbuild.strategy_modules.ict.structure_context import add_structure_context
+from src.quantbuild.execution.quantlog_emitter import QuantLogEmitter
+from src.quantbuild.execution.quantlog_ids import resolve_quantlog_run_id, resolve_quantlog_session_id
+from src.quantbuild.execution.quantlog_no_action import canonical_no_action_reason
+from src.quantbuild.quantlog_repo import quantbuild_project_root, resolve_quantlog_repo_path
 
 logger = logging.getLogger(__name__)
+
+
+def _bar_timestamp_utc_iso(ts: Any) -> str:
+    t = pd.Timestamp(ts)
+    if t.tzinfo is None:
+        t = t.tz_localize("UTC")
+    else:
+        t = t.tz_convert("UTC")
+    return t.isoformat().replace("+00:00", "Z")
+
+
+def _init_backtest_quantlog(cfg: Dict[str, Any]) -> Optional[QuantLogEmitter]:
+    ql_cfg = cfg.get("quantlog", {}) or {}
+    if not bool(ql_cfg.get("enabled", False)):
+        return None
+    raw = Path(str(ql_cfg.get("base_path", "data/quantlog_events")))
+    ql_base = raw.resolve() if raw.is_absolute() else (quantbuild_project_root() / raw).resolve()
+    ql_env = str(ql_cfg.get("environment", "backtest"))
+    run_id = resolve_quantlog_run_id(ql_cfg)
+    session_id = resolve_quantlog_session_id(ql_cfg)
+    emitter = QuantLogEmitter(
+        base_path=ql_base,
+        source_component="backtest_engine",
+        environment=ql_env,
+        run_id=run_id,
+        session_id=session_id,
+    )
+    logger.info(
+        "QuantLog emitter enabled (backtest): base_path=%s run_id=%s (resolved from repo root)",
+        ql_base,
+        run_id,
+    )
+    if resolve_quantlog_repo_path() is None:
+        logger.warning(
+            "QuantLog JSONL is on, but the QuantLog repository was not found for CLI "
+            "(validate/summarize). Clone quantlogv1, set QUANTLOG_REPO_PATH or QUANTLOG_ROOT, or run "
+            "python scripts/check_quantlog_linkage.py — events will still be written."
+        )
+    return emitter
 
 
 def _deep_merge(base: Dict[str, Any], override: Dict[str, Any]) -> None:
@@ -171,22 +215,50 @@ def run_backtest(cfg: Dict[str, Any], precomputed_regime: Optional[pd.Series] = 
     timeframes = cfg.get("timeframes", ["15m"])
     tf = timeframes[0]
     base_path = Path(cfg.get("data", {}).get("base_path", "data/market_cache"))
-    period_days = cfg.get("backtest", {}).get("default_period_days", 60)
-    tp_r = cfg.get("backtest", {}).get("tp_r", 2.0)
-    sl_r = cfg.get("backtest", {}).get("sl_r", 1.0)
-    session_filter = cfg.get("backtest", {}).get("session_filter", None)
-    session_mode = cfg.get("backtest", {}).get("session_mode", "killzone")
+    bt_cfg = cfg.get("backtest", {}) or {}
+    period_days = bt_cfg.get("default_period_days", 60)
+    tp_r = bt_cfg.get("tp_r", 2.0)
+    sl_r = bt_cfg.get("sl_r", 1.0)
+    session_filter = bt_cfg.get("session_filter", None)
+    session_mode = bt_cfg.get("session_mode", "killzone")
 
     risk_cfg = cfg.get("risk", {})
     max_daily_loss_r = risk_cfg.get("max_daily_loss_r", 3.0)
     equity_kill_switch_pct = risk_cfg.get("equity_kill_switch_pct", 10.0)
     base_max_trades_per_session = risk_cfg.get("max_trades_per_session", 1)
 
-    end = datetime.now()
-    start = end - timedelta(days=period_days)
+    sd_raw = bt_cfg.get("start_date")
+    ed_raw = bt_cfg.get("end_date")
+    fetch_span_days = period_days
+
+    if sd_raw and ed_raw:
+        d0 = date.fromisoformat(str(sd_raw).strip()[:10])
+        d1 = date.fromisoformat(str(ed_raw).strip()[:10])
+        if d1 < d0:
+            logger.warning("backtest end_date before start_date; swapping")
+            d0, d1 = d1, d0
+        start = datetime.combine(d0, time.min, tzinfo=timezone.utc)
+        end = datetime.combine(d1, time.max, tzinfo=timezone.utc)
+        fetch_span_days = max((d1 - d0).days + 60, period_days)
+        logger.info(
+            "Backtest fixed window (UTC): %s .. %s",
+            start.isoformat(),
+            end.isoformat(),
+        )
+    elif sd_raw or ed_raw:
+        logger.warning(
+            "backtest requires both start_date and end_date; ignoring partial — using rolling window"
+        )
+        end = datetime.now(timezone.utc)
+        start = end - timedelta(days=period_days)
+    else:
+        end = datetime.now(timezone.utc)
+        start = end - timedelta(days=period_days)
+
     data = load_parquet(base_path, symbol, tf, start=start, end=end)
     if data.empty or len(data) < 50:
-        data = ensure_data(symbol=symbol, timeframe=tf, base_path=base_path, period_days=period_days)
+        ensure_data(symbol=symbol, timeframe=tf, base_path=base_path, period_days=fetch_span_days)
+        data = load_parquet(base_path, symbol, tf, start=start, end=end)
     if data.empty or len(data) < 50:
         logger.warning("No data available. Run fetch first.")
         return []
@@ -258,61 +330,150 @@ def run_backtest(cfg: Dict[str, Any], precomputed_regime: Optional[pd.Series] = 
 
     sim_cache = _prepare_sim_cache(data)
 
-    for i, direction in entry_signals:
-        entry_ts = data.index[i]
-        trade_date = entry_ts.date()
+    ql_emitter = _init_backtest_quantlog(cfg)
+    account_id = str(cfg.get("broker", {}).get("account_id") or "backtest")
+    strategy_id_bt = "sqe_backtest"
+    trace_bt_run = str(uuid4())
 
+    if ql_emitter:
+        ts_first = _bar_timestamp_utc_iso(data.index[0])
+        ql_emitter.emit(
+            event_type="signal_evaluated",
+            trace_id=trace_bt_run,
+            timestamp_utc=ts_first,
+            account_id=account_id,
+            strategy_id=strategy_id_bt,
+            symbol=symbol,
+            payload={
+                "signal_type": "sqe_entry",
+                "signal_direction": "NONE",
+                "confidence": 0.0,
+                "regime": "none",
+                "setup": False,
+                "eval_stage": "backtest_run_start",
+                "bars": len(data),
+                "entry_signals_pre_risk": len(entry_signals),
+            },
+        )
+
+    for i, direction in entry_signals:
         if kill_switch_triggered:
             break
+
+        entry_ts = data.index[i]
+        trade_date = entry_ts.date()
+        current_session = session_from_timestamp(entry_ts, mode=session_mode)
+
+        current_regime = None
+        if regime_series is not None and i < len(regime_series):
+            current_regime = regime_series.iloc[i]
+        regime_str = str(current_regime) if current_regime is not None else "none"
+
+        trace_id = str(uuid4())
+        ts_iso = _bar_timestamp_utc_iso(entry_ts)
+
+        def _emit_signal_evaluated() -> None:
+            if not ql_emitter:
+                return
+            ql_emitter.emit(
+                event_type="signal_evaluated",
+                trace_id=trace_id,
+                timestamp_utc=ts_iso,
+                account_id=account_id,
+                strategy_id=strategy_id_bt,
+                symbol=symbol,
+                payload={
+                    "signal_type": "sqe_entry",
+                    "signal_direction": direction,
+                    "confidence": 1.0,
+                    "regime": regime_str,
+                    "eval_stage": "backtest_candidate",
+                },
+            )
+
+        def _emit_blocked(internal_code: str, guard_name: str) -> None:
+            if not ql_emitter:
+                return
+            eff = canonical_no_action_reason(internal_code)
+            ql_emitter.emit(
+                event_type="risk_guard_decision",
+                trace_id=trace_id,
+                timestamp_utc=ts_iso,
+                account_id=account_id,
+                strategy_id=strategy_id_bt,
+                symbol=symbol,
+                payload={
+                    "guard_name": guard_name,
+                    "decision": "BLOCK",
+                    "reason": internal_code,
+                },
+            )
+            ql_emitter.emit(
+                event_type="trade_action",
+                trace_id=trace_id,
+                timestamp_utc=ts_iso,
+                account_id=account_id,
+                strategy_id=strategy_id_bt,
+                symbol=symbol,
+                payload={
+                    "decision": "NO_ACTION",
+                    "reason": eff,
+                    "session": current_session,
+                    "regime": regime_str,
+                },
+            )
+
+        _emit_signal_evaluated()
+
         if daily_pnl_r.get(trade_date, 0.0) <= -max_daily_loss_r:
+            _emit_blocked("daily_loss_block", "daily_loss_cap")
             continue
         if (peak_r - cumulative_r) >= equity_kill_switch_pct:
+            _emit_blocked("risk_block", "equity_drawdown_kill_switch")
             kill_switch_triggered = True
             break
 
-        # Regime-aware filtering
-        current_regime = None
-        regime_profile: Dict[str, Any] = {}
-        if regime_series is not None and i < len(regime_series):
-            current_regime = regime_series.iloc[i]
-            if regime_profiles and current_regime is not None:
-                regime_key = current_regime.lower() if isinstance(current_regime, str) else str(current_regime)
-                regime_profile = regime_profiles.get(regime_key, {})
+        regime_profile = {}
+        if regime_profiles and current_regime is not None:
+            regime_key = current_regime.lower() if isinstance(current_regime, str) else str(current_regime)
+            regime_profile = regime_profiles.get(regime_key, {})
 
         if regime_profile.get("skip", False):
             regime_skip_count += 1
+            _emit_blocked("regime_block", "regime_profile")
             continue
 
-        # Per-regime session + time-of-day filter
-        current_session = session_from_timestamp(entry_ts, mode=session_mode)
         allowed_sessions = regime_profile.get("allowed_sessions")
         if allowed_sessions and current_session not in allowed_sessions:
             regime_session_skip_count += 1
+            _emit_blocked("time_filter_block", "regime_allowed_sessions")
             continue
 
         min_hour = regime_profile.get("min_hour_utc")
         if min_hour is not None and entry_ts.hour < min_hour:
             regime_session_skip_count += 1
+            _emit_blocked("time_filter_block", "regime_min_hour_utc")
             continue
 
         max_hour = regime_profile.get("max_hour_utc")
         if max_hour is not None and entry_ts.hour >= max_hour:
             regime_session_skip_count += 1
+            _emit_blocked("time_filter_block", "regime_max_hour_utc")
             continue
 
-        # Per-regime max trades per session
         max_tps = regime_profile.get("max_trades_per_session", base_max_trades_per_session)
         session_key = (trade_date, current_session, direction)
         if traded_session_direction.get(session_key, 0) >= max_tps:
+            _emit_blocked("position_limit_block", "max_trades_per_session")
             continue
 
-        # NewsGate check
         news_boost = 1.0
         news_sentiment_at_entry = None
         if news_gate is not None:
             gate_result = news_gate.check_gate(entry_ts, direction)
             if not gate_result["allowed"]:
                 news_block_count += 1
+                _emit_blocked("news_block", "news_gate")
                 continue
             news_boost = gate_result.get("boost", 1.0)
 
@@ -321,11 +482,56 @@ def run_backtest(cfg: Dict[str, Any], precomputed_regime: Optional[pd.Series] = 
             if sentiment_at:
                 news_sentiment_at_entry = sentiment_at.get("direction")
 
-        # Regime-aware TP/SL
         trade_tp_r = regime_profile.get("tp_r", tp_r)
         trade_sl_r = regime_profile.get("sl_r", sl_r)
 
         result = _simulate_trade(data, i, direction, trade_tp_r, trade_sl_r, _cache=sim_cache)
+
+        trade_ref = f"BT-{trace_id[:8]}"
+        if ql_emitter:
+            ql_emitter.emit(
+                event_type="risk_guard_decision",
+                trace_id=trace_id,
+                timestamp_utc=ts_iso,
+                account_id=account_id,
+                strategy_id=strategy_id_bt,
+                symbol=symbol,
+                payload={
+                    "guard_name": "backtest_pipeline",
+                    "decision": "ALLOW",
+                    "reason": "simulated_execution",
+                },
+            )
+            ql_emitter.emit(
+                event_type="trade_action",
+                trace_id=trace_id,
+                timestamp_utc=ts_iso,
+                account_id=account_id,
+                strategy_id=strategy_id_bt,
+                symbol=symbol,
+                payload={
+                    "decision": "ENTER",
+                    "reason": "all_conditions_met",
+                    "side": direction,
+                    "session": current_session,
+                    "regime": regime_str,
+                },
+            )
+            ql_emitter.emit(
+                event_type="trade_executed",
+                trace_id=trace_id,
+                timestamp_utc=ts_iso,
+                account_id=account_id,
+                strategy_id=strategy_id_bt,
+                symbol=symbol,
+                order_ref=trade_ref,
+                payload={
+                    "direction": direction,
+                    "trade_id": trade_ref,
+                    "session": current_session,
+                    "regime": regime_str,
+                },
+            )
 
         t = Trade(
             timestamp_open=entry_ts,
@@ -370,4 +576,27 @@ def run_backtest(cfg: Dict[str, Any], precomputed_regime: Optional[pd.Series] = 
             m.get("net_pnl", 0), m.get("profit_factor", 0),
             m.get("win_rate", 0), m.get("max_drawdown", 0), m.get("trade_count", 0),
         )
+
+    if ql_emitter:
+        ts_last = _bar_timestamp_utc_iso(data.index[-1])
+        ql_emitter.emit(
+            event_type="signal_evaluated",
+            trace_id=trace_bt_run,
+            timestamp_utc=ts_last,
+            account_id=account_id,
+            strategy_id=strategy_id_bt,
+            symbol=symbol,
+            payload={
+                "signal_type": "sqe_entry",
+                "signal_direction": "NONE",
+                "confidence": 0.0,
+                "regime": "none",
+                "setup": False,
+                "eval_stage": "backtest_run_complete",
+                "bars": len(data),
+                "entry_signals_pre_risk": len(entry_signals),
+                "trades_closed": len(trades),
+            },
+        )
+
     return trades

@@ -1,0 +1,16 @@
+# Aparte parquet-cache voor Dukascopy — naast data/market_cache (cTrader/mock/auto).
+# Gebruik bij fetch + backtest om bronnen te vergelijken.
+#
+# Fetch:
+#   python -m src.quantbuild.app --config configs/data_dukascopy_compare.yaml fetch --days 120 --source dukascopy
+#
+# Backtest met deze data:
+#   gebruik een backtest yaml met  data.base_path: data/market_cache_dukascopy
+
+symbol: XAUUSD
+timeframes:
+  - 15m
+  - 1h
+
+data:
+  base_path: data/market_cache_dukascopy

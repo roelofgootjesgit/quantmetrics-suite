@@ -12,18 +12,25 @@ from src.quantbuild.logging_config import setup_logging
 def cmd_backtest(args: argparse.Namespace) -> int:
     from src.quantbuild.backtest.engine import run_backtest
     cfg = load_config(args.config)
+    bt = cfg.setdefault("backtest", {})
     if getattr(args, "days", None) is not None:
-        cfg.setdefault("backtest", {})["default_period_days"] = args.days
-    setup_logging(cfg)
+        bt["default_period_days"] = args.days
+    if getattr(args, "start_date", None):
+        bt["start_date"] = args.start_date
+    if getattr(args, "end_date", None):
+        bt["end_date"] = args.end_date
+    setup_logging(cfg, command=args.command)
     trades = run_backtest(cfg)
     if not trades:
         print("No trades generated.")
+    else:
+        print(f"Backtest completed: {len(trades)} trades.")
     return 0
 
 
 def cmd_fetch(args: argparse.Namespace) -> int:
     cfg = load_config(args.config)
-    setup_logging(cfg)
+    setup_logging(cfg, command=args.command)
     base = Path(cfg.get("data", {}).get("base_path", "data/market_cache"))
     symbol = args.symbol or cfg.get("symbol", "XAUUSD")
     period_days = args.days or cfg.get("backtest", {}).get("default_period_days", 60)
@@ -70,7 +77,7 @@ def cmd_fetch(args: argparse.Namespace) -> int:
 def cmd_news_test(args: argparse.Namespace) -> int:
     """Test the news layer: poll once and show results."""
     cfg = load_config(args.config)
-    setup_logging(cfg)
+    setup_logging(cfg, command=args.command)
     from src.quantbuild.news.poller import NewsPoller
     poller = NewsPoller(cfg)
     n_sources = poller.setup()
@@ -104,7 +111,7 @@ def cmd_live(args: argparse.Namespace) -> int:
     print(f"  symbol={sym}  broker={prov}  data.source={dsrc}", flush=True)
     print(f"{bar}\n", flush=True)
 
-    setup_logging(cfg)
+    setup_logging(cfg, command=args.command)
     runner = LiveRunner(cfg, dry_run=args.dry_run)
     runner.run()
     return 0
@@ -113,7 +120,7 @@ def cmd_live(args: argparse.Namespace) -> int:
 def cmd_suite_notify(args: argparse.Namespace) -> int:
     """Send suite start/stop Telegram using monitoring.telegram (for QuantMetrics OS orchestrator)."""
     cfg = load_config(args.config)
-    setup_logging(cfg)
+    setup_logging(cfg, command=args.command)
     from src.quantbuild.alerts.telegram import TelegramAlerter, format_suite_run_summary
     from src.quantbuild.version import __version__, git_revision_short
 
@@ -171,6 +178,20 @@ def main() -> int:
 
     bt = sub.add_parser("backtest", help="Run backtest")
     bt.add_argument("--days", "-d", type=int, default=None)
+    bt.add_argument(
+        "--start-date",
+        dest="start_date",
+        default=None,
+        metavar="YYYY-MM-DD",
+        help="UTC calendar start (inclusive); use with --end-date instead of rolling --days",
+    )
+    bt.add_argument(
+        "--end-date",
+        dest="end_date",
+        default=None,
+        metavar="YYYY-MM-DD",
+        help="UTC calendar end (inclusive); use with --start-date",
+    )
     bt.set_defaults(func=cmd_backtest)
 
     fetch = sub.add_parser("fetch", help="Fetch/cache market data")
