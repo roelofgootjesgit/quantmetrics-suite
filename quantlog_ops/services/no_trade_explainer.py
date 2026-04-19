@@ -68,7 +68,6 @@ def build_no_trade_lines(
             f"({n_eval} evaluated in cap)."
         )
 
-    last_ts = scan.get("last_timestamp_utc") if scan else None
     last_from_cap = _max_ts_from_rows(rows)
     if scan and scan.get("last_timestamp_utc"):
         lines.append(

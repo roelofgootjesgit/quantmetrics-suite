@@ -12,7 +12,6 @@ if str(_OPS) not in sys.path:
 import streamlit as st
 
 from config import (
-    events_root,
     explainer_max_events,
     health_max_events,
     table_max_events,

@@ -8,7 +8,7 @@ import zipfile
 from pathlib import Path
 from typing import Any
 
-from quantlog.events.io import discover_jsonl_files, iter_jsonl_file
+from quantlog.events.io import discover_jsonl_files
 
 
 def read_jsonl_text(paths: list[Path]) -> str:
