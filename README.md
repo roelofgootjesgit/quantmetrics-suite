@@ -126,24 +126,25 @@ Strategy, broker adapters, and event schemas live in the **sibling repositories*
 
 **Steps**
 
-1. Copy `orchestrator/config.example.env` → `orchestrator/.env` and set the three `*_ROOT` paths.
-2. From `orchestrator/`:
+1. Copy `orchestrator/config.example.env` → `orchestrator/.env` and set `QUANTBUILD_ROOT`, `QUANTBRIDGE_ROOT`, `QUANTLOG_ROOT`, and optionally **`QUANTANALYTICS_ROOT`** (see `config.vps.example.env`).
+2. Install **`quantanalyticsv1`** editable into the QuantBuild venv when you use analytics: `pip install -e ../quantanalyticsv1`.
+3. From `orchestrator/`:
 
    ```powershell
-   python quantmetrics.py check
+   python quantmetrics.py build -c configs/strict_prod_v2.yaml
    ```
 
-   On Windows you can use `.\qm.ps1 check`.
+   On Windows you can use `.\qm.ps1` if your wrapper forwards the same arguments.
 
-3. Examples:
+4. Examples (see `python quantmetrics.py --help`):
 
    | Goal | Command |
    | --- | --- |
-   | Show resolved paths | `python quantmetrics.py check` |
    | `quantbuildv1` live (paper; no `--real`) | `python quantmetrics.py build -c configs/strict_prod_v2.yaml` |
-   | `quantbridgev1` smoke (mock) | `python quantmetrics.py bridge smoke --mode mock` |
-   | `quantlogv1` validate events | `python quantmetrics.py log validate-events -- --path <day-folder>` |
-   | After a session | `python quantmetrics.py post-run YYYY-MM-DD` |
+   | `quantbuildv1` backtest | `python quantmetrics.py backtest -c configs/foo.yaml` |
+   | Backtest **then** JSONL analytics report | `python quantmetrics.py backtest -c configs/foo.yaml --analyze` |
+   | Analytics only on a QuantLog `.jsonl` | `python quantmetrics.py analyze --jsonl path/to/run.jsonl` |
+   | `quantbridgev1` mock regression suite | `python quantmetrics.py bridge regression` |
 
 Use `python quantmetrics.py --help` and per-subcommand `--help` for full options.
 
