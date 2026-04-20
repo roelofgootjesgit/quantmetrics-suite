@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "quantmetrics-analytics"
+version = "0.1.0"
+description = "QuantMetrics analytics: QuantLog JSONL → insights (read-only)"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "pandas>=2.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0"]
+
+[project.scripts]
+quantmetrics-analytics = "quantmetrics_analytics.cli.run_analysis:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["quantmetrics_analytics*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
