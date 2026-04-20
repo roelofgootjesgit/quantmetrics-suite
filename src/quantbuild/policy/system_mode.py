@@ -7,7 +7,7 @@ the backtest engine so one config switch changes effective policy consistently.
 from __future__ import annotations
 
 import warnings
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, List, Tuple
 
 SYSTEM_MODE_PRODUCTION = "PRODUCTION"
 SYSTEM_MODE_EDGE_DISCOVERY = "EDGE_DISCOVERY"
@@ -73,6 +73,18 @@ def normalize_system_mode(raw: Any) -> str:
     return SYSTEM_MODE_PRODUCTION
 
 
+def bypassed_filters_vs_production(effective: Dict[str, bool]) -> List[str]:
+    """Filters enabled in PRODUCTION defaults but disabled in ``effective`` (e.g. EDGE_DISCOVERY).
+
+    Used for QuantLog ``bypassed_by_mode`` — which suppressions are lifted vs production.
+    """
+    out: List[str] = []
+    for k in FILTER_KEYS:
+        if _DEFAULT_PRODUCTION.get(k) and not effective.get(k, True):
+            out.append(k)
+    return out
+
+
 def resolve_effective_filters(cfg: Dict[str, Any]) -> Tuple[str, Dict[str, bool]]:
     """Return ``(system_mode, effective_filters)``.
 
@@ -93,3 +105,4 @@ def resolve_effective_filters(cfg: Dict[str, Any]) -> Tuple[str, Dict[str, bool]
         if k in user:
             out[k] = bool(user[k])
     return mode, out
+

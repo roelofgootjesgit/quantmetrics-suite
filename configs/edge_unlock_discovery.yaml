@@ -1,0 +1,61 @@
+# Edge Unlock Plan — Fase 1 throughput (docs/EDGE_UNLOCK_PLAN.md).
+# Live/demo: suppress regime/session/cooldown/news/position gates via EDGE_DISCOVERY defaults;
+# keep daily loss + spread + equity kill switch from parent profile.
+#
+#   python -m src.quantbuild.app --config configs/edge_unlock_discovery.yaml live [--dry-run]
+#
+extends: strict_prod_v2.yaml
+
+system_mode: EDGE_DISCOVERY
+
+# Explicit filters (same as EDGE_DISCOVERY defaults; handy for discovery reviews / diffs.)
+filters:
+  regime: false
+  session: false
+  cooldown: false
+  news: false
+  position_limit: false
+  daily_loss: true
+  spread: true
+  research_raw_first: true
+  structure_h1_gate: false
+
+data:
+  source: auto
+  base_path: data/market_cache
+
+# Ruime position / session caps (guards uit in mode; caps blijven laag risico bij herinschakelen.)
+risk:
+  max_position_pct: 1.0
+  max_daily_loss_r: 3.0
+  max_concurrent_positions: 12
+  max_trades_per_session: 99
+  equity_kill_switch_pct: 10.0
+
+regime_profiles:
+  trend:
+    max_trades_per_session: 99
+  expansion:
+    max_trades_per_session: 99
+
+# Tijdelijke SQE-versoepeling — alleen voor discovery-sample.
+strategy:
+  displacement:
+    min_body_pct: 55
+  entry_sweep_disp_fvg_min_count: 1
+  fair_value_gaps:
+    min_gap_pct: 0.25
+
+execution_guards:
+  max_open_positions: 12
+
+# cTrader / QuantBridge — secrets via CTRADER_* env (docs/CREDENTIALS_AND_ENVIRONMENT.md).
+broker:
+  provider: ctrader
+  environment: demo
+  account_id: ""
+  access_token: ""
+  client_id: ""
+  client_secret: ""
+  instrument: XAUUSD
+  mock_mode: false

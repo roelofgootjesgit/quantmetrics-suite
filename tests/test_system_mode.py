@@ -5,6 +5,7 @@ from src.quantbuild.policy.system_mode import (
     FILTER_KEYS,
     SYSTEM_MODE_EDGE_DISCOVERY,
     SYSTEM_MODE_PRODUCTION,
+    bypassed_filters_vs_production,
     normalize_system_mode,
     resolve_effective_filters,
 )
@@ -23,6 +24,14 @@ def test_resolve_production_defaults():
     assert eff["regime"] is True
     assert eff["research_raw_first"] is False
     assert set(eff) == set(FILTER_KEYS)
+
+
+def test_bypassed_vs_production_edge_discovery():
+    _, eff = resolve_effective_filters({"system_mode": "EDGE_DISCOVERY"})
+    bypass = bypassed_filters_vs_production(eff)
+    assert "regime" in bypass
+    assert "session" in bypass
+    assert "daily_loss" not in bypass
 
 
 def test_resolve_edge_defaults():

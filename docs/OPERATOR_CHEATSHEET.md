@@ -131,6 +131,34 @@ bash scripts/vps/quantlog_nightly.sh 2>&1 | tee -a logs/quantlog_nightly_manual.
 
 *(Alleen nodig als je geen timer hebt; de timer schrijft naar `logs/quantlog_nightly.log` via systemd.)*
 
+### 0.6b Edge Unlock — backtest 2025 + discovery dry-run + daily review
+
+**Backtest heel 2025** (zelfde stack als `configs/edge_unlock_discovery.yaml`; cache: `data/README_MARKET_CACHE.md`):
+
+```bash
+python -m src.quantbuild.app --config configs/backtest_2025_edge_unlock.yaml backtest
+```
+
+Dukascopy-cache pad: `configs/backtest_2025_edge_unlock_dukascopy.yaml` (zelfde commando, ander `--config`).
+
+**OHLC cache vullen / verlengen (XAUUSD 15m + 1h, lang venster):**
+
+```bash
+python scripts/fetch_dukascopy_xauusd.py --days 550 --tf 15m 1h
+```
+
+**Discovery live/paper (standaard dry-run):**
+
+```bash
+python -m src.quantbuild.app --config configs/edge_unlock_discovery.yaml live --dry-run
+```
+
+**Compacte metrics uit QuantLog JSONL:**
+
+```bash
+python scripts/edge_unlock_daily_review.py data/quantlog_events/runs/bt_2025_edge_unlock.jsonl
+```
+
 ### 0.6 Logs volgen
 
 - **File log** (cTrader-demo unit, huidige VPS): `tail -f /opt/quantbuild/quantbuild_e1_v1/logs/runtime_ctrader_demo.log` — elders vaak `…/quantbuildv1/logs/runtime_ctrader_demo.log`

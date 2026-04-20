@@ -1,0 +1,32 @@
+# Edge Unlock Plan — volledig kalenderjaar 2025 met dezelfde policy als edge_unlock_discovery.yaml
+# (EDGE_DISCOVERY, expliciete filters, SQE-relax, ruime session caps).
+#
+# Output (consolidated): data/quantlog_events/runs/bt_2025_edge_unlock.jsonl
+#
+# Haal eerst 15m + 1h binnen. Aanbevolen (Dukascopy chunkt lang venster goed):
+#   python scripts/fetch_dukascopy_xauusd.py --days 550 --tf 15m 1h
+# Zie data/README_MARKET_CACHE.md — `app fetch` kan bij Dukascopy soms een kort venster teruggeven.
+#
+# Review na run:
+#   python scripts/edge_unlock_daily_review.py data/quantlog_events/runs/bt_2025_edge_unlock.jsonl
+#
+#   python -m src.quantbuild.app --config configs/backtest_2025_edge_unlock.yaml backtest
+
+extends: edge_unlock_discovery.yaml
+
+# --- Backtest throughput note ---
+# De simulator stopt alle entry-kandidaten zodra trek van piek-equity (in R) >= equity_kill_switch_pct.
+# Ouder profile gebruikt 10.0 → na ~−10R `break` je uit de loop: je ziet dan maar een fractie van het jaar
+# als trades (rest van de signalen wordt nooit meer gesimuleerd). Voor een vol jaar “discovery sample”
+# zet je dat hier tijdelijk heel hoog; voor live/productie laat je 10 staan.
+risk:
+  equity_kill_switch_pct: 999
+
+backtest:
+  start_date: "2025-01-01"
+  end_date: "2025-12-31"
+
+quantlog:
+  consolidated_run_file: true
+  run_id: bt_2025_edge_unlock
+  session_id: bt_2025_full_year

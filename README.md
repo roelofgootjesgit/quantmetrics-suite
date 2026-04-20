@@ -1,10 +1,10 @@
-# QuantBuild 
+# quantbuildv1
 
-Strategy and risk engine for the QuantMetrics suite.
+Strategy and risk engine for the Quant suite (siblings: **`quantmetrics_os`**, **`quantbridgev1`**, **`quantlogv1`**, **`quantanalyticsv1`**).
 
-QuantBuild is responsible for one thing: processing market data and producing 
+**quantbuildv1** is responsible for one thing: processing market data and producing 
 trade decisions. It does not place orders, does not store events, and does not 
-manage broker connections. Those concerns live in QuantBridge and QuantLog.
+manage broker connections. Those concerns live in **`quantbridgev1`** and **`quantlogv1`**.
 
 **84 source files · 99 tests · 8 test files**
 
@@ -16,14 +16,14 @@ Strategy and risk are separated by design. Signal generation, regime
 classification, and portfolio heat calculation are independent modules. 
 Each can be tested, replaced, or extended without touching the others.
 
-Execution is a boundary — QuantBuild produces decisions, QuantBridge 
+Execution is a boundary — **quantbuildv1** produces decisions, **quantbridgev1** 
 acts on them. No broker API calls exist anywhere in this codebase.
 
 ---
 
 ## Modularity
 
-QuantBuild is built around a single interface: `IStrategyModule`. Every 
+**quantbuildv1** is built around a single interface: `IStrategyModule`. Every 
 component that produces or filters a signal implements this interface. 
 Swapping a strategy means swapping a module — nothing else changes.
 IStrategyModule
@@ -81,7 +81,7 @@ Market Data (Dukascopy / Oanda / cTrader)
 └─────────┬──────────┘
 │
 ┌─────────▼──────────┐
-│  Execution boundary │  Trade decisions passed to QuantBridge
+│  Execution boundary │  Trade decisions passed to quantbridgev1
 │  (no broker calls)  │  Paper shadow runs in parallel for validation
 └────────────────────┘
 
@@ -186,7 +186,7 @@ Tests
 pytest tests/ -v
 Dry-run (Oanda)
 python -m src.quantbuild.app --config configs/strict_prod_v2.yaml live --dry-run
-Dry-run (cTrader via QuantBridge)
+Dry-run (cTrader via quantbridgev1)
 python -m src.quantbuild.app --config configs/demo_strict_ctrader.yaml live --dry-run
 
 Set `QUANTBRIDGE_SRC_PATH` in `.env` when running with cTrader.  
@@ -208,9 +208,10 @@ data source are independent — configurable separately per YAML.
 
 ## Suite
 
-| Component | Repository |
+| Repo | GitHub |
 |-----------|------------|
-| Orchestration | [QuantOS-Orchestrator](https://github.com/roelofgootjesgit/QuantOS-Orchestrator) |
-| QuantBuild (this repo) | [quantbuildE1](https://github.com/roelofgootjesgit/quantbuildE1) |
-| QuantBridge | [quantBridge-v.1](https://github.com/roelofgootjesgit/quantBridge-v.1) |
-| QuantLog | [quantlog-v.1](https://github.com/roelofgootjesgit/quantlog-v.1) |
+| `quantmetrics_os` | [roelofgootjesgit/quantmetrics_os](https://github.com/roelofgootjesgit/quantmetrics_os) |
+| `quantbuildv1` (**this**) | [roelofgootjesgit/quantbuildv1](https://github.com/roelofgootjesgit/quantbuildv1) |
+| `quantbridgev1` | [roelofgootjesgit/quantbridgev1](https://github.com/roelofgootjesgit/quantbridgev1) |
+| `quantlogv1` | [roelofgootjesgit/quantlogv1](https://github.com/roelofgootjesgit/quantlogv1) |
+| `quantanalyticsv1` | [roelofgootjesgit/quantanalyticsv1](https://github.com/roelofgootjesgit/quantanalyticsv1) |

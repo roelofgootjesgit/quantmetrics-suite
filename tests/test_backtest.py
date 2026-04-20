@@ -130,6 +130,12 @@ class TestBacktestQuantLog:
         assert "order_submitted" in types
         assert "order_filled" in types
         assert "trade_executed" in types
+        assert "trade_closed" in types
+
+        closed_ev = next(e for e in (json.loads(line) for line in lines) if e["event_type"] == "trade_closed")
+        assert closed_ev["payload"].get("pnl_r") is not None
+        assert closed_ev["payload"].get("exit_price") is not None
+        assert closed_ev["payload"].get("exit") in ("SL", "TP", "TIMEOUT")
 
         trade_ev = next(e for e in (json.loads(line) for line in lines) if e["event_type"] == "trade_executed")
         assert trade_ev["payload"].get("signal_id", "").startswith("sig_bt_")

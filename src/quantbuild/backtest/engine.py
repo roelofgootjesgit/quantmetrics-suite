@@ -131,6 +131,11 @@ def _prepare_sim_cache(data: pd.DataFrame) -> dict:
     }
 
 
+def _exit_tag_from_simulator(sim_result: str) -> str:
+    """Simulator outcome → compact exit tag for QuantLog / analytics (SL/TP/TIMEOUT)."""
+    return {"LOSS": "SL", "WIN": "TP", "TIMEOUT": "TIMEOUT"}.get(str(sim_result).strip(), str(sim_result))
+
+
 def _simulate_trade(data: pd.DataFrame, i: int, direction: str, tp_r: float, sl_r: float, _cache: dict | None = None) -> dict:
     if _cache is not None:
         close_arr, high_arr, low_arr, atr_arr, ts_arr = _cache["close"], _cache["high"], _cache["low"], _cache["atr"], _cache["ts"]
@@ -286,11 +291,28 @@ def run_backtest(cfg: Dict[str, Any], precomputed_regime: Optional[pd.Series] = 
         start = end - timedelta(days=period_days)
 
     data = load_parquet(base_path, symbol, tf, start=start, end=end)
+    fixed_calendar_window = bool(sd_raw and ed_raw)
     if data.empty or len(data) < 50:
-        ensure_data(symbol=symbol, timeframe=tf, base_path=base_path, period_days=fetch_span_days)
-        data = load_parquet(base_path, symbol, tf, start=start, end=end)
+        # Fixed start/end backtests need history that spans the window. Auto-fetch via
+        # ``ensure_data`` uses a single Dukascopy call that can return a short slice and
+        # **overwrite** a longer parquet — never shrink cache that way.
+        if not fixed_calendar_window:
+            ensure_data(symbol=symbol, timeframe=tf, base_path=base_path, period_days=fetch_span_days)
+            data = load_parquet(base_path, symbol, tf, start=start, end=end)
     if data.empty or len(data) < 50:
-        logger.warning("No data available. Run fetch first.")
+        if fixed_calendar_window:
+            logger.warning(
+                "No OHLC rows for backtest window %s .. %s (symbol=%s tf=%s base_path=%s). "
+                "Prefetch long history without overwriting, e.g.: "
+                "python scripts/fetch_dukascopy_xauusd.py --days 550 --tf 15m 1h",
+                start.date(),
+                end.date(),
+                symbol,
+                tf,
+                base_path,
+            )
+        else:
+            logger.warning("No data available. Run fetch first.")
         return []
 
     data = data.sort_index()
@@ -651,6 +673,30 @@ def run_backtest(cfg: Dict[str, Any], precomputed_regime: Optional[pd.Series] = 
                     "signal_id": signal_id,
                     "direction": direction,
                     "trade_id": trade_ref,
+                    "session": current_session,
+                    "regime": regime_str,
+                },
+            )
+            exit_ts_iso = _bar_timestamp_utc_iso(result["exit_ts"])
+            ql_emitter.emit(
+                event_type="trade_closed",
+                trace_id=trace_id,
+                timestamp_utc=exit_ts_iso,
+                account_id=account_id,
+                strategy_id=strategy_id_bt,
+                symbol=symbol,
+                order_ref=trade_ref,
+                payload={
+                    "trade_id": trade_ref,
+                    "order_ref": trade_ref,
+                    "direction": direction,
+                    "exit_price": float(result["exit_price"]),
+                    "pnl_abs": float(result["profit_usd"]),
+                    "pnl_r": float(result["profit_r"]),
+                    "mae_r": float(result["mae_r"]),
+                    "mfe_r": float(result["mfe_r"]),
+                    "outcome": result["result"],
+                    "exit": _exit_tag_from_simulator(result["result"]),
                     "session": current_session,
                     "regime": regime_str,
                 },

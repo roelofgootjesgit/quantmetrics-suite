@@ -53,7 +53,11 @@ from src.quantbuild.strategies.sqe_xauusd import (
 from src.quantbuild.strategy_modules.regime.detector import (
     RegimeDetector, REGIME_EXPANSION, REGIME_COMPRESSION, REGIME_TREND,
 )
-from src.quantbuild.policy.system_mode import SYSTEM_MODE_PRODUCTION, resolve_effective_filters
+from src.quantbuild.policy.system_mode import (
+    SYSTEM_MODE_PRODUCTION,
+    bypassed_filters_vs_production,
+    resolve_effective_filters,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -162,6 +166,7 @@ class LiveRunner:
         # Filter / research toggles: resolved from `system_mode` + optional `filters:` overrides
         mode, eff_filters = resolve_effective_filters(cfg)
         self._system_mode: str = mode
+        self._bypassed_by_mode: List[str] = bypassed_filters_vs_production(eff_filters)
         self._filter_regime: bool = eff_filters["regime"]
         self._filter_session: bool = eff_filters["session"]
         self._filter_cooldown: bool = eff_filters["cooldown"]
@@ -497,6 +502,7 @@ class LiveRunner:
             "session": session,
             "regime": regime or "none",
             "system_mode": getattr(self, "_system_mode", SYSTEM_MODE_PRODUCTION),
+            "bypassed_by_mode": getattr(self, "_bypassed_by_mode", []),
         }
         ctx.update(extra)
         return ctx
@@ -567,6 +573,8 @@ class LiveRunner:
             "signal_direction": direction,
             "confidence": confidence,
             "regime": regime or "none",
+            "system_mode": getattr(self, "_system_mode", SYSTEM_MODE_PRODUCTION),
+            "bypassed_by_mode": getattr(self, "_bypassed_by_mode", []),
         }
         payload.update(desk_extra)
         if not setup:
@@ -631,6 +639,7 @@ class LiveRunner:
             "decision": decision,
             "reason": eff_reason,
             "system_mode": getattr(self, "_system_mode", SYSTEM_MODE_PRODUCTION),
+            "bypassed_by_mode": getattr(self, "_bypassed_by_mode", []),
         }
         if side:
             payload["side"] = side
@@ -758,6 +767,8 @@ class LiveRunner:
             "bar_timestamp": bar_timestamp,
             "session": session,
             "regime": regime or "none",
+            "system_mode": getattr(self, "_system_mode", SYSTEM_MODE_PRODUCTION),
+            "bypassed_by_mode": getattr(self, "_bypassed_by_mode", []),
         }
         if modules_hint:
             payload["modules"] = modules_hint

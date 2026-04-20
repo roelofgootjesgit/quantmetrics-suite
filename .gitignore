@@ -12,6 +12,10 @@ data/market_cache/
 data/market_cache_dukascopy/
 data/news_cache/
 data/quantlog_events/
+data/quantlog_events_demo_loose/
+data/quantlog_events_test/
+data/source_smoke_auto/
+data/source_smoke_dukascopy/
 data/state.json
 /logs/
 *.parquet
