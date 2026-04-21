@@ -94,6 +94,18 @@ class MultiAccountExecutionOrchestrator:
             return tid
         return f"trace_qbr_{uuid4().hex[:12]}"
 
+    @staticmethod
+    def _quantlog_trade_id(request: TradeRequest, lc: OrderLifecycleResult) -> str | None:
+        if lc.trade_id and str(lc.trade_id).strip():
+            return str(lc.trade_id).strip()
+        ext = str(getattr(request, "trade_id", "") or "").strip()
+        return ext or None
+
+    @staticmethod
+    def _quantlog_decision_cycle_id(request: TradeRequest) -> str | None:
+        dc = str(getattr(request, "decision_cycle_id", "") or "").strip()
+        return dc or None
+
     def _emit_quantlog_execution_events(self, request: TradeRequest, account_id: str, lc: OrderLifecycleResult) -> None:
         """Emit canonical QuantLog-shaped events when event_callback is wired (JSONL sink)."""
         if self.event_callback is None:
@@ -106,13 +118,18 @@ class MultiAccountExecutionOrchestrator:
             "instrument": request.instrument,
             "strategy_id": request.strategy,
         }
-        if lc.status != "risk_blocked" and (lc.order_id or lc.order_ref):
+        q_tid = self._quantlog_trade_id(request, lc)
+        q_dc = self._quantlog_decision_cycle_id(request)
+        if lc.status != "risk_blocked" and (lc.order_id or lc.order_ref) and q_tid:
             sub_payload = {
                 **base,
                 "order_ref": lc.order_ref or str(lc.order_id or ""),
                 "side": request.direction,
                 "volume": float(request.units),
+                "trade_id": q_tid,
             }
+            if q_dc:
+                sub_payload["decision_cycle_id"] = q_dc
             self._emit_event("order_submitted", sub_payload)
         if lc.fill_confirmed and lc.trade_id:
             fill_payload = {
@@ -125,6 +142,8 @@ class MultiAccountExecutionOrchestrator:
                 "fill_latency_ms": lc.fill_latency_ms,
                 "spread_at_fill": lc.spread_at_fill,
             }
+            if q_dc:
+                fill_payload["decision_cycle_id"] = q_dc
             self._emit_event("order_filled", fill_payload)
 
     def execute(

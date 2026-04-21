@@ -24,6 +24,9 @@ class TradeRequest:
     routing_mode: RoutingPolicyMode = "single"
     max_fanout_accounts: Optional[int] = None
     trace_id: str = ""
+    # QuantLog correlation (QuantBuild ENTER / decision cycle); optional for standalone bridge runs.
+    trade_id: str = ""
+    decision_cycle_id: str = ""
 
 
 @dataclass(frozen=True)

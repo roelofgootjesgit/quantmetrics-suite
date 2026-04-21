@@ -159,6 +159,7 @@ def main() -> int:
         order_manager_factory=lambda account_id: managers[str(account_id)],
         event_callback=(event_sink.emit if event_sink else None),
     )
+    rid = uuid.uuid4().hex[:10]
     request = TradeRequest(
         instrument=args.instrument.upper(),
         direction=args.direction,
@@ -166,11 +167,13 @@ def main() -> int:
         sl=args.sl,
         tp=args.tp,
         comment="multi_account_execution_check",
-        client_order_ref=f"plan-{uuid.uuid4().hex[:10]}",
+        client_order_ref=f"plan-{rid}",
         strategy="OCLW",
         account_group=args.account_group,
         routing_mode=args.routing_mode,  # type: ignore[arg-type]
         max_fanout_accounts=args.max_fanout_accounts,
+        trace_id=f"trace_exec_{rid}",
+        decision_cycle_id=f"dc_exec_{rid}",
     )
     aggregate = orchestrator.execute(
         request=request,
