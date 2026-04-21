@@ -24,8 +24,9 @@ Leidende documenten: `QUANT_STACK_MVP_BLUEPRINT.md`, `QUANT_STACK_IMPLEMENTATION
 
 ## Fase 2 — QuantBridge (execution correctness)
 
-- [ ] `order_filled`: `requested_price`, `fill_price`, `slippage`, `fill_latency_ms`, `spread_at_fill`, `trade_id`, `order_ref`
-- [ ] Lifecycle: `trade_action` (ENTER) → `order_submitted` → `order_filled` → `trade_executed` → `trade_closed` consistent en traceerbaar
+- [x] `order_filled` payload: `requested_price`, `fill_price`, `slippage`, `fill_latency_ms`, `spread_at_fill` (uit `place_and_validate` + quote vóór/na fill), `trade_id` + `order_ref` op JSONL-envelope/payload
+- [x] `order_submitted` na geaccepteerde place (niet bij `risk_blocked`); `order_filled` na bevestigde fill
+- [ ] `trade_executed` / `trade_closed` in QuantBridge of broker-sync — nog te koppelen aan lifecycle
 - [ ] `trade_closed`: `exit_reason`, `entry_time_utc`, `exit_time_utc`, `holding_time_seconds`, `net_pnl`, `r_multiple`, `mae`, `mfe` (veldnamen aligned met canonical doc + QuantLog)
 
 **Repo:** `quantbridgev1`
@@ -75,3 +76,4 @@ Leidende documenten: `QUANT_STACK_MVP_BLUEPRINT.md`, `QUANT_STACK_IMPLEMENTATION
 |-------|------|
 | 2026-04 | `decision_cycle_id` + tests/fixture; backtest `signal_detected` vóór `signal_evaluated` (`quantbuildv1`) |
 | 2026-04 | Guard-telemetry, `signal_evaluated`-blueprint merge, ENTER `trade_id`, `QUANT_STACK_TODO.md` (`quantbuildv1` + `quantmetrics_os`) |
+| 2026-04 | QuantBridge: fill-metrics op `OrderLifecycleResult`, canonieke `order_submitted` / `order_filled` via orchestrator + `trade_id` op JSONL (`quantbridgev1`) |
