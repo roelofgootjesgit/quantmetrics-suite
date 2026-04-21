@@ -39,6 +39,7 @@ _INTERNAL_TO_CANONICAL: dict[str, str] = {
     "news_block": "news_filter_active",
     "llm_advice_block": "confidence_too_low",
     "spread_block": "spread_too_high",
+    "price_unavailable": "broker_unavailable",
     "atr_unavailable": "market_data_unavailable",
     "risk_block": "risk_blocked",
     "execution_exception": "broker_unavailable",

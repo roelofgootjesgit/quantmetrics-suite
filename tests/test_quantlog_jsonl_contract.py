@@ -18,6 +18,10 @@ from src.quantbuild.execution.quantlog_no_action import _CANONICAL_NO_ACTION
 
 _FIXTURE = Path(__file__).resolve().parent / "fixtures" / "quantlog" / "minimal_day" / "quantbuild.jsonl"
 
+_DECISION_CHAIN_EVENTS = frozenset(
+    {"signal_detected", "signal_evaluated", "risk_guard_decision", "trade_action"}
+)
+
 _ENVELOPE_REQUIRED = {
     "event_id",
     "event_type",
@@ -70,6 +74,9 @@ def _validate_payload(event_type: str, payload: dict) -> None:
     elif event_type == "trade_action":
         assert "decision" in payload and "reason" in payload
         dec = str(payload["decision"]).upper()
+        if dec == "ENTER":
+            tid = payload.get("trade_id")
+            assert isinstance(tid, str) and tid.strip(), "ENTER trade_action must include non-empty trade_id"
         if dec == "NO_ACTION":
             reason = payload["reason"]
             assert isinstance(reason, str) and reason in _CANONICAL_NO_ACTION, (
@@ -96,7 +103,10 @@ def test_minimal_fixture_jsonl_contract() -> None:
     for line in lines:
         event = json.loads(line)
         _validate_envelope(event)
-        _validate_payload(str(event["event_type"]), event["payload"])
+        et = str(event["event_type"])
+        if et in _DECISION_CHAIN_EVENTS:
+            _assert_non_empty_str(event, "decision_cycle_id")
+        _validate_payload(et, event["payload"])
         seq = int(event["source_seq"])
         assert seq > last_seq
         last_seq = seq
@@ -127,6 +137,7 @@ def test_quantlog_emitter_matches_contract(tmp_path) -> None:
         account_id="acct1",
         strategy_id="sqe_live_runner",
         symbol="XAUUSD",
+        decision_cycle_id="dc_emit_test_1",
         payload={"decision": "NO_ACTION", "reason": "no_setup"},
         timestamp_utc=ts,
     )
@@ -135,6 +146,7 @@ def test_quantlog_emitter_matches_contract(tmp_path) -> None:
     ev2 = emitter.emit(
         event_type="signal_detected",
         trace_id="trace_emit_1",
+        decision_cycle_id="dc_emit_test_1",
         payload={
             "signal_id": "sig_test_1",
             "type": "sqe_entry",

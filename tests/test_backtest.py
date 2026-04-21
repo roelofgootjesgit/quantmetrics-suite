@@ -122,11 +122,20 @@ class TestBacktestQuantLog:
         lines = jsonl_path.read_text(encoding="utf-8").strip().splitlines()
         assert lines, "empty quantbuild jsonl"
 
-        types = [json.loads(line)["event_type"] for line in lines]
+        parsed = [json.loads(line) for line in lines]
+        types = [e["event_type"] for e in parsed]
         assert "signal_evaluated" in types
         assert "signal_detected" in types
         assert "trade_action" in types
         assert "risk_guard_decision" in types
+        for e in parsed:
+            if e["event_type"] in (
+                "signal_detected",
+                "signal_evaluated",
+                "risk_guard_decision",
+                "trade_action",
+            ):
+                assert e.get("decision_cycle_id"), f"missing decision_cycle_id on {e['event_type']}"
         assert "order_submitted" in types
         assert "order_filled" in types
         assert "trade_executed" in types
@@ -139,6 +148,12 @@ class TestBacktestQuantLog:
 
         trade_ev = next(e for e in (json.loads(line) for line in lines) if e["event_type"] == "trade_executed")
         assert trade_ev["payload"].get("signal_id", "").startswith("sig_bt_")
+        enter_ev = next(
+            e
+            for e in (json.loads(line) for line in lines)
+            if e["event_type"] == "trade_action" and e["payload"].get("decision") == "ENTER"
+        )
+        assert enter_ev["payload"].get("trade_id")
 
 
 class TestSystemModeBacktest:

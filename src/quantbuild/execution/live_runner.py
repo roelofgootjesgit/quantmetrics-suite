@@ -358,17 +358,50 @@ class LiveRunner:
 
     # ── Execution Guardrails ──────────────────────────────────────────
 
-    def _check_spread_guard(self) -> Optional[str]:
-        """Check if current spread is within acceptable range. Returns reason if blocked."""
+    def _check_spread_guard(self) -> Optional[Dict[str, Any]]:
+        """Return a block detail dict if spread guard fails; None if OK.
+
+        Keys when blocked: ``code`` (internal), ``detail`` (human), ``observed`` (pips),
+        ``threshold`` (pips). ``observed``/``threshold`` may be None when unknown.
+        """
         if self.dry_run:
             return None
         price_info = self.broker.get_current_price()
         if price_info is None:
-            return "price_unavailable"
-        spread = price_info.get("spread", 0)
-        if spread > self._max_spread_pips:
-            return f"spread_too_wide ({spread:.2f} > {self._max_spread_pips})"
+            return {
+                "code": "price_unavailable",
+                "detail": "price_unavailable",
+                "observed": None,
+                "threshold": None,
+            }
+        spread = float(price_info.get("spread", 0) or 0.0)
+        threshold = float(self._max_spread_pips)
+        if spread > threshold:
+            return {
+                "code": "spread_block",
+                "detail": f"spread_too_wide ({spread:.2f} > {threshold})",
+                "observed": spread,
+                "threshold": threshold,
+            }
         return None
+
+    def _try_current_spread_pips(self) -> Optional[float]:
+        """Best-effort live spread in pips for telemetry; None in dry-run or if unavailable."""
+        if self.dry_run or not getattr(self.broker, "is_connected", False):
+            return None
+        try:
+            price_info = self.broker.get_current_price()
+        except Exception:
+            return None
+        if not price_info:
+            return None
+        raw = price_info.get("spread")
+        if raw is None:
+            return None
+        try:
+            return float(raw)
+        except (TypeError, ValueError):
+            return None
 
     def _check_position_limit(self) -> bool:
         """Return True if we can open another position."""
@@ -507,6 +540,42 @@ class LiveRunner:
         ctx.update(extra)
         return ctx
 
+    def _merge_signal_evaluated_blueprint_fields(
+        self,
+        payload: Dict[str, Any],
+        *,
+        decision_context: Optional[Dict[str, Any]],
+        regime: Optional[str],
+    ) -> None:
+        """Fill MVP blueprint fields on ``signal_evaluated`` when values exist (no overwrites)."""
+        if payload.get("signal_type") == "sqe_entry":
+            payload.setdefault("setup_type", "sqe")
+        dc = decision_context or {}
+        sess = dc.get("session")
+        if sess is not None:
+            payload.setdefault("session", str(sess))
+        eff_regime = regime if regime is not None else dc.get("regime")
+        if eff_regime is not None:
+            payload.setdefault("regime", str(eff_regime) if eff_regime not in ("", None) else "none")
+        cc = dc.get("combo_active_modules_count")
+        if cc is not None:
+            try:
+                payload.setdefault("combo_count", int(cc))
+            except (TypeError, ValueError):
+                pass
+        pat = dc.get("price_at_signal")
+        if pat is not None:
+            try:
+                payload.setdefault("price_at_signal", float(pat))
+            except (TypeError, ValueError):
+                pass
+        spr = dc.get("spread_pips")
+        if spr is not None:
+            try:
+                payload.setdefault("spread", float(spr))
+            except (TypeError, ValueError):
+                pass
+
     def _emit_signal_evaluated(
         self,
         *,
@@ -517,6 +586,7 @@ class LiveRunner:
         setup: bool = True,
         eval_stage: Optional[str] = None,
         decision_context: Optional[Dict[str, Any]] = None,
+        decision_cycle_id: Optional[str] = None,
     ) -> None:
         if eval_stage == "same_bar_already_processed":
             self._hourly_signal_eval_same_bar += 1
@@ -583,6 +653,11 @@ class LiveRunner:
             payload["eval_stage"] = eval_stage
         if decision_context is not None:
             payload["decision_context"] = decision_context
+        self._merge_signal_evaluated_blueprint_fields(
+            payload,
+            decision_context=decision_context,
+            regime=regime,
+        )
         self._quantlog.emit(
             event_type="signal_evaluated",
             trace_id=trace_id,
@@ -590,6 +665,7 @@ class LiveRunner:
             strategy_id="sqe_live_runner",
             symbol=self.cfg.get("symbol", "XAUUSD"),
             payload=payload,
+            decision_cycle_id=decision_cycle_id,
         )
 
     def _emit_guard_decision(
@@ -599,20 +675,42 @@ class LiveRunner:
         decision: str,
         reason: str,
         guard_name: str,
+        decision_cycle_id: Optional[str] = None,
+        threshold: Optional[float] = None,
+        observed_value: Optional[float] = None,
+        session: Optional[str] = None,
+        regime: Optional[str] = None,
     ) -> None:
         if not self._quantlog:
             return
+        from src.quantbuild.execution.quantlog_no_action import canonical_no_action_reason
+
+        eff_reason = (
+            canonical_no_action_reason(reason)
+            if (decision or "").upper() == "BLOCK"
+            else reason
+        )
+        payload: Dict[str, Any] = {
+            "guard_name": guard_name,
+            "decision": decision,
+            "reason": eff_reason,
+        }
+        if threshold is not None:
+            payload["threshold"] = threshold
+        if observed_value is not None:
+            payload["observed_value"] = observed_value
+        if session is not None:
+            payload["session"] = session
+        if regime is not None:
+            payload["regime"] = regime or "none"
         self._quantlog.emit(
             event_type="risk_guard_decision",
             trace_id=trace_id,
             account_id=self._account_id,
             strategy_id="sqe_live_runner",
             symbol=self.cfg.get("symbol", "XAUUSD"),
-            payload={
-                "guard_name": guard_name,
-                "decision": decision,
-                "reason": reason,
-            },
+            payload=payload,
+            decision_cycle_id=decision_cycle_id,
         )
 
     def _emit_trade_action(
@@ -625,6 +723,8 @@ class LiveRunner:
         session: Optional[str] = None,
         regime: Optional[str] = None,
         decision_context: Optional[Dict[str, Any]] = None,
+        decision_cycle_id: Optional[str] = None,
+        trade_id: Optional[str] = None,
     ) -> None:
         from src.quantbuild.execution.quantlog_no_action import canonical_no_action_reason
 
@@ -649,6 +749,8 @@ class LiveRunner:
             payload["regime"] = regime
         if decision_context is not None:
             payload["decision_context"] = decision_context
+        if trade_id:
+            payload["trade_id"] = trade_id
         self._quantlog.emit(
             event_type="trade_action",
             trace_id=trace_id,
@@ -656,6 +758,7 @@ class LiveRunner:
             strategy_id="sqe_live_runner",
             symbol=self.cfg.get("symbol", "XAUUSD"),
             payload=payload,
+            decision_cycle_id=decision_cycle_id,
         )
 
     def _bar_lag_minutes(self, now: datetime) -> Optional[float]:
@@ -756,6 +859,7 @@ class LiveRunner:
         regime: Optional[str],
         session: str,
         modules_hint: Optional[Dict[str, Any]] = None,
+        decision_cycle_id: Optional[str] = None,
     ) -> None:
         if not self._quantlog:
             return
@@ -779,6 +883,7 @@ class LiveRunner:
             strategy_id="sqe_live_runner",
             symbol=self.cfg.get("symbol", "XAUUSD"),
             payload=payload,
+            decision_cycle_id=decision_cycle_id,
         )
 
     def _emit_signal_filtered(
@@ -908,6 +1013,7 @@ class LiveRunner:
         position_ok: bool,
         daily_loss_ok: bool,
         cycle_trace_id: str,
+        cycle_decision_id: str,
     ) -> None:
         """Compute SQE before regime/session gates; log signal_detected then signal_filtered or execute."""
 
@@ -921,6 +1027,7 @@ class LiveRunner:
             )
             self._emit_signal_evaluated(
                 trace_id=cycle_trace_id,
+                decision_cycle_id=cycle_decision_id,
                 direction="NONE",
                 confidence=0.0,
                 regime=regime,
@@ -939,6 +1046,7 @@ class LiveRunner:
             )
             self._emit_trade_action(
                 trace_id=cycle_trace_id,
+                decision_cycle_id=cycle_decision_id,
                 decision="NO_ACTION",
                 reason="position_limit_block",
                 session=current_session,
@@ -957,6 +1065,7 @@ class LiveRunner:
             )
             self._emit_signal_evaluated(
                 trace_id=cycle_trace_id,
+                decision_cycle_id=cycle_decision_id,
                 direction="NONE",
                 confidence=0.0,
                 regime=regime,
@@ -975,6 +1084,7 @@ class LiveRunner:
             )
             self._emit_trade_action(
                 trace_id=cycle_trace_id,
+                decision_cycle_id=cycle_decision_id,
                 decision="NO_ACTION",
                 reason="daily_loss_block",
                 session=current_session,
@@ -1006,6 +1116,7 @@ class LiveRunner:
             )
             self._emit_signal_evaluated(
                 trace_id=cycle_trace_id,
+                decision_cycle_id=cycle_decision_id,
                 direction="NONE",
                 confidence=0.0,
                 regime=regime,
@@ -1026,6 +1137,7 @@ class LiveRunner:
             )
             self._emit_trade_action(
                 trace_id=cycle_trace_id,
+                decision_cycle_id=cycle_decision_id,
                 decision="NO_ACTION",
                 reason="bars_missing",
                 session=current_session,
@@ -1045,6 +1157,7 @@ class LiveRunner:
             )
             self._emit_signal_evaluated(
                 trace_id=cycle_trace_id,
+                decision_cycle_id=cycle_decision_id,
                 direction="NONE",
                 confidence=0.0,
                 regime=regime,
@@ -1065,6 +1178,7 @@ class LiveRunner:
             )
             self._emit_trade_action(
                 trace_id=cycle_trace_id,
+                decision_cycle_id=cycle_decision_id,
                 decision="NO_ACTION",
                 reason="same_bar_already_processed",
                 session=current_session,
@@ -1102,6 +1216,7 @@ class LiveRunner:
             )
             self._emit_signal_evaluated(
                 trace_id=cycle_trace_id,
+                decision_cycle_id=cycle_decision_id,
                 direction="NONE",
                 confidence=0.0,
                 regime=regime,
@@ -1124,6 +1239,7 @@ class LiveRunner:
             )
             self._emit_trade_action(
                 trace_id=cycle_trace_id,
+                decision_cycle_id=cycle_decision_id,
                 decision="NO_ACTION",
                 reason="no_entry_signal",
                 session=current_session,
@@ -1132,10 +1248,11 @@ class LiveRunner:
             )
             return
 
-        pending: List[tuple[str, str, str, Dict[str, Any]]] = []
+        pending: List[tuple[str, str, str, Dict[str, Any], str]] = []
         for direction in signals_to_check:
             trace_id = self._new_trace_id()
             signal_id = str(uuid4())
+            d_cycle = str(uuid4())
             sqe_ctx = sqe_decision_context_at_bar(precomputed_df, direction, last_idx, sqe_cfg)
             sqe_ctx["session"] = current_session
             if regime is not None:
@@ -1151,12 +1268,13 @@ class LiveRunner:
                 regime=regime,
                 session=current_session,
                 modules_hint=modules_hint or None,
+                decision_cycle_id=d_cycle,
             )
-            pending.append((direction, trace_id, signal_id, sqe_ctx))
+            pending.append((direction, trace_id, signal_id, sqe_ctx, d_cycle))
 
         rp = regime_profiles.get(regime, {}) if regime else {}
         if self._filter_regime and regime and rp.get("skip", False):
-            for _d, tid, sid, _sqe in pending:
+            for _d, tid, sid, _sqe, _dc in pending:
                 self._emit_signal_filtered(
                     trace_id=tid, signal_id=sid, raw_reason="regime_block"
                 )
@@ -1165,6 +1283,7 @@ class LiveRunner:
             )
             self._emit_signal_evaluated(
                 trace_id=cycle_trace_id,
+                decision_cycle_id=pending[0][4],
                 direction="NONE",
                 confidence=0.0,
                 regime=regime,
@@ -1186,6 +1305,7 @@ class LiveRunner:
             )
             self._emit_trade_action(
                 trace_id=cycle_trace_id,
+                decision_cycle_id=pending[0][4],
                 decision="NO_ACTION",
                 reason="regime_block",
                 session=current_session,
@@ -1197,7 +1317,7 @@ class LiveRunner:
         if self._filter_session and regime:
             allowed_sessions = rp.get("allowed_sessions")
             if allowed_sessions and current_session not in allowed_sessions:
-                for _d, tid, sid, _sqe in pending:
+                for _d, tid, sid, _sqe, _dc in pending:
                     self._emit_signal_filtered(
                         trace_id=tid, signal_id=sid, raw_reason="outside_killzone"
                     )
@@ -1209,6 +1329,7 @@ class LiveRunner:
                 )
                 self._emit_signal_evaluated(
                     trace_id=cycle_trace_id,
+                    decision_cycle_id=pending[0][4],
                     direction="NONE",
                     confidence=0.0,
                     regime=regime,
@@ -1230,6 +1351,7 @@ class LiveRunner:
                 )
                 self._emit_trade_action(
                     trace_id=cycle_trace_id,
+                    decision_cycle_id=pending[0][4],
                     decision="NO_ACTION",
                     reason="outside_killzone",
                     session=current_session,
@@ -1239,7 +1361,7 @@ class LiveRunner:
                 return
             min_hour = rp.get("min_hour_utc")
             if min_hour is not None and now.hour < min_hour:
-                for _d, tid, sid, _sqe in pending:
+                for _d, tid, sid, _sqe, _dc in pending:
                     self._emit_signal_filtered(
                         trace_id=tid, signal_id=sid, raw_reason="time_filter_block"
                     )
@@ -1252,6 +1374,7 @@ class LiveRunner:
                 )
                 self._emit_signal_evaluated(
                     trace_id=cycle_trace_id,
+                    decision_cycle_id=pending[0][4],
                     direction="NONE",
                     confidence=0.0,
                     regime=regime,
@@ -1273,6 +1396,7 @@ class LiveRunner:
                 )
                 self._emit_trade_action(
                     trace_id=cycle_trace_id,
+                    decision_cycle_id=pending[0][4],
                     decision="NO_ACTION",
                     reason="time_filter_block",
                     session=current_session,
@@ -1281,16 +1405,24 @@ class LiveRunner:
                 )
                 return
 
-        for direction, trace_id, signal_id, sqe_ctx in pending:
+        for direction, trace_id, signal_id, sqe_ctx, d_cycle in pending:
             bar_iso = str(data_15m.index[last_idx])
             emit_ctx = dict(sqe_ctx)
             emit_ctx["latest_bar_ts"] = bar_iso
+            try:
+                emit_ctx["price_at_signal"] = float(data_15m["close"].iloc[last_idx])
+            except (KeyError, TypeError, ValueError):
+                pass
+            sp_live = self._try_current_spread_pips()
+            if sp_live is not None:
+                emit_ctx["spread_pips"] = sp_live
             self._emit_signal_evaluated(
                 trace_id=trace_id,
                 direction=direction,
                 confidence=1.0,
                 regime=regime,
                 decision_context=emit_ctx,
+                decision_cycle_id=d_cycle,
             )
             action, reason = self._evaluate_and_execute(
                 direction,
@@ -1301,6 +1433,7 @@ class LiveRunner:
                 current_session,
                 strategy_decision_context=sqe_ctx,
                 signal_id=signal_id,
+                decision_cycle_id=d_cycle,
             )
             self._log_decision_cycle(
                 now=now,
@@ -1327,6 +1460,7 @@ class LiveRunner:
         daily_loss_ok = self._check_daily_loss_limit()
         # One trace for pre-signal exits in this cycle (PLATFORM_ROADMAP P3 / QUANTBUILD_ROADMAP).
         cycle_trace_id = self._new_trace_id()
+        cycle_decision_id = str(uuid4())
 
         if self._research_raw_first:
             self._check_signals_research_raw_first(
@@ -1337,6 +1471,7 @@ class LiveRunner:
                 position_ok,
                 daily_loss_ok,
                 cycle_trace_id,
+                cycle_decision_id,
             )
             return
 
@@ -1350,6 +1485,7 @@ class LiveRunner:
                 )
                 self._emit_signal_evaluated(
                     trace_id=cycle_trace_id,
+                    decision_cycle_id=cycle_decision_id,
                     direction="NONE",
                     confidence=0.0,
                     regime=regime,
@@ -1368,6 +1504,7 @@ class LiveRunner:
                 )
                 self._emit_trade_action(
                     trace_id=cycle_trace_id,
+                    decision_cycle_id=cycle_decision_id,
                     decision="NO_ACTION",
                     reason="regime_block",
                     session=current_session,
@@ -1389,6 +1526,7 @@ class LiveRunner:
                     )
                     self._emit_signal_evaluated(
                         trace_id=cycle_trace_id,
+                        decision_cycle_id=cycle_decision_id,
                         direction="NONE",
                         confidence=0.0,
                         regime=regime,
@@ -1407,6 +1545,7 @@ class LiveRunner:
                     )
                     self._emit_trade_action(
                         trace_id=cycle_trace_id,
+                        decision_cycle_id=cycle_decision_id,
                         decision="NO_ACTION",
                         reason="outside_killzone",
                         session=current_session,
@@ -1427,6 +1566,7 @@ class LiveRunner:
                     )
                     self._emit_signal_evaluated(
                         trace_id=cycle_trace_id,
+                        decision_cycle_id=cycle_decision_id,
                         direction="NONE",
                         confidence=0.0,
                         regime=regime,
@@ -1445,6 +1585,7 @@ class LiveRunner:
                     )
                     self._emit_trade_action(
                         trace_id=cycle_trace_id,
+                        decision_cycle_id=cycle_decision_id,
                         decision="NO_ACTION",
                         reason="time_filter_block",
                         session=current_session,
@@ -1464,6 +1605,7 @@ class LiveRunner:
             )
             self._emit_signal_evaluated(
                 trace_id=cycle_trace_id,
+                decision_cycle_id=cycle_decision_id,
                 direction="NONE",
                 confidence=0.0,
                 regime=regime,
@@ -1482,6 +1624,7 @@ class LiveRunner:
             )
             self._emit_trade_action(
                 trace_id=cycle_trace_id,
+                decision_cycle_id=cycle_decision_id,
                 decision="NO_ACTION",
                 reason="position_limit_block",
                 session=current_session,
@@ -1501,6 +1644,7 @@ class LiveRunner:
             )
             self._emit_signal_evaluated(
                 trace_id=cycle_trace_id,
+                decision_cycle_id=cycle_decision_id,
                 direction="NONE",
                 confidence=0.0,
                 regime=regime,
@@ -1519,6 +1663,7 @@ class LiveRunner:
             )
             self._emit_trade_action(
                 trace_id=cycle_trace_id,
+                decision_cycle_id=cycle_decision_id,
                 decision="NO_ACTION",
                 reason="daily_loss_block",
                 session=current_session,
@@ -1548,6 +1693,7 @@ class LiveRunner:
             )
             self._emit_signal_evaluated(
                 trace_id=cycle_trace_id,
+                decision_cycle_id=cycle_decision_id,
                 direction="NONE",
                 confidence=0.0,
                 regime=regime,
@@ -1568,6 +1714,7 @@ class LiveRunner:
             )
             self._emit_trade_action(
                 trace_id=cycle_trace_id,
+                decision_cycle_id=cycle_decision_id,
                 decision="NO_ACTION",
                 reason="bars_missing",
                 session=current_session,
@@ -1588,6 +1735,7 @@ class LiveRunner:
             )
             self._emit_signal_evaluated(
                 trace_id=cycle_trace_id,
+                decision_cycle_id=cycle_decision_id,
                 direction="NONE",
                 confidence=0.0,
                 regime=regime,
@@ -1608,6 +1756,7 @@ class LiveRunner:
             )
             self._emit_trade_action(
                 trace_id=cycle_trace_id,
+                decision_cycle_id=cycle_decision_id,
                 decision="NO_ACTION",
                 reason="same_bar_already_processed",
                 session=current_session,
@@ -1646,6 +1795,7 @@ class LiveRunner:
             )
             self._emit_signal_evaluated(
                 trace_id=cycle_trace_id,
+                decision_cycle_id=cycle_decision_id,
                 direction="NONE",
                 confidence=0.0,
                 regime=regime,
@@ -1668,6 +1818,7 @@ class LiveRunner:
             )
             self._emit_trade_action(
                 trace_id=cycle_trace_id,
+                decision_cycle_id=cycle_decision_id,
                 decision="NO_ACTION",
                 reason="no_entry_signal",
                 session=current_session,
@@ -1679,6 +1830,7 @@ class LiveRunner:
         for direction in signals_to_check:
             trace_id = self._new_trace_id()
             signal_id = str(uuid4())
+            dir_cycle_id = str(uuid4())
             confidence = 1.0
             sqe_ctx = sqe_decision_context_at_bar(precomputed_df, direction, last_idx, sqe_cfg)
             sqe_ctx["session"] = current_session
@@ -1695,15 +1847,24 @@ class LiveRunner:
                 regime=regime,
                 session=current_session,
                 modules_hint=modules_hint or None,
+                decision_cycle_id=dir_cycle_id,
             )
             emit_ctx = dict(sqe_ctx)
             emit_ctx["latest_bar_ts"] = str(data_15m.index[last_idx])
+            try:
+                emit_ctx["price_at_signal"] = float(data_15m["close"].iloc[last_idx])
+            except (KeyError, TypeError, ValueError):
+                pass
+            sp_live = self._try_current_spread_pips()
+            if sp_live is not None:
+                emit_ctx["spread_pips"] = sp_live
             self._emit_signal_evaluated(
                 trace_id=trace_id,
                 direction=direction,
                 confidence=confidence,
                 regime=regime,
                 decision_context=emit_ctx,
+                decision_cycle_id=dir_cycle_id,
             )
             action, reason = self._evaluate_and_execute(
                 direction,
@@ -1714,6 +1875,7 @@ class LiveRunner:
                 current_session,
                 strategy_decision_context=sqe_ctx,
                 signal_id=signal_id,
+                decision_cycle_id=dir_cycle_id,
             )
             self._log_decision_cycle(
                 now=now,
@@ -1740,6 +1902,7 @@ class LiveRunner:
         session: str,
         strategy_decision_context: Optional[Dict[str, Any]] = None,
         signal_id: Optional[str] = None,
+        decision_cycle_id: Optional[str] = None,
     ) -> tuple[str, str]:
         """Run final checks and submit order for a signal."""
         strategy_decision_context = dict(strategy_decision_context or {})
@@ -1759,12 +1922,16 @@ class LiveRunner:
                 logger.info("NewsGate blocks %s: %s", direction, gate_result["reason"])
                 self._emit_guard_decision(
                     trace_id=trace_id,
+                    decision_cycle_id=decision_cycle_id,
                     decision="BLOCK",
                     reason="news_block",
                     guard_name="news_gate",
+                    session=session,
+                    regime=regime,
                 )
                 self._emit_trade_action(
                     trace_id=trace_id,
+                    decision_cycle_id=decision_cycle_id,
                     decision="NO_ACTION",
                     reason="news_block",
                     side=direction,
@@ -1806,12 +1973,17 @@ class LiveRunner:
                 )
                 self._emit_guard_decision(
                     trace_id=trace_id,
+                    decision_cycle_id=decision_cycle_id,
                     decision="BLOCK",
                     reason="llm_advice_block",
                     guard_name="llm_advisor",
+                    session=session,
+                    regime=regime,
+                    observed_value=float(advice.get("confidence", 0.0)),
                 )
                 self._emit_trade_action(
                     trace_id=trace_id,
+                    decision_cycle_id=decision_cycle_id,
                     decision="NO_ACTION",
                     reason="llm_advice_block",
                     side=direction,
@@ -1850,27 +2022,42 @@ class LiveRunner:
         # Spread guard
         spread_issue = self._check_spread_guard() if self._filter_spread else None
         if spread_issue:
-            logger.info("Spread guard blocks entry: %s", spread_issue)
+            code = str(spread_issue.get("code") or "spread_block")
+            detail_msg = str(spread_issue.get("detail") or code)
+            logger.info("Spread guard blocks entry: %s", detail_msg)
+            thr_raw = spread_issue.get("threshold")
+            obs_raw = spread_issue.get("observed")
+            thr_v = float(thr_raw) if isinstance(thr_raw, (int, float)) else None
+            obs_v = float(obs_raw) if isinstance(obs_raw, (int, float)) else None
+            guard_nm = "price_feed" if code == "price_unavailable" else "spread_guard"
+            internal_reason = "price_unavailable" if code == "price_unavailable" else "spread_block"
+            raw_filter = "price_unavailable" if code == "price_unavailable" else "spread_block"
             self._emit_guard_decision(
                 trace_id=trace_id,
+                decision_cycle_id=decision_cycle_id,
                 decision="BLOCK",
-                reason="spread_block",
-                guard_name="spread_guard",
+                reason=internal_reason,
+                guard_name=guard_nm,
+                threshold=thr_v,
+                observed_value=obs_v,
+                session=session,
+                regime=regime,
             )
             self._emit_trade_action(
                 trace_id=trace_id,
+                decision_cycle_id=decision_cycle_id,
                 decision="NO_ACTION",
-                reason="spread_block",
+                reason=internal_reason,
                 side=direction,
                 session=session,
                 regime=regime,
-                decision_context=_with_exec({"blocked_by": "spread_block", "detail": spread_issue}),
+                decision_context=_with_exec({"blocked_by": internal_reason, "detail": detail_msg}),
             )
             if signal_id:
                 self._emit_signal_filtered(
-                    trace_id=trace_id, signal_id=signal_id, raw_reason="spread_block"
+                    trace_id=trace_id, signal_id=signal_id, raw_reason=raw_filter
                 )
-            return "no_trade", "spread_block"
+            return "no_trade", internal_reason
 
         # Calculate SL/TP from ATR
         entry_atr = self._current_atr
@@ -1881,12 +2068,18 @@ class LiveRunner:
             logger.warning("ATR is 0 — cannot calculate SL/TP")
             self._emit_guard_decision(
                 trace_id=trace_id,
+                decision_cycle_id=decision_cycle_id,
                 decision="BLOCK",
                 reason="atr_unavailable",
                 guard_name="atr_guard",
+                session=session,
+                regime=regime,
+                threshold=0.0,
+                observed_value=float(entry_atr),
             )
             self._emit_trade_action(
                 trace_id=trace_id,
+                decision_cycle_id=decision_cycle_id,
                 decision="NO_ACTION",
                 reason="atr_unavailable",
                 side=direction,
@@ -1910,12 +2103,16 @@ class LiveRunner:
                 logger.warning("Cannot get current price for order")
                 self._emit_guard_decision(
                     trace_id=trace_id,
+                    decision_cycle_id=decision_cycle_id,
                     decision="BLOCK",
                     reason="price_unavailable",
                     guard_name="price_feed",
+                    session=session,
+                    regime=regime,
                 )
                 self._emit_trade_action(
                     trace_id=trace_id,
+                    decision_cycle_id=decision_cycle_id,
                     decision="NO_ACTION",
                     reason="price_unavailable",
                     side=direction,
@@ -1949,12 +2146,18 @@ class LiveRunner:
             logger.warning("Position size is 0 — skipping")
             self._emit_guard_decision(
                 trace_id=trace_id,
+                decision_cycle_id=decision_cycle_id,
                 decision="BLOCK",
                 reason="risk_block",
                 guard_name="position_sizing",
+                session=session,
+                regime=regime,
+                threshold=0.0,
+                observed_value=float(units),
             )
             self._emit_trade_action(
                 trace_id=trace_id,
+                decision_cycle_id=decision_cycle_id,
                 decision="NO_ACTION",
                 reason="risk_block",
                 side=direction,
@@ -1998,6 +2201,7 @@ class LiveRunner:
                 logger.error("QuantBridge execution failed: %s", e)
                 self._emit_trade_action(
                     trace_id=trace_id,
+                    decision_cycle_id=decision_cycle_id,
                     decision="NO_ACTION",
                     reason="execution_exception",
                     side=direction,
@@ -2015,6 +2219,7 @@ class LiveRunner:
                 logger.error("Order failed via QuantBridge: %s", exec_result.message)
                 self._emit_trade_action(
                     trace_id=trace_id,
+                    decision_cycle_id=decision_cycle_id,
                     decision="NO_ACTION",
                     reason="execution_reject",
                     side=direction,
@@ -2042,14 +2247,21 @@ class LiveRunner:
                     slippage, 100 * slippage / risk_amount,
                 )
                 self.broker.close_trade(trade_id)
+                slip_ratio = float(slippage / risk_amount) if risk_amount > 0 else 0.0
                 self._emit_guard_decision(
                     trace_id=trace_id,
+                    decision_cycle_id=decision_cycle_id,
                     decision="BLOCK",
                     reason="slippage_block",
                     guard_name="slippage_guard",
+                    session=session,
+                    regime=regime,
+                    threshold=float(self._max_slippage_r),
+                    observed_value=slip_ratio,
                 )
                 self._emit_trade_action(
                     trace_id=trace_id,
+                    decision_cycle_id=decision_cycle_id,
                     decision="NO_ACTION",
                     reason="slippage_block",
                     side=direction,
@@ -2107,12 +2319,14 @@ class LiveRunner:
         if self.dry_run:
             self._emit_trade_action(
                 trace_id=trace_id,
+                decision_cycle_id=decision_cycle_id,
                 decision="ENTER",
                 reason="all_conditions_met",
                 side=direction,
                 session=session,
                 regime=regime,
                 decision_context=enter_ctx,
+                trade_id=trade_id,
             )
             self._emit_trade_executed(
                 trace_id=trace_id,
@@ -2125,12 +2339,14 @@ class LiveRunner:
             return "order_intent", "all_conditions_met"
         self._emit_trade_action(
             trace_id=trace_id,
+            decision_cycle_id=decision_cycle_id,
             decision="ENTER",
             reason="all_conditions_met",
             side=direction,
             session=session,
             regime=regime,
             decision_context=enter_ctx,
+            trade_id=trade_id,
         )
         self._emit_trade_executed(
             trace_id=trace_id,

@@ -410,6 +410,7 @@ def run_backtest(cfg: Dict[str, Any], precomputed_regime: Optional[pd.Series] = 
 
     if ql_emitter:
         ts_first = _bar_timestamp_utc_iso(data.index[0])
+        bookend_start_cycle = str(uuid4())
         ql_emitter.emit(
             event_type="signal_evaluated",
             trace_id=trace_bt_run,
@@ -417,6 +418,7 @@ def run_backtest(cfg: Dict[str, Any], precomputed_regime: Optional[pd.Series] = 
             account_id=account_id,
             strategy_id=strategy_id_bt,
             symbol=symbol,
+            decision_cycle_id=bookend_start_cycle,
                 payload={
                     "signal_type": "sqe_entry",
                     "signal_direction": "NONE",
@@ -444,13 +446,35 @@ def run_backtest(cfg: Dict[str, Any], precomputed_regime: Optional[pd.Series] = 
         regime_str = str(current_regime) if current_regime is not None else "none"
 
         trace_id = str(uuid4())
+        decision_cycle_id = str(uuid4())
         signal_id = f"sig_bt_{trace_id.replace('-', '')[:16]}"
         ts_iso = _bar_timestamp_utc_iso(entry_ts)
         decision_ctx_at_bar = sqe_decision_context_at_bar(precomputed_df, direction, i, sqe_cfg)
+        try:
+            price_at_sig = float(data["close"].iloc[i])
+        except (KeyError, TypeError, ValueError, IndexError):
+            price_at_sig = None
+        combo_n = decision_ctx_at_bar.get("combo_active_modules_count")
 
         def _emit_signal_evaluated() -> None:
             if not ql_emitter:
                 return
+            se_payload: Dict[str, Any] = {
+                "signal_type": "sqe_entry",
+                "setup_type": "sqe",
+                "signal_direction": direction,
+                "confidence": 1.0,
+                "regime": regime_str,
+                "session": current_session,
+                "eval_stage": "backtest_candidate",
+            }
+            if combo_n is not None:
+                try:
+                    se_payload["combo_count"] = int(combo_n)
+                except (TypeError, ValueError):
+                    pass
+            if price_at_sig is not None:
+                se_payload["price_at_signal"] = price_at_sig
             ql_emitter.emit(
                 event_type="signal_evaluated",
                 trace_id=trace_id,
@@ -458,13 +482,8 @@ def run_backtest(cfg: Dict[str, Any], precomputed_regime: Optional[pd.Series] = 
                 account_id=account_id,
                 strategy_id=strategy_id_bt,
                 symbol=symbol,
-                payload={
-                    "signal_type": "sqe_entry",
-                    "signal_direction": direction,
-                    "confidence": 1.0,
-                    "regime": regime_str,
-                    "eval_stage": "backtest_candidate",
-                },
+                decision_cycle_id=decision_cycle_id,
+                payload=se_payload,
             )
 
         def _emit_signal_detected() -> None:
@@ -477,6 +496,7 @@ def run_backtest(cfg: Dict[str, Any], precomputed_regime: Optional[pd.Series] = 
                 account_id=account_id,
                 strategy_id=strategy_id_bt,
                 symbol=symbol,
+                decision_cycle_id=decision_cycle_id,
                 payload={
                     "signal_id": signal_id,
                     "type": "sqe_entry",
@@ -500,10 +520,13 @@ def run_backtest(cfg: Dict[str, Any], precomputed_regime: Optional[pd.Series] = 
                 account_id=account_id,
                 strategy_id=strategy_id_bt,
                 symbol=symbol,
+                decision_cycle_id=decision_cycle_id,
                 payload={
                     "guard_name": guard_name,
                     "decision": "BLOCK",
-                    "reason": internal_code,
+                    "reason": eff,
+                    "session": current_session,
+                    "regime": regime_str,
                 },
             )
             ql_emitter.emit(
@@ -513,6 +536,7 @@ def run_backtest(cfg: Dict[str, Any], precomputed_regime: Optional[pd.Series] = 
                 account_id=account_id,
                 strategy_id=strategy_id_bt,
                 symbol=symbol,
+                decision_cycle_id=decision_cycle_id,
                 payload={
                     "decision": "NO_ACTION",
                     "reason": eff,
@@ -536,8 +560,8 @@ def run_backtest(cfg: Dict[str, Any], precomputed_regime: Optional[pd.Series] = 
                 },
             )
 
-        _emit_signal_evaluated()
         _emit_signal_detected()
+        _emit_signal_evaluated()
 
         if eff_f.get("daily_loss", True) and daily_pnl_r.get(trade_date, 0.0) <= -max_daily_loss_r:
             _emit_blocked("daily_loss_block", "daily_loss_cap")
@@ -612,6 +636,7 @@ def run_backtest(cfg: Dict[str, Any], precomputed_regime: Optional[pd.Series] = 
                 account_id=account_id,
                 strategy_id=strategy_id_bt,
                 symbol=symbol,
+                decision_cycle_id=decision_cycle_id,
                 payload={
                     "guard_name": "backtest_pipeline",
                     "decision": "ALLOW",
@@ -625,6 +650,7 @@ def run_backtest(cfg: Dict[str, Any], precomputed_regime: Optional[pd.Series] = 
                 account_id=account_id,
                 strategy_id=strategy_id_bt,
                 symbol=symbol,
+                decision_cycle_id=decision_cycle_id,
                 payload={
                     "decision": "ENTER",
                     "reason": "all_conditions_met",
@@ -632,6 +658,7 @@ def run_backtest(cfg: Dict[str, Any], precomputed_regime: Optional[pd.Series] = 
                     "session": current_session,
                     "regime": regime_str,
                     "system_mode": system_mode,
+                    "trade_id": trade_ref,
                 },
             )
             ql_emitter.emit(
@@ -753,6 +780,7 @@ def run_backtest(cfg: Dict[str, Any], precomputed_regime: Optional[pd.Series] = 
 
     if ql_emitter:
         ts_last = _bar_timestamp_utc_iso(data.index[-1])
+        bookend_complete_cycle = str(uuid4())
         complete_payload: Dict[str, Any] = {
             "signal_type": "sqe_entry",
             "signal_direction": "NONE",
@@ -774,6 +802,7 @@ def run_backtest(cfg: Dict[str, Any], precomputed_regime: Optional[pd.Series] = 
             account_id=account_id,
             strategy_id=strategy_id_bt,
             symbol=symbol,
+            decision_cycle_id=bookend_complete_cycle,
             payload=complete_payload,
         )
 

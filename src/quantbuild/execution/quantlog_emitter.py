@@ -54,6 +54,7 @@ class QuantLogEmitter:
         account_id: str | None = None,
         strategy_id: str | None = None,
         symbol: str | None = None,
+        decision_cycle_id: str | None = None,
     ) -> dict[str, Any]:
         self.source_seq += 1
         ts = timestamp_utc or _utc_now_iso()
@@ -83,6 +84,8 @@ class QuantLogEmitter:
             event["strategy_id"] = strategy_id
         if symbol:
             event["symbol"] = symbol
+        if decision_cycle_id:
+            event["decision_cycle_id"] = decision_cycle_id
 
         target = self._target_file(ts)
         lock_path = target.with_suffix(target.suffix + ".lock")
