@@ -25,6 +25,7 @@ Leidende documenten: `QUANT_STACK_MVP_BLUEPRINT.md`, `QUANT_STACK_IMPLEMENTATION
 ## Fase 2 — QuantBridge (execution correctness)
 
 - [x] `order_filled` payload: `requested_price`, `fill_price`, `slippage`, `fill_latency_ms`, `spread_at_fill` (uit `place_and_validate` + quote vóór/na fill), `trade_id` + `order_ref` op JSONL-envelope/payload
+- [x] `order_submitted` / `order_filled` QuantLog-payload: `trade_id` verplicht; `decision_cycle_id` meesturen wanneer bekend in `TradeRequest` (orchestrator + check-script)
 - [x] `order_submitted` na geaccepteerde place (niet bij `risk_blocked`); `order_filled` na bevestigde fill
 - [ ] `trade_executed` / `trade_closed` in QuantBridge of broker-sync — nog te koppelen aan lifecycle
 - [ ] `trade_closed`: `exit_reason`, `entry_time_utc`, `exit_time_utc`, `holding_time_seconds`, `net_pnl`, `r_multiple`, `mae`, `mfe` (veldnamen aligned met canonical doc + QuantLog)
@@ -46,7 +47,7 @@ Leidende documenten: `QUANT_STACK_MVP_BLUEPRINT.md`, `QUANT_STACK_IMPLEMENTATION
 
 ## Fase 4 — QuantAnalytics (MVP)
 
-- [ ] JSONL → tabellen: `decisions`, `guard_decisions`, `executions`, `closed_trades` (of gelijkwaardige grains per consumer-plan)
+- [x] JSONL → tabellen (deel): `trade_action` → **decisions** TSV-export via CLI (`--export-decisions-tsv`); `guard_decisions` / `executions` / `closed_trades` nog te bouwen
 - [ ] Metrics: throughput-funnel, NO_ACTION-verdeling, expectancy per setup / session / regime
 - [ ] Output: `run_summary.json` / `run_summary.md` (of afgesproken artefacten)
 
@@ -82,3 +83,5 @@ Leidende documenten: `QUANT_STACK_MVP_BLUEPRINT.md`, `QUANT_STACK_IMPLEMENTATION
 | 2026-04 | QuantLog: referentiële correlatie (`trade_id`/`order_ref`) + envelope-payload-afstemming (`quantlogv1`) |
 | 2026-04 | QuantLog: decision-chain envelope consistentie per `decision_cycle_id` (run/session/trace/symbol) (`quantlogv1`) |
 | 2026-04 | QuantLog: §2.3 linkage ENTER→`trade_id` vs latere events; verplicht `trade_id` op `order_submitted`/`order_filled`; `day_validation_report.py`; QuantBridge envelope `decision_cycle_id` (`quantlogv1` + `quantbridgev1`) |
+| 2026-04 | QuantBridge: orchestrator stuurt `trade_id` + optioneel `decision_cycle_id` op order-events; `TradeRequest` uitgebreid (`quantbridgev1`) |
+| 2026-04 | QuantAnalytics: MVP `decisions` TSV-export (`quantmetrics_analytics.datasets.decisions`, CLI flag) (`quantanalyticsv1`) |
