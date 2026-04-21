@@ -27,14 +27,19 @@ class ScenarioContext:
     trace_id: str
     order_ref: str
     position_id: str
+    decision_cycle_id: str
+    trade_id: str
 
 
 def _new_context(prefix: str) -> ScenarioContext:
     suffix = uuid4().hex[:10]
+    tid = f"trade_{prefix}_{suffix}"
     return ScenarioContext(
         trace_id=f"trace_{prefix}_{suffix}",
         order_ref=f"ord_{prefix}_{suffix}",
         position_id=f"pos_{prefix}_{suffix}",
+        decision_cycle_id=f"dc_{prefix}_{suffix}",
+        trade_id=tid,
     )
 
 
@@ -55,6 +60,7 @@ def _emit_happy_path(
     qb.emit(
         event_type="signal_evaluated",
         trace_id=ctx.trace_id,
+        decision_cycle_id=ctx.decision_cycle_id,
         account_id=account_id,
         strategy_id=strategy_id,
         symbol=symbol,
@@ -68,6 +74,7 @@ def _emit_happy_path(
     qb.emit(
         event_type="risk_guard_decision",
         trace_id=ctx.trace_id,
+        decision_cycle_id=ctx.decision_cycle_id,
         account_id=account_id,
         strategy_id=strategy_id,
         symbol=symbol,
@@ -81,6 +88,7 @@ def _emit_happy_path(
     qb.emit(
         event_type="trade_action",
         trace_id=ctx.trace_id,
+        decision_cycle_id=ctx.decision_cycle_id,
         account_id=account_id,
         strategy_id=strategy_id,
         symbol=symbol,
@@ -88,12 +96,14 @@ def _emit_happy_path(
             "decision": "ENTER",
             "reason": "all_guards_passed",
             "side": "BUY",
+            "trade_id": ctx.trade_id,
         },
         timestamp_utc="2026-03-29T18:00:02Z",
     )
     qbr.emit(
         event_type="order_submitted",
         trace_id=ctx.trace_id,
+        decision_cycle_id=ctx.decision_cycle_id,
         order_ref=ctx.order_ref,
         account_id=account_id,
         strategy_id=strategy_id,
@@ -102,12 +112,15 @@ def _emit_happy_path(
             "order_ref": ctx.order_ref,
             "side": "BUY",
             "volume": 0.5,
+            "trade_id": ctx.trade_id,
+            "decision_cycle_id": ctx.decision_cycle_id,
         },
         timestamp_utc="2026-03-29T18:00:03Z",
     )
     qbr.emit(
         event_type="order_filled",
         trace_id=ctx.trace_id,
+        decision_cycle_id=ctx.decision_cycle_id,
         order_ref=ctx.order_ref,
         position_id=ctx.position_id,
         account_id=account_id,
@@ -117,6 +130,8 @@ def _emit_happy_path(
             "order_ref": ctx.order_ref,
             "fill_price": 2351.42,
             "slippage": 0.12,
+            "trade_id": ctx.trade_id,
+            "decision_cycle_id": ctx.decision_cycle_id,
         },
         timestamp_utc="2026-03-29T18:00:04Z",
     )
@@ -133,6 +148,7 @@ def _emit_block_path(
     qb.emit(
         event_type="signal_evaluated",
         trace_id=ctx.trace_id,
+        decision_cycle_id=ctx.decision_cycle_id,
         account_id=account_id,
         strategy_id=strategy_id,
         symbol=symbol,
@@ -146,6 +162,7 @@ def _emit_block_path(
     qb.emit(
         event_type="risk_guard_decision",
         trace_id=ctx.trace_id,
+        decision_cycle_id=ctx.decision_cycle_id,
         account_id=account_id,
         strategy_id=strategy_id,
         symbol=symbol,
@@ -159,6 +176,7 @@ def _emit_block_path(
     qb.emit(
         event_type="trade_action",
         trace_id=ctx.trace_id,
+        decision_cycle_id=ctx.decision_cycle_id,
         account_id=account_id,
         strategy_id=strategy_id,
         symbol=symbol,

@@ -669,6 +669,73 @@ def _referential_correlation_issues(rows: list[tuple[Path, int, dict[str, Any]]]
     return issues
 
 
+def _decision_cycle_trade_linkage_issues(
+    rows: list[tuple[Path, int, dict[str, Any]]],
+) -> list[ValidationIssue]:
+    """ENTER maps ``decision_cycle_id`` → ``trade_id``; later rows with both must match (§2.3)."""
+    issues: list[ValidationIssue] = []
+    dc_to_tid: dict[str, str] = {}
+
+    for path, line_no, ev in rows:
+        if ev.get("source_system") != "quantbuild" or ev.get("event_type") != "trade_action":
+            continue
+        pl = ev.get("payload")
+        if not isinstance(pl, dict):
+            continue
+        if str(pl.get("decision", "")).strip().upper() != "ENTER":
+            continue
+        dc = ev.get("decision_cycle_id")
+        if not isinstance(dc, str) or not dc.strip():
+            continue
+        dc_s = dc.strip()
+        tid = _canonical_trade_id(ev)
+        if tid is None:
+            continue
+        prev = dc_to_tid.get(dc_s)
+        if prev is not None and prev != tid:
+            issues.append(
+                ValidationIssue(
+                    level="error",
+                    path=path,
+                    line_number=line_no,
+                    message=(
+                        "decision_cycle_enter_trade_id_conflict: "
+                        f"decision_cycle_id={dc_s!r} "
+                        f"first_trade_id={prev!r} conflicting_trade_id={tid!r}"
+                    ),
+                )
+            )
+        else:
+            dc_to_tid.setdefault(dc_s, tid)
+
+    for path, line_no, ev in rows:
+        dc = ev.get("decision_cycle_id")
+        if not isinstance(dc, str) or not dc.strip():
+            continue
+        dc_s = dc.strip()
+        if dc_s not in dc_to_tid:
+            continue
+        exp = dc_to_tid[dc_s]
+        tid = _canonical_trade_id(ev)
+        if tid is None:
+            continue
+        if tid != exp:
+            issues.append(
+                ValidationIssue(
+                    level="error",
+                    path=path,
+                    line_number=line_no,
+                    message=(
+                        "decision_cycle_trade_id_linkage_mismatch: "
+                        f"decision_cycle_id={dc_s!r} "
+                        f"expected_trade_id_from_enter={exp!r} got_trade_id={tid!r}"
+                    ),
+                )
+            )
+
+    return issues
+
+
 @dataclass(slots=True, frozen=True)
 class _DecisionChainAnchor:
     path: Path
@@ -942,6 +1009,12 @@ def validate_path(path: Path) -> ValidationReport:
     for ri in ref_issues:
         if ri.level == "error":
             schema_ok_lines.discard((ri.path, ri.line_number))
+
+    link_issues = _decision_cycle_trade_linkage_issues(ref_rows)
+    issues.extend(link_issues)
+    for li in link_issues:
+        if li.level == "error":
+            schema_ok_lines.discard((li.path, li.line_number))
 
     return ValidationReport(
         files_scanned=len(jsonl_files),

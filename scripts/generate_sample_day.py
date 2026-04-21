@@ -27,6 +27,8 @@ class TraceIds:
     trace_id: str
     order_ref: str
     position_id: str
+    decision_cycle_id: str
+    trade_id: str
 
 
 def _mk_ids(prefix: str, idx: int) -> TraceIds:
@@ -35,6 +37,8 @@ def _mk_ids(prefix: str, idx: int) -> TraceIds:
         trace_id=f"trace_{prefix}_{idx}_{suffix}",
         order_ref=f"ord_{prefix}_{idx}_{suffix}",
         position_id=f"pos_{prefix}_{idx}_{suffix}",
+        decision_cycle_id=f"dc_{prefix}_{idx}_{suffix}",
+        trade_id=f"trade_{prefix}_{idx}_{suffix}",
     )
 
 
@@ -54,6 +58,7 @@ def _emit_happy(
     qb.emit(
         event_type="signal_evaluated",
         trace_id=ids.trace_id,
+        decision_cycle_id=ids.decision_cycle_id,
         account_id=account_id,
         strategy_id=strategy_id,
         symbol=symbol,
@@ -63,6 +68,7 @@ def _emit_happy(
     qb.emit(
         event_type="risk_guard_decision",
         trace_id=ids.trace_id,
+        decision_cycle_id=ids.decision_cycle_id,
         account_id=account_id,
         strategy_id=strategy_id,
         symbol=symbol,
@@ -72,32 +78,52 @@ def _emit_happy(
     qb.emit(
         event_type="trade_action",
         trace_id=ids.trace_id,
+        decision_cycle_id=ids.decision_cycle_id,
         account_id=account_id,
         strategy_id=strategy_id,
         symbol=symbol,
         timestamp_utc=_fmt(base_dt + timedelta(seconds=2)),
-        payload={"decision": "ENTER", "reason": "all_guards_passed", "side": "BUY"},
+        payload={
+            "decision": "ENTER",
+            "reason": "all_guards_passed",
+            "side": "BUY",
+            "trade_id": ids.trade_id,
+        },
     )
     qbr.emit(
         event_type="order_submitted",
         trace_id=ids.trace_id,
+        decision_cycle_id=ids.decision_cycle_id,
         order_ref=ids.order_ref,
         account_id=account_id,
         strategy_id=strategy_id,
         symbol=symbol,
         timestamp_utc=_fmt(base_dt + timedelta(seconds=3)),
-        payload={"order_ref": ids.order_ref, "side": "BUY", "volume": 0.5},
+        payload={
+            "order_ref": ids.order_ref,
+            "side": "BUY",
+            "volume": 0.5,
+            "trade_id": ids.trade_id,
+            "decision_cycle_id": ids.decision_cycle_id,
+        },
     )
     qbr.emit(
         event_type="order_filled",
         trace_id=ids.trace_id,
+        decision_cycle_id=ids.decision_cycle_id,
         order_ref=ids.order_ref,
         position_id=ids.position_id,
         account_id=account_id,
         strategy_id=strategy_id,
         symbol=symbol,
         timestamp_utc=_fmt(base_dt + timedelta(seconds=4)),
-        payload={"order_ref": ids.order_ref, "fill_price": 2350.0, "slippage": 0.08},
+        payload={
+            "order_ref": ids.order_ref,
+            "fill_price": 2350.0,
+            "slippage": 0.08,
+            "trade_id": ids.trade_id,
+            "decision_cycle_id": ids.decision_cycle_id,
+        },
     )
 
 
@@ -112,6 +138,7 @@ def _emit_blocked(
     qb.emit(
         event_type="signal_evaluated",
         trace_id=ids.trace_id,
+        decision_cycle_id=ids.decision_cycle_id,
         account_id=account_id,
         strategy_id=strategy_id,
         symbol=symbol,
@@ -121,6 +148,7 @@ def _emit_blocked(
     qb.emit(
         event_type="risk_guard_decision",
         trace_id=ids.trace_id,
+        decision_cycle_id=ids.decision_cycle_id,
         account_id=account_id,
         strategy_id=strategy_id,
         symbol=symbol,
@@ -130,6 +158,7 @@ def _emit_blocked(
     qb.emit(
         event_type="trade_action",
         trace_id=ids.trace_id,
+        decision_cycle_id=ids.decision_cycle_id,
         account_id=account_id,
         strategy_id=strategy_id,
         symbol=symbol,
@@ -150,6 +179,7 @@ def _emit_rejected(
     qb.emit(
         event_type="signal_evaluated",
         trace_id=ids.trace_id,
+        decision_cycle_id=ids.decision_cycle_id,
         account_id=account_id,
         strategy_id=strategy_id,
         symbol=symbol,
@@ -159,6 +189,7 @@ def _emit_rejected(
     qb.emit(
         event_type="risk_guard_decision",
         trace_id=ids.trace_id,
+        decision_cycle_id=ids.decision_cycle_id,
         account_id=account_id,
         strategy_id=strategy_id,
         symbol=symbol,
@@ -168,25 +199,39 @@ def _emit_rejected(
     qb.emit(
         event_type="trade_action",
         trace_id=ids.trace_id,
+        decision_cycle_id=ids.decision_cycle_id,
         account_id=account_id,
         strategy_id=strategy_id,
         symbol=symbol,
         timestamp_utc=_fmt(base_dt + timedelta(seconds=2)),
-        payload={"decision": "ENTER", "reason": "entry_allowed", "side": "BUY"},
+        payload={
+            "decision": "ENTER",
+            "reason": "entry_allowed",
+            "side": "BUY",
+            "trade_id": ids.trade_id,
+        },
     )
     qbr.emit(
         event_type="order_submitted",
         trace_id=ids.trace_id,
+        decision_cycle_id=ids.decision_cycle_id,
         order_ref=ids.order_ref,
         account_id=account_id,
         strategy_id=strategy_id,
         symbol=symbol,
         timestamp_utc=_fmt(base_dt + timedelta(seconds=3)),
-        payload={"order_ref": ids.order_ref, "side": "BUY", "volume": 0.5},
+        payload={
+            "order_ref": ids.order_ref,
+            "side": "BUY",
+            "volume": 0.5,
+            "trade_id": ids.trade_id,
+            "decision_cycle_id": ids.decision_cycle_id,
+        },
     )
     qbr.emit(
         event_type="order_rejected",
         trace_id=ids.trace_id,
+        decision_cycle_id=ids.decision_cycle_id,
         order_ref=ids.order_ref,
         account_id=account_id,
         strategy_id=strategy_id,
@@ -209,6 +254,7 @@ def _emit_partial_fill(
     qbr.emit(
         event_type="order_filled",
         trace_id=ids.trace_id,
+        decision_cycle_id=ids.decision_cycle_id,
         order_ref=ids.order_ref,
         position_id=ids.position_id,
         account_id=account_id,
@@ -221,6 +267,8 @@ def _emit_partial_fill(
             "slippage": 0.11,
             "partial_fill": True,
             "fill_fraction": 0.5,
+            "trade_id": ids.trade_id,
+            "decision_cycle_id": ids.decision_cycle_id,
         },
     )
 
@@ -237,6 +285,7 @@ def _emit_governance_pause(
     qb.emit(
         event_type="signal_evaluated",
         trace_id=ids.trace_id,
+        decision_cycle_id=ids.decision_cycle_id,
         account_id=account_id,
         strategy_id=strategy_id,
         symbol=symbol,
@@ -260,6 +309,7 @@ def _emit_governance_pause(
     qb.emit(
         event_type="trade_action",
         trace_id=ids.trace_id,
+        decision_cycle_id=ids.decision_cycle_id,
         account_id=account_id,
         strategy_id=strategy_id,
         symbol=symbol,
@@ -280,6 +330,7 @@ def _emit_failsafe_pause(
     qb.emit(
         event_type="signal_evaluated",
         trace_id=ids.trace_id,
+        decision_cycle_id=ids.decision_cycle_id,
         account_id=account_id,
         strategy_id=strategy_id,
         symbol=symbol,
@@ -298,6 +349,7 @@ def _emit_failsafe_pause(
     qb.emit(
         event_type="trade_action",
         trace_id=ids.trace_id,
+        decision_cycle_id=ids.decision_cycle_id,
         account_id=account_id,
         strategy_id=strategy_id,
         symbol=symbol,
@@ -330,6 +382,7 @@ def _emit_adaptive_mode(
     qb.emit(
         event_type="trade_action",
         trace_id=ids.trace_id,
+        decision_cycle_id=ids.decision_cycle_id,
         account_id=account_id,
         strategy_id=strategy_id,
         symbol=symbol,
@@ -360,6 +413,7 @@ def _emit_session_restart_probe(
     qb_restart.emit(
         event_type="signal_evaluated",
         trace_id=ids.trace_id,
+        decision_cycle_id=ids.decision_cycle_id,
         account_id=account_id,
         strategy_id=strategy_id,
         symbol=symbol,
@@ -369,6 +423,7 @@ def _emit_session_restart_probe(
     qb_restart.emit(
         event_type="trade_action",
         trace_id=ids.trace_id,
+        decision_cycle_id=ids.decision_cycle_id,
         account_id=account_id,
         strategy_id=strategy_id,
         symbol=symbol,

@@ -42,6 +42,8 @@ class TestCliCommands(unittest.TestCase):
         self.assertIn("trade_executed", data["event_types"])
         self.assertIn("market_data_stale_warning", data["event_types"])
         self.assertIn("signal_id", data["payload_contracts"]["signal_detected"])
+        self.assertIn("trade_id", data["payload_contracts"]["order_submitted"])
+        self.assertIn("trade_id", data["payload_contracts"]["order_filled"])
 
     def test_list_envelope_schema_has_core_enums(self) -> None:
         buf = io.StringIO()

@@ -19,6 +19,13 @@ class TestContracts(unittest.TestCase):
         errors = [issue for issue in report.issues if issue.level == "error"]
         self.assertEqual(len(errors), 0)
 
+    def test_contracts_directory_quantbuild_plus_quantbridge(self) -> None:
+        """Cross-file linkage: ENTER trade_id matches bridge orders (same decision_cycle_id)."""
+        path = Path("tests/fixtures/contracts")
+        report = validate_path(path)
+        errors = [issue for issue in report.issues if issue.level == "error"]
+        self.assertEqual(len(errors), 0)
+
 
 if __name__ == "__main__":
     unittest.main()

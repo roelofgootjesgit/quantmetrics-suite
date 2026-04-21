@@ -752,7 +752,12 @@ class TestValidator(unittest.TestCase):
                 "event_type": "order_submitted",
                 "run_id": "run_one",
                 "source_seq": 1,
-                "payload": {"order_ref": "o1", "side": "BUY", "volume": 1.0},
+                "payload": {
+                    "order_ref": "o1",
+                    "side": "BUY",
+                    "volume": 1.0,
+                    "trade_id": "trade_dup_ref",
+                },
             }
             b = {
                 **blk,
@@ -760,7 +765,7 @@ class TestValidator(unittest.TestCase):
                 "event_type": "order_filled",
                 "run_id": "run_two",
                 "source_seq": 1,
-                "payload": {"order_ref": "o1", "fill_price": 1.0},
+                "payload": {"order_ref": "o1", "fill_price": 1.0, "trade_id": "trade_dup_ref"},
             }
             f.write_text(json.dumps(a) + "\n" + json.dumps(b) + "\n", encoding="utf-8")
             report = validate_path(path)
@@ -790,7 +795,7 @@ class TestValidator(unittest.TestCase):
                 "order_ref": "ord_m",
                 "trade_id": "t1",
                 "source_seq": 1,
-                "payload": {"order_ref": "ord_m", "side": "BUY", "volume": 1.0},
+                "payload": {"order_ref": "ord_m", "side": "BUY", "volume": 1.0, "trade_id": "t1"},
             }
             b = {
                 **base,
@@ -799,12 +804,70 @@ class TestValidator(unittest.TestCase):
                 "order_ref": "ord_m",
                 "trade_id": "t2",
                 "source_seq": 2,
-                "payload": {"order_ref": "ord_m", "fill_price": 1.0},
+                "payload": {"order_ref": "ord_m", "fill_price": 1.0, "trade_id": "t2"},
             }
             f.write_text(json.dumps(a) + "\n" + json.dumps(b) + "\n", encoding="utf-8")
             report = validate_path(path)
             msgs = [i.message for i in report.issues if i.level == "error"]
             self.assertTrue(any(m.startswith("order_ref_trade_id_mismatch") for m in msgs))
+
+    def test_decision_cycle_trade_id_linkage_mismatch(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            path = Path(tmp_dir)
+            f = path / "e.jsonl"
+            dc = "dc_linkage_fail"
+            enter = {
+                "event_id": "00000000-0000-0000-0000-000000000301",
+                "event_type": "trade_action",
+                "event_version": 1,
+                "timestamp_utc": "2026-03-29T18:00:00Z",
+                "ingested_at_utc": "2026-03-29T18:00:01Z",
+                "source_system": "quantbuild",
+                "source_component": "decision_engine",
+                "environment": "paper",
+                "run_id": "run_lk",
+                "session_id": "session_lk",
+                "source_seq": 1,
+                "trace_id": "trace_lk",
+                "decision_cycle_id": dc,
+                "symbol": "XAUUSD",
+                "severity": "info",
+                "payload": {
+                    "decision": "ENTER",
+                    "reason": "ok",
+                    "side": "BUY",
+                    "trade_id": "t_enter_expected",
+                },
+            }
+            bad = {
+                "event_id": "00000000-0000-0000-0000-000000000302",
+                "event_type": "order_filled",
+                "event_version": 1,
+                "timestamp_utc": "2026-03-29T18:00:05Z",
+                "ingested_at_utc": "2026-03-29T18:00:05Z",
+                "source_system": "quantbridge",
+                "source_component": "exec",
+                "environment": "paper",
+                "run_id": "run_lk",
+                "session_id": "session_lk",
+                "source_seq": 1,
+                "trace_id": "trace_lk",
+                "decision_cycle_id": dc,
+                "order_ref": "ord_lk",
+                "trade_id": "t_wrong",
+                "symbol": "XAUUSD",
+                "severity": "info",
+                "payload": {
+                    "order_ref": "ord_lk",
+                    "fill_price": 1.0,
+                    "trade_id": "t_wrong",
+                    "decision_cycle_id": dc,
+                },
+            }
+            f.write_text(json.dumps(enter) + "\n" + json.dumps(bad) + "\n", encoding="utf-8")
+            report = validate_path(path)
+            msgs = [i.message for i in report.issues if i.level == "error"]
+            self.assertTrue(any(m.startswith("decision_cycle_trade_id_linkage_mismatch") for m in msgs))
 
     def test_trade_id_envelope_payload_mismatch(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
