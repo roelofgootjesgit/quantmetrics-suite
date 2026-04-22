@@ -129,18 +129,18 @@ Gebruik `quantresearch.research_log_builder`:
 - **Reject:** geen merge; noteer geleerde les in rejected hypotheses.
 - **Inconclusive:** geen strategy-besluit; nieuw experiment ontwerpen (kleinere scope of meer data).
 
-### Stap I — Research index (README)
+### Stap I — Research index (`docs/RESEARCH_INDEX.md`)
 
 ```python
-from quantresearch.markdown_renderer import write_readme
+from quantresearch.markdown_renderer import write_research_index
 
-write_readme(
+write_research_index(
     open_questions=["..."],
     next_experiments=["EXP-002 ..."],
 )
 ```
 
-Dit overschrijft `README.md` met een actuele tabel + lijsten.
+Dit schrijft een **auto-generated** overzicht naar `docs/RESEARCH_INDEX.md` (experiments-tabel, confirmed edges, rejected hypotheses). De **README** blijft de vaste projectintro; die bewerk je handmatig.
 
 ---
 

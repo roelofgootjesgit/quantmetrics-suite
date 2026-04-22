@@ -1,4 +1,4 @@
-"""Render human-facing markdown index (README) from registries."""
+"""Render markdown research index from registries (does not overwrite README.md)."""
 
 from __future__ import annotations
 
@@ -10,41 +10,20 @@ from quantresearch.experiment_registry import list_experiments
 from quantresearch.paths import repo_root
 
 
-def render_research_readme(
+def render_research_index(
     *,
     open_questions: list[str] | None = None,
     next_experiments: list[str] | None = None,
 ) -> str:
-    """Build README.md body: experiments table + edges + rejected + optional lists."""
+    """Build markdown: experiments table + edges + rejected + optional lists."""
     experiments = list_experiments()
     confirmed = load_confirmed()
     rejected = load_rejected()
 
     lines: list[str] = [
-        "# QuantResearch",
+        "# Research index",
         "",
-        "QuantResearch is the hypothesis and decision layer on top of QuantAnalytics outputs.",
-        "",
-        "**Stack:** QuantBuild → QuantBridge → QuantLog → QuantAnalytics → **QuantResearch**.",
-        "",
-        "**Loop:** Hypothesis → Variant → Backtest/run → Analytics → Compare to baseline → Conclusion → Decision → Knowledge base.",
-        "",
-        "**Handleiding (backtest → strategy):** zie `docs/WORKFLOW_BACKTEST_NAAR_STRATEGIE.md`.",
-        "",
-        "## Usage (Python)",
-        "",
-        "```python",
-        "from pathlib import Path",
-        "from quantresearch.comparison_engine import compare_runs, write_comparison_artifacts, load_json_metrics",
-        "from quantresearch.experiment_registry import upsert_experiment",
-        "from quantresearch.markdown_renderer import write_readme",
-        "",
-        "cmp = compare_runs(load_json_metrics(Path('baseline.json')), load_json_metrics(Path('variant.json')), experiment_id='EXP-001')",
-        "write_comparison_artifacts(cmp)",
-        "write_readme()",
-        "```",
-        "",
-        "Environment: set `QUANTRESEARCH_ROOT` if the package is imported from outside the repo root.",
+        "_Auto-generated from `registry/`. Regenerate with `write_research_index()` after updating JSON registries._",
         "",
         "## Experiments",
         "",
@@ -78,7 +57,7 @@ def render_research_readme(
         for q in oq:
             lines.append(f"- {q}")
     else:
-        lines.append("- _(none tracked in generator — edit README or pass open_questions)_")
+        lines.append("- _(none — pass `open_questions=` to `write_research_index()` or edit after generate)_")
 
     ne = next_experiments or []
     lines.extend(["", "## Next experiments", ""])
@@ -93,16 +72,17 @@ def render_research_readme(
     return "\n".join(lines)
 
 
-def write_readme(
+def write_research_index(
     path: Path | None = None,
     *,
     open_questions: list[str] | None = None,
     next_experiments: list[str] | None = None,
 ) -> Path:
-    """Write README.md at repo root."""
-    out = path or (repo_root() / "README.md")
+    """Write docs/RESEARCH_INDEX.md (default). Does not overwrite README.md."""
+    out = path or (repo_root() / "docs" / "RESEARCH_INDEX.md")
+    out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(
-        render_research_readme(
+        render_research_index(
             open_questions=open_questions,
             next_experiments=next_experiments,
         ),
