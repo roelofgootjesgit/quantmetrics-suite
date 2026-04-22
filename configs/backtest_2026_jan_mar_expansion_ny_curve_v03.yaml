@@ -1,0 +1,8 @@
+# Curve v03: v02 + position limit uit
+
+extends: backtest_2026_jan_mar_expansion_ny.yaml
+
+filters:
+  structure_h1_gate: false
+  cooldown: false
+  position_limit: false

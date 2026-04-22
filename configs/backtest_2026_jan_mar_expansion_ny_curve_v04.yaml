@@ -1,0 +1,10 @@
+# Curve v04: v03 + session-filter uit (allowed_sessions op expansion-profiel wordt dan niet afgedwongen;
+# trend blijft uit door regime_profiles.trend.skip zolang regime-filter AAN staat).
+
+extends: backtest_2026_jan_mar_expansion_ny.yaml
+
+filters:
+  structure_h1_gate: false
+  cooldown: false
+  position_limit: false
+  session: false
