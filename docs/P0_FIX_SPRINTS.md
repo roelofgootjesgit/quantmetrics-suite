@@ -35,8 +35,8 @@ Elke sprint heeft scope, taken, acceptance criteria en exit rules.
 | Sprint | Status | Notes |
 |--------|--------|--------|
 | S1 | **Done** | `build_signal_evaluated_payload` + `assert_signal_evaluated_payload_complete`; `live_runner` + `backtest/engine` gebruiken builder; tests in `tests/test_signal_evaluated_payload.py` |
-| S2 | **Done** (kern) | `DecisionCycleContext` datamodel toegevoegd; envelope + payload `decision_cycle_id`; `QuantLogEmitter` fallback; bridge orchestrator altijd `dc_bridge_*` |
-| S3 | **Done** (kern) | Synthetische `signal_detected` vóór gate-only evals; gedeelde cycle id per standaard-poll |
+| S2 | **Done** (kern) | `DecisionCycleContext` + `new_decision_cycle_id()`; live poll start bundelt trace+dcid+sessie+regime; backtest `dc_bt_*`; geen ad-hoc `str(uuid4())` meer voor cycle-id; `QuantLogEmitter` fallback; bridge `dc_bridge_*` |
+| S3 | **Done** (kern) | Live: synthetische `sqe_pipeline_scan`-detect vóór elke gate-eval; analytics: funnel + `se>sd`-anomaly op QuantBuild-subset; `cycles_signal_evaluated_without_signal_detected` in cycle-funnel |
 | S4 | **Done** (kern) | `trade_closed` paden live + backtest; `trade_executed` met cycle id |
 | S5 | **Script** | `quantbuildv1/scripts/p0_stack_validate.py` (+ `scripts/p0_sprint5_smoke.py`) |
 | S6 | **Manual** | Volledige backtest/dag + QuantAnalytics + checklist `P0_FIX_PLAN.md` |
