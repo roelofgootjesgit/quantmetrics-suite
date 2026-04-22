@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "edges": [
+    {
+      "id": "EDGE-001",
+      "edge_type": "regime",
+      "statement": "Expansion regime shows positive expectancy in Q1 2026 backtest.",
+      "source_experiment_ids": ["EXP-001"],
+      "source_run_ids": ["20260422_192633Z"],
+      "confidence": "medium",
+      "status": "confirmed",
+      "promotion_stage": "research",
+      "metrics": {
+        "mean_r": 0.5,
+        "trade_count": 8
+      },
+      "date": "2026-04-22",
+      "evidence_experiment_id": "EXP-001",
+      "run_id": "20260422_192633Z"
+    }
+  ]
+}

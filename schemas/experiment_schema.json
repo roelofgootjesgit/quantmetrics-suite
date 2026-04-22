@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://quantresearch.local/schemas/experiment_schema.json",
+  "title": "QuantResearch experiment",
+  "type": "object",
+  "required": [
+    "experiment_id",
+    "title",
+    "status",
+    "date_created",
+    "hypothesis",
+    "baseline_run_id",
+    "variant_run_id",
+    "baseline_config",
+    "variant_config",
+    "data_window",
+    "strategy_version",
+    "result",
+    "decision",
+    "tags"
+  ],
+  "properties": {
+    "experiment_id": { "type": "string", "pattern": "^EXP-[0-9]+$" },
+    "title": { "type": "string", "minLength": 1 },
+    "status": {
+      "type": "string",
+      "enum": ["planned", "running", "completed", "rejected", "promoted"]
+    },
+    "date_created": { "type": "string", "format": "date" },
+    "hypothesis": { "type": "string" },
+    "baseline_run_id": { "type": "string", "minLength": 1 },
+    "variant_run_id": { "type": "string", "minLength": 1 },
+    "baseline_config": { "type": "string" },
+    "variant_config": { "type": "string" },
+    "data_window": {
+      "type": "object",
+      "required": ["start", "end"],
+      "properties": {
+        "start": { "type": "string", "format": "date" },
+        "end": { "type": "string", "format": "date" }
+      }
+    },
+    "strategy_version": { "type": "string" },
+    "result": {
+      "type": "string",
+      "enum": ["positive", "negative", "inconclusive", "pending"]
+    },
+    "decision": { "type": "string" },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "additionalProperties": true
+}

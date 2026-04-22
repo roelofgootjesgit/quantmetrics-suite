@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "rejected": [
+    {
+      "id": "REJ-001",
+      "date": "2026-04-22",
+      "statement": "Trend regime is profitable in the tested Q1 2026 baseline.",
+      "evidence_experiment_id": "EXP-001",
+      "run_id": "20260422_192631Z",
+      "metrics": {
+        "mean_r": -0.727,
+        "trade_count": 11
+      },
+      "reason": "negative_expectancy"
+    }
+  ]
+}
