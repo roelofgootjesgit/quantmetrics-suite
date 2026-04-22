@@ -29,8 +29,10 @@ from src.quantbuild.execution.broker_factory import create_broker
 from src.quantbuild.execution.quantlog_emitter import QuantLogEmitter
 from src.quantbuild.execution.signal_evaluated_desk_grade import build_desk_grade_payload
 from src.quantbuild.execution.signal_evaluated_payload import (
+    DecisionCycleContext,
     assert_signal_evaluated_payload_complete,
     build_signal_evaluated_payload,
+    new_decision_cycle_id,
 )
 from src.quantbuild.execution.quantlog_ids import resolve_quantlog_run_id, resolve_quantlog_session_id
 from src.quantbuild.quantlog_repo import resolve_quantlog_repo_path
@@ -625,7 +627,11 @@ class LiveRunner:
         )
         dcid_eff = (decision_cycle_id or "").strip()
         if not dcid_eff:
-            dcid_eff = f"dc_live_{uuid4().hex[:12]}"
+            dcid_eff = new_decision_cycle_id(prefix="dc_missing_pre_emit_eval")
+            logger.error(
+                "signal_evaluated emitted without decision_cycle_id — using %s (fix caller)",
+                dcid_eff,
+            )
         sess_hint = ""
         if isinstance(decision_context, dict):
             s0 = decision_context.get("session")
@@ -1616,9 +1622,15 @@ class LiveRunner:
         current_session = session_from_timestamp(now, mode=session_mode)
         position_ok = self._check_position_limit()
         daily_loss_ok = self._check_daily_loss_limit()
-        # One trace for pre-signal exits in this cycle (PLATFORM_ROADMAP P3 / QUANTBUILD_ROADMAP).
-        cycle_trace_id = self._new_trace_id()
-        cycle_decision_id = str(uuid4())
+        # One trace + one decision_cycle_id for this poll (SPRINT 2); per-direction work may fork trace_id only.
+        _cycle = DecisionCycleContext(
+            decision_cycle_id=new_decision_cycle_id(),
+            trace_id=self._new_trace_id(),
+            session=current_session,
+            regime=regime,
+        )
+        cycle_trace_id = _cycle.trace_id
+        cycle_decision_id = _cycle.decision_cycle_id
 
         if self._research_raw_first:
             self._check_signals_research_raw_first(

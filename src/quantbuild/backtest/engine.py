@@ -33,6 +33,7 @@ from src.quantbuild.quantlog_repo import quantbuild_project_root, resolve_quantl
 from src.quantbuild.execution.signal_evaluated_payload import (
     assert_signal_evaluated_payload_complete,
     build_signal_evaluated_payload,
+    new_decision_cycle_id,
 )
 from src.quantbuild.policy.system_mode import bypassed_filters_vs_production, resolve_effective_filters
 
@@ -426,7 +427,7 @@ def run_backtest(cfg: Dict[str, Any], precomputed_regime: Optional[pd.Series] = 
         regime_str = str(current_regime) if current_regime is not None else "none"
 
         trace_id = str(uuid4())
-        decision_cycle_id = str(uuid4())
+        decision_cycle_id = new_decision_cycle_id(prefix="dc_bt")
         signal_id = f"sig_bt_{trace_id.replace('-', '')[:16]}"
         ts_iso = _bar_timestamp_utc_iso(entry_ts)
         decision_ctx_at_bar = sqe_decision_context_at_bar(precomputed_df, direction, i, sqe_cfg)

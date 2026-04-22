@@ -99,6 +99,8 @@ def invoke_quantanalytics_after_quantlog(
         "quantmetrics_analytics.cli.run_analysis",
         "--dir",
         str(base),
+        "--run-id",
+        str(ql_emitter.run_id),
         "--reports",
         "all",
     ]

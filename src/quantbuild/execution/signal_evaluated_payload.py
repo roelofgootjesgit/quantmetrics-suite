@@ -8,6 +8,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
+from uuid import uuid4
+
+
+def new_decision_cycle_id(*, prefix: str = "dc_qb") -> str:
+    """Allocate a new QuantBuild ``decision_cycle_id`` (SPRINT 2 — single canonical format)."""
+    p = (prefix or "dc_qb").strip().rstrip("_") or "dc_qb"
+    return f"{p}_{uuid4().hex[:16]}"
 
 
 @dataclass(frozen=True)

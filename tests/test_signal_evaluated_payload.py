@@ -8,6 +8,7 @@ from src.quantbuild.execution.signal_evaluated_payload import (
     assert_signal_evaluated_payload_complete,
     build_signal_evaluated_payload,
     merge_decision_context_blueprint,
+    new_decision_cycle_id,
 )
 
 
@@ -55,6 +56,13 @@ def test_decision_cycle_context_frozen() -> None:
         decision_cycle_id="dc1", trace_id="t1", session="Asia", regime="expansion"
     )
     assert ctx.setup_type == "sqe"
+
+
+def test_new_decision_cycle_id_format() -> None:
+    a = new_decision_cycle_id()
+    b = new_decision_cycle_id(prefix="dc_bt")
+    assert a.startswith("dc_qb_") and len(a) > len("dc_qb_")
+    assert b.startswith("dc_bt_") and a != b
 
 
 def test_assert_rejects_missing_decision_cycle_id() -> None:

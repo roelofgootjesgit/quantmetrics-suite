@@ -124,6 +124,9 @@ class TestBacktestQuantLog:
 
         parsed = [json.loads(line) for line in lines]
         types = [e["event_type"] for e in parsed]
+        n_sd = sum(1 for e in parsed if e["event_type"] == "signal_detected")
+        n_se = sum(1 for e in parsed if e["event_type"] == "signal_evaluated")
+        assert n_sd >= n_se, "SPRINT 3 funnel: each signal_evaluated must be paired with a detect path"
         assert "signal_evaluated" in types
         assert "signal_detected" in types
         assert "trade_action" in types
