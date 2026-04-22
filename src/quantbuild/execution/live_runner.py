@@ -43,7 +43,7 @@ from src.quantbuild.execution.quantbridge import (
 )
 from src.quantbuild.indicators.atr import atr as compute_atr, atr_ratio as compute_atr_ratio
 from src.quantbuild.io.parquet_loader import load_parquet, ensure_live_data
-from src.quantbuild.models.trade import Position
+from src.quantbuild.models.trade import Position, calculate_rr
 from src.quantbuild.strategies.sqe_xauusd import (
     get_sqe_default_config,
     _compute_modules_once,
@@ -139,6 +139,8 @@ class LiveRunner:
         # Desk-grade signal_evaluated: same-bar poll counts + last eval_stage string per bar timestamp.
         self._same_bar_skip_by_bar_ts: Dict[str, int] = {}
         self._eval_stage_by_bar_ts: Dict[str, str] = {}
+        # P0-D: correlation for trade_closed after ENTER (trace / cycle / session).
+        self._open_trade_quantlog: Dict[str, Dict[str, Any]] = {}
 
         # QuantLog integration
         self._quantlog: Optional[QuantLogEmitter] = None
@@ -507,8 +509,23 @@ class LiveRunner:
 
         # Remove closed positions
         for mid in monitor_ids - broker_ids:
-            self.position_monitor.remove_position(mid)
+            removed = self.position_monitor.remove_position(mid)
             self.order_manager.unregister_trade(mid, reason="closed_by_broker")
+            if removed is not None:
+                ex = float(removed.current_price or removed.entry_price)
+                try:
+                    pr = calculate_rr(removed.entry_price, ex, removed.sl, removed.direction.value)
+                except Exception:
+                    pr = 0.0
+                self._emit_trade_closed(
+                    trade_id=mid,
+                    exit_price=ex,
+                    pnl_r=float(pr),
+                    outcome="closed_external",
+                    exit_tag="broker_sync",
+                    pnl_abs=float(removed.unrealized_pnl),
+                    direction=removed.direction.value,
+                )
 
         # Update prices
         for bt in broker_trades:
@@ -952,6 +969,96 @@ class LiveRunner:
             payload=payload,
         )
 
+    @staticmethod
+    def _direction_label_for_quantlog(direction: Any) -> str:
+        if hasattr(direction, "value"):
+            return str(getattr(direction, "value"))
+        s = str(direction).upper()
+        if s in ("LONG", "SHORT"):
+            return s
+        if "BUY" in s or s == "LONG":
+            return "LONG"
+        return "SHORT"
+
+    def _register_open_trade_quantlog(
+        self,
+        trade_id: str,
+        *,
+        trace_id: str,
+        decision_cycle_id: Optional[str],
+        session: str,
+        regime: Optional[str],
+        direction: str,
+        entry_price: float,
+        signal_id: Optional[str] = None,
+    ) -> None:
+        self._open_trade_quantlog[trade_id] = {
+            "trace_id": trace_id,
+            "decision_cycle_id": decision_cycle_id,
+            "session": session,
+            "regime": regime or "none",
+            "direction": self._direction_label_for_quantlog(direction),
+            "entry_price": float(entry_price),
+            "signal_id": signal_id,
+        }
+
+    def _emit_trade_closed(
+        self,
+        *,
+        trade_id: str,
+        exit_price: float,
+        pnl_r: float,
+        outcome: str,
+        exit_tag: str,
+        trace_id: Optional[str] = None,
+        decision_cycle_id: Optional[str] = None,
+        session: Optional[str] = None,
+        regime: Optional[str] = None,
+        direction: Optional[str] = None,
+        pnl_abs: Optional[float] = None,
+        mae_r: float = 0.0,
+        mfe_r: float = 0.0,
+    ) -> None:
+        """Emit ``trade_closed`` for lifecycle closure (P0-D). Uses ENTER registration when available."""
+        if not self._quantlog:
+            return
+        meta = self._open_trade_quantlog.pop(trade_id, None)
+        eff_trace = trace_id or (meta or {}).get("trace_id") or self._new_trace_id()
+        eff_dcid = decision_cycle_id if decision_cycle_id else (meta or {}).get("decision_cycle_id")
+        eff_session = session or (meta or {}).get("session") or "unknown"
+        eff_regime = regime or (meta or {}).get("regime") or "none"
+        d_lab = direction or (meta or {}).get("direction") or "LONG"
+        ts = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+        ref = str(trade_id)
+        pl_abs = float(0.0 if pnl_abs is None else pnl_abs)
+        payload: Dict[str, Any] = {
+            "trade_id": ref,
+            "order_ref": ref,
+            "direction": self._direction_label_for_quantlog(d_lab),
+            "exit_price": float(exit_price),
+            "pnl_abs": pl_abs,
+            "pnl_r": float(pnl_r),
+            "mae_r": float(mae_r),
+            "mfe_r": float(mfe_r),
+            "outcome": outcome,
+            "exit": exit_tag,
+            "session": eff_session,
+            "regime": eff_regime,
+        }
+        if isinstance(eff_dcid, str) and eff_dcid.strip():
+            payload["decision_cycle_id"] = eff_dcid.strip()
+        self._quantlog.emit(
+            event_type="trade_closed",
+            trace_id=eff_trace,
+            account_id=self._account_id,
+            strategy_id="sqe_live_runner",
+            symbol=self.cfg.get("symbol", "XAUUSD"),
+            order_ref=ref,
+            decision_cycle_id=eff_dcid if isinstance(eff_dcid, str) and eff_dcid.strip() else None,
+            timestamp_utc=ts,
+            payload=payload,
+        )
+
     def _emit_trade_executed(
         self,
         *,
@@ -961,6 +1068,7 @@ class LiveRunner:
         trade_id: str,
         regime: Optional[str],
         session: str,
+        decision_cycle_id: Optional[str] = None,
     ) -> None:
         if not self._quantlog:
             return
@@ -972,6 +1080,8 @@ class LiveRunner:
         }
         if signal_id:
             payload["signal_id"] = signal_id
+        if isinstance(decision_cycle_id, str) and decision_cycle_id.strip():
+            payload["decision_cycle_id"] = decision_cycle_id.strip()
         self._quantlog.emit(
             event_type="trade_executed",
             trace_id=trace_id,
@@ -979,6 +1089,7 @@ class LiveRunner:
             strategy_id="sqe_live_runner",
             symbol=self.cfg.get("symbol", "XAUUSD"),
             order_ref=str(trade_id),
+            decision_cycle_id=decision_cycle_id if isinstance(decision_cycle_id, str) and decision_cycle_id.strip() else None,
             payload=payload,
         )
 
@@ -2423,6 +2534,23 @@ class LiveRunner:
                     slippage, 100 * slippage / risk_amount,
                 )
                 self.broker.close_trade(trade_id)
+                try:
+                    slip_pr = calculate_rr(entry_price, float(fill_price), sl, direction)
+                except Exception:
+                    slip_pr = 0.0
+                self._emit_trade_closed(
+                    trade_id=trade_id,
+                    exit_price=float(fill_price),
+                    pnl_r=float(slip_pr),
+                    outcome="slippage_flatten",
+                    exit_tag="slippage_guard",
+                    trace_id=trace_id,
+                    decision_cycle_id=decision_cycle_id,
+                    session=session,
+                    regime=regime,
+                    direction=direction,
+                    pnl_abs=0.0,
+                )
                 slip_ratio = float(slippage / risk_amount) if risk_amount > 0 else 0.0
                 self._emit_guard_decision(
                     trace_id=trace_id,
@@ -2474,6 +2602,16 @@ class LiveRunner:
         )
         self.position_monitor.add_position(pos)
         self._daily_trade_count += 1
+        self._register_open_trade_quantlog(
+            trade_id,
+            trace_id=trace_id,
+            decision_cycle_id=decision_cycle_id,
+            session=session,
+            regime=regime,
+            direction=direction,
+            entry_price=float(fill_price),
+            signal_id=signal_id,
+        )
 
         logger.info("Trade registered: %s %s (id=%s)", direction, regime, trade_id)
         if self._telegram.enabled:
@@ -2511,6 +2649,7 @@ class LiveRunner:
                 trade_id=trade_id,
                 regime=regime,
                 session=session,
+                decision_cycle_id=decision_cycle_id,
             )
             return "order_intent", "all_conditions_met"
         self._emit_trade_action(
@@ -2531,6 +2670,7 @@ class LiveRunner:
             trade_id=trade_id,
             regime=regime,
             session=session,
+            decision_cycle_id=decision_cycle_id,
         )
         return "order_filled", "all_conditions_met"
 
@@ -2715,13 +2855,28 @@ class LiveRunner:
 
     def _monitor_positions(self):
         """Check open positions: close invalid thesis, update order manager."""
-        for pos in self.position_monitor.all_positions:
+        for pos in list(self.position_monitor.all_positions):
             if not pos.thesis_valid:
                 logger.warning("Position %s thesis invalid — closing", pos.trade_id)
                 if not self.dry_run and self.broker.is_connected:
                     self.broker.close_trade(pos.trade_id)
-                self.position_monitor.remove_position(pos.trade_id)
+                removed = self.position_monitor.remove_position(pos.trade_id)
                 self.order_manager.unregister_trade(pos.trade_id, reason="thesis_invalid")
+                if removed is not None:
+                    ex = float(removed.current_price or removed.entry_price)
+                    try:
+                        pr = calculate_rr(removed.entry_price, ex, removed.sl, removed.direction.value)
+                    except Exception:
+                        pr = 0.0
+                    self._emit_trade_closed(
+                        trade_id=pos.trade_id,
+                        exit_price=ex,
+                        pnl_r=float(pr),
+                        outcome="thesis_invalid",
+                        exit_tag="risk_exit",
+                        pnl_abs=float(removed.unrealized_pnl),
+                        direction=removed.direction.value,
+                    )
 
     def _send_status_report(self, now: datetime, reason: str = "interval") -> None:
         if not self._telegram.enabled:

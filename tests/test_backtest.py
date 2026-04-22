@@ -154,6 +154,9 @@ class TestBacktestQuantLog:
             if e["event_type"] == "trade_action" and e["payload"].get("decision") == "ENTER"
         )
         assert enter_ev["payload"].get("trade_id")
+        sf = [e for e in parsed if e["event_type"] == "signal_filtered"]
+        if sf:
+            assert all(e.get("decision_cycle_id") for e in sf), "signal_filtered should carry decision_cycle_id"
 
 
 class TestSystemModeBacktest:

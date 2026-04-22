@@ -37,6 +37,7 @@ def _write_signal_evaluated_line(
     *,
     source_seq: int,
     trace_id: str,
+    decision_cycle_id: str,
     payload: dict,
     timestamp_utc: str,
     ingested_at_utc: str,
@@ -54,6 +55,7 @@ def _write_signal_evaluated_line(
         "session_id": "sess_desk_grade_test",
         "source_seq": source_seq,
         "trace_id": trace_id,
+        "decision_cycle_id": decision_cycle_id,
         "severity": "info",
         "account_id": "acct_test",
         "strategy_id": "sqe_live_runner",
@@ -61,6 +63,42 @@ def _write_signal_evaluated_line(
         "payload": payload,
     }
     path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(event, ensure_ascii=True))
+        handle.write("\n")
+
+
+def _write_trade_action_terminal(
+    path: Path,
+    *,
+    source_seq: int,
+    trace_id: str,
+    decision_cycle_id: str,
+    timestamp_utc: str,
+    ingested_at_utc: str,
+    reason: str,
+) -> None:
+    """Terminal ``trade_action`` so QuantLog cycle validation sees a closed chain."""
+    event = {
+        "event_id": str(uuid4()),
+        "event_type": "trade_action",
+        "event_version": 1,
+        "timestamp_utc": timestamp_utc,
+        "ingested_at_utc": ingested_at_utc,
+        "source_system": "quantbuild",
+        "source_component": "live_runner",
+        "environment": "dry_run",
+        "run_id": "run_desk_grade_test",
+        "session_id": "sess_desk_grade_test",
+        "source_seq": source_seq,
+        "trace_id": trace_id,
+        "decision_cycle_id": decision_cycle_id,
+        "severity": "info",
+        "account_id": "acct_test",
+        "strategy_id": "sqe_live_runner",
+        "symbol": "XAUUSD",
+        "payload": {"decision": "NO_ACTION", "reason": reason},
+    }
     with path.open("a", encoding="utf-8") as handle:
         handle.write(json.dumps(event, ensure_ascii=True))
         handle.write("\n")
@@ -156,24 +194,44 @@ class TestDeskGradeQuantlogValidation(unittest.TestCase):
                     jsonl,
                     source_seq=1,
                     trace_id="trace_desk_grade_1",
+                    decision_cycle_id="dc_desk_grade_1",
                     payload=payload,
                     timestamp_utc=ts,
                     ingested_at_utc=ingested,
                 )
-                _write_signal_evaluated_line(
+                _write_trade_action_terminal(
                     jsonl,
                     source_seq=2,
+                    trace_id="trace_desk_grade_1",
+                    decision_cycle_id="dc_desk_grade_1",
+                    timestamp_utc=ts,
+                    ingested_at_utc=ingested,
+                    reason="no_setup",
+                )
+                _write_signal_evaluated_line(
+                    jsonl,
+                    source_seq=3,
                     trace_id="trace_desk_grade_2",
+                    decision_cycle_id="dc_desk_grade_2",
                     payload=payload2,
                     timestamp_utc=ts,
                     ingested_at_utc=ingested,
+                )
+                _write_trade_action_terminal(
+                    jsonl,
+                    source_seq=4,
+                    trace_id="trace_desk_grade_2",
+                    decision_cycle_id="dc_desk_grade_2",
+                    timestamp_utc=ts,
+                    ingested_at_utc=ingested,
+                    reason="cooldown_active",
                 )
 
                 report = validate_path(base)
                 err_msgs = [i.message for i in report.issues if i.level == "error"]
                 self.assertEqual(len(err_msgs), 0, f"QuantLog validator errors: {err_msgs}")
-                self.assertEqual(report.events_valid, 2)
-                self.assertGreaterEqual(report.lines_scanned, 2)
+                self.assertEqual(report.events_valid, 4)
+                self.assertGreaterEqual(report.lines_scanned, 4)
         finally:
             if prefix is not None:
                 try:

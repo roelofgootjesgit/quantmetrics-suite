@@ -527,6 +527,7 @@ def run_backtest(cfg: Dict[str, Any], precomputed_regime: Optional[pd.Series] = 
                 account_id=account_id,
                 strategy_id=strategy_id_bt,
                 symbol=symbol,
+                decision_cycle_id=decision_cycle_id,
                 payload={
                     "signal_id": signal_id,
                     "filter_reason": eff,
