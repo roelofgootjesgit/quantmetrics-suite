@@ -1,0 +1,17 @@
+# Production-candidate stack: trend-regime uit, expansion alleen tijdens New York (UTC killzone).
+# Gebruik voor live/paper door je hoofd-config te laten extenden op dit bestand, of keys te kopiëren.
+# FTMO/paper: eerst backtesten met configs/backtest_2026_jan_mar_expansion_ny.yaml (zelfde regels + venster).
+#
+# Voorbeeld live:
+#   extends: expansion_ny_strategy.yaml
+#   (plus broker, symbol, quantlog, …)
+
+extends: strict_prod_v2.yaml
+
+regime_profiles:
+  trend:
+    skip: true
+  expansion:
+    allowed_sessions:
+      - New York
+    min_hour_utc: null

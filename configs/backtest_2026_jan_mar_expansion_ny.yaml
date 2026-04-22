@@ -1,0 +1,17 @@
+# Sprint 4 (strategy exploit): zelfde Q1-venster als baseline, trend uit, expansion alleen in New York.
+# Hypothese: edge zit in expansion ∩ NY (A/B t.o.v. backtest_2026_jan_mar_expansion_only.yaml).
+#
+#   python -m src.quantbuild.app --config configs/backtest_2026_jan_mar.yaml backtest
+#   python -m src.quantbuild.app --config configs/backtest_2026_jan_mar_expansion_only.yaml backtest
+#   python -m src.quantbuild.app --config configs/backtest_2026_jan_mar_expansion_ny.yaml backtest
+
+extends: backtest_2026_jan_mar.yaml
+
+regime_profiles:
+  trend:
+    skip: true
+  expansion:
+    allowed_sessions:
+      - New York
+    # strict_prod_v2 had min_hour_utc: 10 voor expansion — uitschakelen voor volle NY-bucket in backtest
+    min_hour_utc: null

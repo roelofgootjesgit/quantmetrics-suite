@@ -18,8 +18,9 @@ Hoe je **twee (of meer) backtests tegelijk** draait met **hetzelfde venster** en
 |-----|--------|
 | Baseline | `configs/backtest_2026_jan_mar.yaml` |
 | Variant (trend `skip`) | `configs/backtest_2026_jan_mar_expansion_only.yaml` |
+| Variant + NY session (expansion) | `configs/backtest_2026_jan_mar_expansion_ny.yaml` |
 
-Zelfde data, symbol, dates, filters — alleen `regime_profiles.trend.skip: true` op de variant.
+Zelfde data, symbol, dates, filters — varianten wijzigen alleen `regime_profiles` (trend uit; expansion-session subset). Live/paper stack zonder vast venster: `configs/expansion_ny_strategy.yaml`.
 
 ---
 
