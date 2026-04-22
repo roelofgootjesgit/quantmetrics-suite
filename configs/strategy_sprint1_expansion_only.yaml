@@ -1,0 +1,14 @@
+# STRATEGY_FIX_PLAN.md — Sprint 1 (regime isolation)
+# Hypothese: edge zit in expansion; trend is structureel af te raden.
+# Baseline blijft strict_prod_v2; hier wordt alleen trend op regime-niveau uitgeschakeld.
+#
+# Run (zelfde venster als je baseline-config):
+#   python -m src.quantbuild.app --config configs/strategy_sprint1_expansion_only.yaml backtest
+#
+# Vergelijk met strict_prod_v2: expectancy, trade count, regime-slices in QuantAnalytics.
+
+extends: strict_prod_v2.yaml
+
+regime_profiles:
+  trend:
+    skip: true
