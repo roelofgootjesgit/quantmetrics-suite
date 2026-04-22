@@ -23,7 +23,8 @@ def resolve_quantlog_run_id(ql_cfg: dict[str, Any]) -> str:
         v = os.environ.get(env_key, "").strip()
         if v:
             return v
-    return f"qb_run_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
+    # Sub-second suffix so parallel backtests (same UTC second) never share one run_id.
+    return f"qb_run_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}_{uuid4().hex[:8]}"
 
 
 def resolve_quantlog_session_id(ql_cfg: dict[str, Any]) -> str:
