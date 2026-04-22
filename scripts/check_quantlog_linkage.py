@@ -18,7 +18,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import subprocess
+import subprocess  # nosec B404
 import sys
 from pathlib import Path
 
@@ -42,12 +42,13 @@ def _run_validate_events(
     env = os.environ.copy()
     pfx = str(src.resolve())
     env["PYTHONPATH"] = pfx if not env.get("PYTHONPATH") else f"{pfx}{os.pathsep}{env['PYTHONPATH']}"
-    proc = subprocess.run(
+    proc = subprocess.run(  # nosec B603
         [python, "-m", "quantlog.cli", "validate-events", "--path", str(path)],
         capture_output=True,
         text=True,
         env=env,
         check=False,
+        shell=False,
     )
     try:
         data = json.loads(proc.stdout.strip() or "{}")
@@ -74,12 +75,13 @@ def _run_no_action_alignment(*, repo: Path, quantbuild_src: Path, python: str) -
         "    raise SystemExit(1)\n"
         "print('NO_ACTION reason sets match (%d codes)' % len(ql))\n"
     )
-    proc = subprocess.run(
+    proc = subprocess.run(  # nosec B603
         [python, "-c", code],
         capture_output=True,
         text=True,
         env=env,
         check=False,
+        shell=False,
     )
     out = (proc.stdout + proc.stderr).strip()
     return proc.returncode == 0, out

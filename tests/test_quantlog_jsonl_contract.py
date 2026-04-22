@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import json
 import re
-import subprocess
+import subprocess  # nosec B404
 import sys
 from pathlib import Path
 from uuid import UUID
@@ -164,14 +164,40 @@ def test_quantlog_emitter_matches_contract(tmp_path) -> None:
     assert json.loads(written.splitlines()[0])["run_id"] == "run_emit_test"
 
 
+def test_quantlog_emitter_chain_event_always_has_decision_cycle_id(tmp_path) -> None:
+    """QuantBuild chain events must never omit envelope decision_cycle_id (QuantLog validator)."""
+    base = tmp_path / "qe2"
+    emitter = QuantLogEmitter(
+        base_path=base,
+        source_component="live_runner",
+        environment="dry_run",
+        run_id="run_emit_dc",
+        session_id="sess_emit_dc",
+    )
+    ts = "2026-06-02T11:00:00Z"
+    ev = emitter.emit(
+        event_type="trade_action",
+        trace_id="trace_dc",
+        account_id="acct1",
+        strategy_id="sqe_live_runner",
+        symbol="XAUUSD",
+        decision_cycle_id=None,
+        payload={"decision": "NO_ACTION", "reason": "no_setup"},
+        timestamp_utc=ts,
+    )
+    _assert_non_empty_str(ev, "decision_cycle_id")
+    assert str(ev["decision_cycle_id"]).startswith("dc_emit_fallback_")
+
+
 def test_check_quantlog_linkage_script() -> None:
     root = quantbuild_project_root()
-    proc = subprocess.run(
+    proc = subprocess.run(  # nosec B603
         [sys.executable, str(root / "scripts" / "check_quantlog_linkage.py")],
         cwd=str(root),
         capture_output=True,
         text=True,
         check=False,
+        shell=False,
     )
     out = proc.stdout + proc.stderr
     if resolve_quantlog_repo_path() is None:

@@ -14,6 +14,16 @@ from filelock import FileLock, Timeout
 
 logger = logging.getLogger(__name__)
 
+# Must match QuantLog ``DECISION_CHAIN_EVENT_TYPES`` (quantbuild envelope contract).
+DECISION_CHAIN_EVENT_TYPES: frozenset[str] = frozenset(
+    {
+        "signal_detected",
+        "signal_evaluated",
+        "risk_guard_decision",
+        "trade_action",
+    }
+)
+
 
 def _utc_now_iso() -> str:
     return datetime.now(tz=timezone.utc).isoformat().replace("+00:00", "Z")
@@ -84,7 +94,24 @@ class QuantLogEmitter:
             event["strategy_id"] = strategy_id
         if symbol:
             event["symbol"] = symbol
-        if decision_cycle_id:
+        if (
+            self.source_system == "quantbuild"
+            and event_type in DECISION_CHAIN_EVENT_TYPES
+        ):
+            dcid = (
+                decision_cycle_id
+                if isinstance(decision_cycle_id, str) and decision_cycle_id.strip()
+                else None
+            )
+            if not dcid:
+                dcid = f"dc_emit_fallback_{uuid4().hex}"
+                logger.error(
+                    "QuantBuild chain event %s missing decision_cycle_id — using %s (fix caller)",
+                    event_type,
+                    dcid,
+                )
+            event["decision_cycle_id"] = dcid
+        elif decision_cycle_id:
             event["decision_cycle_id"] = decision_cycle_id
 
         target = self._target_file(ts)

@@ -12,13 +12,16 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import subprocess
+import re
+import subprocess  # nosec B404
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
 from src.quantbuild.config import load_config, quantbuild_repo_root
 from src.quantbuild.quantlog_repo import resolve_quantlog_repo_path
+
+_UTC_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 
 def _default_quantlog_repo_path() -> Path:
@@ -30,7 +33,9 @@ def _default_quantlog_repo_path() -> Path:
 
 
 def _run_json(cmd: list[str], *, env: dict[str, str] | None = None) -> dict:
-    proc = subprocess.run(cmd, check=False, capture_output=True, text=True, env=env)
+    proc = subprocess.run(  # nosec B603
+        cmd, check=False, capture_output=True, text=True, env=env, shell=False
+    )
     if proc.returncode not in (0, 2, 3, 4):
         raise RuntimeError(f"command failed ({proc.returncode}): {' '.join(cmd)}\n{proc.stderr}")
     try:
@@ -49,7 +54,7 @@ def _first_trace_id(day_path: Path) -> str | None:
             continue
         try:
             obj = json.loads(line)
-        except Exception:
+        except json.JSONDecodeError:
             continue
         trace_id = obj.get("trace_id")
         if isinstance(trace_id, str) and trace_id.strip():
@@ -89,7 +94,13 @@ def main() -> int:
     events_base = Path(str(ql_cfg.get("base_path", "data/quantlog_events")))
     if not events_base.is_absolute():
         events_base = quantbuild_repo_root() / events_base
-    day_path = events_base / args.date
+    if not _UTC_DATE.fullmatch(args.date.strip()):
+        raise RuntimeError(f"invalid --date {args.date!r} (expected YYYY-MM-DD)")
+    day_path = (events_base / args.date.strip()).resolve()
+    try:
+        day_path.relative_to(events_base.resolve())
+    except ValueError as exc:
+        raise RuntimeError(f"QuantLog day path escapes events base: {day_path}") from exc
     if not day_path.exists():
         raise RuntimeError(f"QuantLog day path does not exist: {day_path}")
 
@@ -128,8 +139,7 @@ def main() -> int:
             str(day_path),
             "--pass-threshold",
             str(args.pass_threshold),
-        ]
-        ,
+        ],
         env=run_env,
     )
     trace_id = _first_trace_id(day_path)
@@ -145,8 +155,7 @@ def main() -> int:
                 str(day_path),
                 "--trace-id",
                 trace_id,
-            ]
-            ,
+            ],
             env=run_env,
         )
 

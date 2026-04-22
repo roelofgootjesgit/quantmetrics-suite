@@ -2,9 +2,13 @@
 from __future__ import annotations
 
 import importlib
+import re
 from typing import Any, List, Type
 
 from quantbuild_v2.strategies.base import Strategy
+
+# Only load strategy implementations from our package tree (config-driven import is still code execution).
+_STRATEGY_MODULE_RE = re.compile(r"^quantbuild_v2\.strategies(\.[a-zA-Z0-9_]+)*$")
 
 
 def _import_class(path: str) -> Type[Strategy]:
@@ -12,6 +16,12 @@ def _import_class(path: str) -> Type[Strategy]:
     if ":" not in path:
         raise ValueError(f"strategy class path must be 'module:Class', got {path!r}")
     mod_name, _, cls_name = path.partition(":")
+    if not _STRATEGY_MODULE_RE.fullmatch(mod_name):
+        raise ValueError(
+            f"strategy module must match quantbuild_v2.strategies.*, got module {mod_name!r}"
+        )
+    if not cls_name.isidentifier():
+        raise ValueError(f"strategy class name must be a valid identifier, got {cls_name!r}")
     module = importlib.import_module(mod_name)
     obj = getattr(module, cls_name, None)
     if obj is None or not isinstance(obj, type) or not issubclass(obj, Strategy):

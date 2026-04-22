@@ -18,7 +18,7 @@ import logging
 import os
 from pathlib import Path
 import signal
-import subprocess
+import subprocess  # nosec B404
 import sys
 import time
 from datetime import datetime, timezone
@@ -239,12 +239,13 @@ def _run_recovery(args: argparse.Namespace, bridge_root: Path, log_file: Path) -
         "openapi",
     ]
     LOGGER.info("Running recovery-first: %s", " ".join(cmd))
-    result = subprocess.run(
+    result = subprocess.run(  # nosec B603
         cmd,
         cwd=str(bridge_root),
         text=True,
         capture_output=True,
         check=False,
+        shell=False,
     )
     if result.stdout:
         LOGGER.info("Recovery stdout:\n%s", result.stdout.strip())
@@ -374,13 +375,14 @@ def main() -> int:
     with log_file.open("a", encoding="utf-8") as live_log:
         live_log.write("\n=== LIVE SUBPROCESS START ===\n")
         live_log.flush()
-        proc = subprocess.Popen(
+        proc = subprocess.Popen(  # nosec B603
             live_cmd,
             cwd=str(ROOT),
             stdout=live_log,
             stderr=subprocess.STDOUT,
             text=True,
             env=child_env,
+            shell=False,
         )
 
         heartbeat_next = time.time() + args.heartbeat_seconds

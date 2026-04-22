@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
-import subprocess
+import subprocess  # nosec B404
 import sys
 from pathlib import Path
 from typing import Any
@@ -73,13 +73,14 @@ def invoke_quantanalytics_after_quantlog(
         return
 
     try:
-        chk = subprocess.run(
+        chk = subprocess.run(  # nosec B603
             [sys.executable, "-c", "import quantmetrics_analytics"],
             capture_output=True,
             text=True,
             timeout=30,
             encoding="utf-8",
             errors="replace",
+            shell=False,
         )
     except Exception as exc:
         logger.warning("QuantAnalytics import check failed: %s", exc)
@@ -108,7 +109,7 @@ def invoke_quantanalytics_after_quantlog(
             env["QUANTMETRICS_ANALYTICS_OUTPUT_DIR"] = str(out_dir)
             logger.debug("QuantAnalytics reports directory: %s", out_dir)
     try:
-        proc = subprocess.run(
+        proc = subprocess.run(  # nosec B603
             cmd,
             env=env,
             capture_output=True,
@@ -116,6 +117,7 @@ def invoke_quantanalytics_after_quantlog(
             timeout=600,
             encoding="utf-8",
             errors="replace",
+            shell=False,
         )
     except FileNotFoundError:
         logger.warning("QuantAnalytics post-run skipped: Python executable not found.")

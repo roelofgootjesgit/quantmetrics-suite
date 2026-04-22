@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-import subprocess
+import subprocess  # nosec B404
 from pathlib import Path
 
 __version__ = "1.0.0"
@@ -19,13 +19,14 @@ def git_revision_short() -> str:
         return env_rev
     root = repo_root()
     try:
-        proc = subprocess.run(
+        proc = subprocess.run(  # nosec B603
             ["git", "rev-parse", "--short", "HEAD"],
             cwd=str(root),
             capture_output=True,
             text=True,
             timeout=5,
             check=False,
+            shell=False,
         )
         if proc.returncode == 0 and (proc.stdout or "").strip():
             return proc.stdout.strip()

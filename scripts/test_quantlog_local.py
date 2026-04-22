@@ -24,7 +24,7 @@ import argparse
 import json
 import os
 import re
-import subprocess
+import subprocess  # nosec B404
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -132,7 +132,9 @@ def _run_cli(
 ) -> tuple[int, dict | None, str]:
     env = _env_with_quantlog(quantlog_repo)
     cmd = [sys.executable, "-m", "quantlog.cli", *args]
-    proc = subprocess.run(cmd, capture_output=True, text=True, env=env, check=False)
+    proc = subprocess.run(  # nosec B603
+        cmd, capture_output=True, text=True, env=env, check=False, shell=False
+    )
     out = proc.stdout.strip()
     data = None
     if capture_json and out:
@@ -226,9 +228,10 @@ def main() -> int:
         pipe_script = _REPO_ROOT / "scripts" / "summarize_quantlog_pipeline.py"
         if pipe_script.is_file():
             print("--- pipeline funnel (summarize_quantlog_pipeline.py) ---", flush=True)
-            proc = subprocess.run(
+            proc = subprocess.run(  # nosec B603
                 [sys.executable, str(pipe_script), str(events_path)],
                 check=False,
+                shell=False,
             )
             if proc.returncode != 0:
                 sys.stderr.write("summarize_quantlog_pipeline.py exited with error.\n")

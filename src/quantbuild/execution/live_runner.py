@@ -575,6 +575,15 @@ class LiveRunner:
                 payload.setdefault("spread", float(spr))
             except (TypeError, ValueError):
                 pass
+        # P0-A: never leave session/setup_type empty on sqe_entry rows
+        if payload.get("signal_type") == "sqe_entry":
+            if not str(payload.get("session") or "").strip():
+                fallback_s = dc.get("session")
+                payload["session"] = str(fallback_s) if fallback_s is not None else "unknown"
+            if not str(payload.get("setup_type") or "").strip():
+                payload["setup_type"] = "sqe"
+            if not str(payload.get("regime") or "").strip():
+                payload["regime"] = "none"
 
     def _emit_signal_evaluated(
         self,
@@ -860,12 +869,13 @@ class LiveRunner:
         session: str,
         modules_hint: Optional[Dict[str, Any]] = None,
         decision_cycle_id: Optional[str] = None,
+        entry_type: str = "sqe_entry",
     ) -> None:
         if not self._quantlog:
             return
         payload: Dict[str, Any] = {
             "signal_id": signal_id,
-            "type": "sqe_entry",
+            "type": entry_type,
             "direction": direction,
             "strength": strength,
             "bar_timestamp": bar_timestamp,
@@ -884,6 +894,33 @@ class LiveRunner:
             symbol=self.cfg.get("symbol", "XAUUSD"),
             payload=payload,
             decision_cycle_id=decision_cycle_id,
+        )
+
+    def _emit_pipeline_gate_signal_detected(
+        self,
+        *,
+        trace_id: str,
+        decision_cycle_id: str,
+        current_session: str,
+        regime: Optional[str],
+        bar_timestamp: str,
+        eval_stage: str,
+    ) -> None:
+        """Emit a synthetic ``signal_detected`` so every ``signal_evaluated`` has a preceding detect (P0 funnel)."""
+        if not self._quantlog:
+            return
+        signal_id = f"sig_cycle_{uuid4().hex[:12]}"
+        self._emit_signal_detected(
+            trace_id=trace_id,
+            signal_id=signal_id,
+            direction="LONG",
+            strength=0.0,
+            bar_timestamp=bar_timestamp,
+            regime=regime,
+            session=current_session,
+            modules_hint={"synthetic_cycle_anchor": True, "eval_stage": eval_stage},
+            decision_cycle_id=decision_cycle_id,
+            entry_type="sqe_pipeline_scan",
         )
 
     def _emit_signal_filtered(
@@ -1025,6 +1062,15 @@ class LiveRunner:
                 session=current_session,
                 max_open_positions=self._max_open_positions,
             )
+            wall_ts = now.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+            self._emit_pipeline_gate_signal_detected(
+                trace_id=cycle_trace_id,
+                decision_cycle_id=cycle_decision_id,
+                current_session=current_session,
+                regime=regime,
+                bar_timestamp=wall_ts,
+                eval_stage="position_limit_block",
+            )
             self._emit_signal_evaluated(
                 trace_id=cycle_trace_id,
                 decision_cycle_id=cycle_decision_id,
@@ -1062,6 +1108,15 @@ class LiveRunner:
                 regime=regime,
                 session=current_session,
                 daily_pnl_r=float(self._daily_pnl_r),
+            )
+            wall_ts = now.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+            self._emit_pipeline_gate_signal_detected(
+                trace_id=cycle_trace_id,
+                decision_cycle_id=cycle_decision_id,
+                current_session=current_session,
+                regime=regime,
+                bar_timestamp=wall_ts,
+                eval_stage="daily_loss_block",
             )
             self._emit_signal_evaluated(
                 trace_id=cycle_trace_id,
@@ -1114,6 +1169,19 @@ class LiveRunner:
                 bar_count=len(data_15m),
                 min_bars=MIN_BARS_FOR_SIGNAL,
             )
+            bar_anchor = (
+                last_ts
+                if not data_15m.empty
+                else now.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+            )
+            self._emit_pipeline_gate_signal_detected(
+                trace_id=cycle_trace_id,
+                decision_cycle_id=cycle_decision_id,
+                current_session=current_session,
+                regime=regime,
+                bar_timestamp=bar_anchor,
+                eval_stage="bars_missing",
+            )
             self._emit_signal_evaluated(
                 trace_id=cycle_trace_id,
                 decision_cycle_id=cycle_decision_id,
@@ -1154,6 +1222,14 @@ class LiveRunner:
                 session=current_session,
                 latest_bar_ts=str(latest_ts),
                 last_processed_bar_ts=str(self._last_bar_ts),
+            )
+            self._emit_pipeline_gate_signal_detected(
+                trace_id=cycle_trace_id,
+                decision_cycle_id=cycle_decision_id,
+                current_session=current_session,
+                regime=regime,
+                bar_timestamp=str(latest_ts),
+                eval_stage="same_bar_already_processed",
             )
             self._emit_signal_evaluated(
                 trace_id=cycle_trace_id,
@@ -1214,6 +1290,14 @@ class LiveRunner:
                 else None,
                 source_actual=source_actual,
             )
+            self._emit_pipeline_gate_signal_detected(
+                trace_id=cycle_trace_id,
+                decision_cycle_id=cycle_decision_id,
+                current_session=current_session,
+                regime=regime,
+                bar_timestamp=str(data_15m.index[-1]),
+                eval_stage="no_entry_signal",
+            )
             self._emit_signal_evaluated(
                 trace_id=cycle_trace_id,
                 decision_cycle_id=cycle_decision_id,
@@ -1252,7 +1336,7 @@ class LiveRunner:
         for direction in signals_to_check:
             trace_id = self._new_trace_id()
             signal_id = str(uuid4())
-            d_cycle = str(uuid4())
+            d_cycle = cycle_decision_id
             sqe_ctx = sqe_decision_context_at_bar(precomputed_df, direction, last_idx, sqe_cfg)
             sqe_ctx["session"] = current_session
             if regime is not None:
@@ -1483,6 +1567,15 @@ class LiveRunner:
                 pre_ctx = self._runner_pre_signal_decision_context(
                     eval_stage="regime_block", regime=regime, session=current_session
                 )
+                wall_ts = now.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+                self._emit_pipeline_gate_signal_detected(
+                    trace_id=cycle_trace_id,
+                    decision_cycle_id=cycle_decision_id,
+                    current_session=current_session,
+                    regime=regime,
+                    bar_timestamp=wall_ts,
+                    eval_stage="regime_block",
+                )
                 self._emit_signal_evaluated(
                     trace_id=cycle_trace_id,
                     decision_cycle_id=cycle_decision_id,
@@ -1524,6 +1617,15 @@ class LiveRunner:
                         session=current_session,
                         allowed_sessions=list(allowed_sessions),
                     )
+                    wall_ts = now.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+                    self._emit_pipeline_gate_signal_detected(
+                        trace_id=cycle_trace_id,
+                        decision_cycle_id=cycle_decision_id,
+                        current_session=current_session,
+                        regime=regime,
+                        bar_timestamp=wall_ts,
+                        eval_stage="outside_killzone",
+                    )
                     self._emit_signal_evaluated(
                         trace_id=cycle_trace_id,
                         decision_cycle_id=cycle_decision_id,
@@ -1564,6 +1666,15 @@ class LiveRunner:
                         min_hour_utc=min_hour,
                         hour_utc=now.hour,
                     )
+                    wall_ts = now.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+                    self._emit_pipeline_gate_signal_detected(
+                        trace_id=cycle_trace_id,
+                        decision_cycle_id=cycle_decision_id,
+                        current_session=current_session,
+                        regime=regime,
+                        bar_timestamp=wall_ts,
+                        eval_stage="time_filter_block",
+                    )
                     self._emit_signal_evaluated(
                         trace_id=cycle_trace_id,
                         decision_cycle_id=cycle_decision_id,
@@ -1603,6 +1714,15 @@ class LiveRunner:
                 session=current_session,
                 max_open_positions=self._max_open_positions,
             )
+            wall_ts = now.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+            self._emit_pipeline_gate_signal_detected(
+                trace_id=cycle_trace_id,
+                decision_cycle_id=cycle_decision_id,
+                current_session=current_session,
+                regime=regime,
+                bar_timestamp=wall_ts,
+                eval_stage="position_limit_block",
+            )
             self._emit_signal_evaluated(
                 trace_id=cycle_trace_id,
                 decision_cycle_id=cycle_decision_id,
@@ -1641,6 +1761,15 @@ class LiveRunner:
                 regime=regime,
                 session=current_session,
                 daily_pnl_r=float(self._daily_pnl_r),
+            )
+            wall_ts = now.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+            self._emit_pipeline_gate_signal_detected(
+                trace_id=cycle_trace_id,
+                decision_cycle_id=cycle_decision_id,
+                current_session=current_session,
+                regime=regime,
+                bar_timestamp=wall_ts,
+                eval_stage="daily_loss_block",
             )
             self._emit_signal_evaluated(
                 trace_id=cycle_trace_id,
@@ -1691,6 +1820,19 @@ class LiveRunner:
                 bar_count=len(data_15m),
                 min_bars=MIN_BARS_FOR_SIGNAL,
             )
+            bar_anchor = (
+                last_ts
+                if not data_15m.empty
+                else now.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+            )
+            self._emit_pipeline_gate_signal_detected(
+                trace_id=cycle_trace_id,
+                decision_cycle_id=cycle_decision_id,
+                current_session=current_session,
+                regime=regime,
+                bar_timestamp=bar_anchor,
+                eval_stage="bars_missing",
+            )
             self._emit_signal_evaluated(
                 trace_id=cycle_trace_id,
                 decision_cycle_id=cycle_decision_id,
@@ -1732,6 +1874,14 @@ class LiveRunner:
                 session=current_session,
                 latest_bar_ts=str(latest_ts),
                 last_processed_bar_ts=str(self._last_bar_ts),
+            )
+            self._emit_pipeline_gate_signal_detected(
+                trace_id=cycle_trace_id,
+                decision_cycle_id=cycle_decision_id,
+                current_session=current_session,
+                regime=regime,
+                bar_timestamp=str(latest_ts),
+                eval_stage="same_bar_already_processed",
             )
             self._emit_signal_evaluated(
                 trace_id=cycle_trace_id,
@@ -1793,6 +1943,14 @@ class LiveRunner:
                 else None,
                 source_actual=source_actual,
             )
+            self._emit_pipeline_gate_signal_detected(
+                trace_id=cycle_trace_id,
+                decision_cycle_id=cycle_decision_id,
+                current_session=current_session,
+                regime=regime,
+                bar_timestamp=str(data_15m.index[-1]),
+                eval_stage="no_entry_signal",
+            )
             self._emit_signal_evaluated(
                 trace_id=cycle_trace_id,
                 decision_cycle_id=cycle_decision_id,
@@ -1830,7 +1988,7 @@ class LiveRunner:
         for direction in signals_to_check:
             trace_id = self._new_trace_id()
             signal_id = str(uuid4())
-            dir_cycle_id = str(uuid4())
+            dir_cycle_id = cycle_decision_id
             confidence = 1.0
             sqe_ctx = sqe_decision_context_at_bar(precomputed_df, direction, last_idx, sqe_cfg)
             sqe_ctx["session"] = current_session
