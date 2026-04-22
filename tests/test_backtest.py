@@ -187,6 +187,7 @@ class TestSystemModeBacktest:
             "backtest": {"default_period_days": 365, "tp_r": 2.0, "sl_r": 1.0, "session_mode": "extended"},
             "risk": {"max_daily_loss_r": 99.0, "equity_kill_switch_pct": 99.0},
             "strategy": {},
+            "quantlog": {"enabled": False},
             "news": {"enabled": False},
             "regime_profiles": {"expansion": {"skip": True}},
         }

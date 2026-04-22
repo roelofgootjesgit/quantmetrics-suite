@@ -143,7 +143,7 @@ class LiveRunner:
         # QuantLog integration
         self._quantlog: Optional[QuantLogEmitter] = None
         ql_cfg = cfg.get("quantlog", {}) or {}
-        if bool(ql_cfg.get("enabled", False)):
+        if bool(ql_cfg.get("enabled", True)):
             ql_base = Path(str(ql_cfg.get("base_path", "data/quantlog_events")))
             ql_env = str(ql_cfg.get("environment", "dry_run" if dry_run else "live"))
             run_id = resolve_quantlog_run_id(ql_cfg)
@@ -2199,6 +2199,15 @@ class LiveRunner:
                 exec_result = self.quantbridge.execute(request)
             except Exception as e:
                 logger.error("QuantBridge execution failed: %s", e)
+                self._emit_guard_decision(
+                    trace_id=trace_id,
+                    decision_cycle_id=decision_cycle_id,
+                    decision="BLOCK",
+                    reason="execution_exception",
+                    guard_name="quantbridge_execution",
+                    session=session,
+                    regime=regime,
+                )
                 self._emit_trade_action(
                     trace_id=trace_id,
                     decision_cycle_id=decision_cycle_id,
@@ -2217,6 +2226,15 @@ class LiveRunner:
 
             if exec_result.status != "filled":
                 logger.error("Order failed via QuantBridge: %s", exec_result.message)
+                self._emit_guard_decision(
+                    trace_id=trace_id,
+                    decision_cycle_id=decision_cycle_id,
+                    decision="BLOCK",
+                    reason="execution_reject",
+                    guard_name="quantbridge_execution",
+                    session=session,
+                    regime=regime,
+                )
                 self._emit_trade_action(
                     trace_id=trace_id,
                     decision_cycle_id=decision_cycle_id,

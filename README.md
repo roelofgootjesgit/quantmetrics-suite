@@ -206,6 +206,12 @@ data source are independent — configurable separately per YAML.
 
 ---
 
+## QuantAnalytics after backtest
+
+When **`quantlog.enabled`** is on (default) and **`quantlog.auto_analytics`** is **true** (default in `configs/default.yaml`), each finished **backtest** runs **`quantmetrics_analytics.cli.run_analysis`** on your QuantLog tree (`quantlog.base_path`). Unless you already set **`QUANTMETRICS_ANALYTICS_OUTPUT_DIR`**, QuantBuild passes **`QUANTMETRICS_ANALYTICS_OUTPUT_DIR`** pointing at **``../quantanalyticsv1/output_rapport/``** (direct sibling of **`quantbuildv1`** only — same parent directory). Deeper monorepos: set the env var yourself. Set **`QUANTMETRICS_ANALYTICS_AUTO=0`** or **`quantlog.auto_analytics: false`** to skip; pytest sets **`QUANTMETRICS_ANALYTICS_AUTO=0`** automatically.
+
+---
+
 ## Suite
 
 | Repo | GitHub |

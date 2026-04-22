@@ -1,9 +1,6 @@
 # Backtest januari–maart 2026 (UTC, eerste dag jan t/m laatste dag mrt inclusief).
-# Cache moet dit venster overlappen. Bij korte/mock history: verwijder
-# data/market_cache/XAUUSD/*.parquet en fetch opnieuw met genoeg dagen, bv.:
-#   python -m src.quantbuild.app fetch --days 180
-#
-#   python -m src.quantbuild.app --config configs/backtest_2026_jan_mar.yaml backtest
+# Strategy/regime gedrag via strict_prod_v2; hier alleen venster + logging voorkeuren.
+extends: strict_prod_v2.yaml
 
 symbol: XAUUSD
 timeframes:
@@ -23,7 +20,7 @@ risk:
   max_daily_loss_r: 3.0
 
 quantlog:
-  enabled: false
+  enabled: true
 
 news:
   enabled: false

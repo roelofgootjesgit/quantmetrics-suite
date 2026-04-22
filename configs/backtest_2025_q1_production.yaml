@@ -1,0 +1,16 @@
+# Jan–mrt 2025 (UTC), zelfde policy als strict_prod_v2; QuantLog consolidated.
+#
+#   python -m src.quantbuild.app --config configs/backtest_2025_q1_production.yaml backtest
+#
+# Output: data/quantlog_events/runs/bt_2025_q1_production.jsonl
+
+extends: strict_prod_v2.yaml
+
+backtest:
+  start_date: "2025-01-01"
+  end_date: "2025-03-31"
+
+quantlog:
+  consolidated_run_file: true
+  run_id: bt_2025_q1_production
+  session_id: bt_2025_q1

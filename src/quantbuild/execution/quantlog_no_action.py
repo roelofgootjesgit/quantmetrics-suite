@@ -45,7 +45,6 @@ _INTERNAL_TO_CANONICAL: dict[str, str] = {
     "execution_exception": "broker_unavailable",
     "execution_reject": "broker_unavailable",
     "slippage_block": "risk_blocked",
-    "price_unavailable": "broker_unavailable",
 }
 
 LIVE_RUNNER_NO_ACTION_INTERNAL_CODES: frozenset[str] = frozenset(_INTERNAL_TO_CANONICAL.keys())

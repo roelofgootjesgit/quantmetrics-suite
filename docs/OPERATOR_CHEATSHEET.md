@@ -123,7 +123,7 @@ mkdir -p logs
 bash scripts/vps/quantlog_nightly.sh 2>&1 | tee -a logs/quantlog_nightly_manual.log
 ```
 
-`QUANTBUILD_POST_RUN_CONFIG` moet dezelfde logische setup zijn als je runtime-config: **`quantlog.enabled: true`** en hetzelfde **`quantlog.base_path`** als waar JSONL naartoe schrijft. Staat `enabled` niet in jouw YAML, dan blijft na merge **`default.yaml` → false** en stopt `quantlog_post_run.py` met exit 2 — ook al bestaat er wél JSONL. Oplossing: `git pull` (demo/prod YAML’s in repo zetten `enabled: true`) of handmatig `enabled: true` toevoegen.
+`QUANTBUILD_POST_RUN_CONFIG` moet dezelfde logische setup zijn als je runtime-config: **`quantlog.enabled`** (default na merge **`true`** via `configs/default.yaml`) en hetzelfde **`quantlog.base_path`** als waar JSONL naartoe schrijft. Staat **`quantlog.enabled: false`** expliciet in jouw YAML of merge je een slice die logging uitzet, dan stopt `quantlog_post_run.py` met exit 2 voor validate — ook al bestaat er wél JSONL. Oplossing: zet **`enabled: true`** of verwijder `enabled: false`.
 
 **QuantLog-repo-pad:** zet **`QUANTLOG_REPO_PATH`** (of alias **`QUANTLOG_ROOT`**) naar je clone, bv. `/root/dev/quant/quantlogv1`. Zonder geldige clone faalt post-run vóór validate.
 

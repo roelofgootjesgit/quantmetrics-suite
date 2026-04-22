@@ -46,7 +46,7 @@ def _bar_timestamp_utc_iso(ts: Any) -> str:
 
 def _init_backtest_quantlog(cfg: Dict[str, Any]) -> Optional[QuantLogEmitter]:
     ql_cfg = cfg.get("quantlog", {}) or {}
-    if not bool(ql_cfg.get("enabled", False)):
+    if not bool(ql_cfg.get("enabled", True)):
         return None
     raw = Path(str(ql_cfg.get("base_path", "data/quantlog_events")))
     ql_base = raw.resolve() if raw.is_absolute() else (quantbuild_project_root() / raw).resolve()
@@ -406,31 +406,6 @@ def run_backtest(cfg: Dict[str, Any], precomputed_regime: Optional[pd.Series] = 
     ql_emitter = _init_backtest_quantlog(cfg)
     account_id = str(cfg.get("broker", {}).get("account_id") or "backtest")
     strategy_id_bt = "sqe_backtest"
-    trace_bt_run = str(uuid4())
-
-    if ql_emitter:
-        ts_first = _bar_timestamp_utc_iso(data.index[0])
-        bookend_start_cycle = str(uuid4())
-        ql_emitter.emit(
-            event_type="signal_evaluated",
-            trace_id=trace_bt_run,
-            timestamp_utc=ts_first,
-            account_id=account_id,
-            strategy_id=strategy_id_bt,
-            symbol=symbol,
-            decision_cycle_id=bookend_start_cycle,
-                payload={
-                    "signal_type": "sqe_entry",
-                    "signal_direction": "NONE",
-                    "confidence": 0.0,
-                    "regime": "none",
-                    "setup": False,
-                    "eval_stage": "backtest_run_start",
-                    "system_mode": system_mode,
-                    "bars": len(data),
-                    "entry_signals_pre_risk": len(entry_signals),
-                },
-        )
 
     for i, direction in entry_signals:
         if kill_switch_triggered:
@@ -669,10 +644,13 @@ def run_backtest(cfg: Dict[str, Any], precomputed_regime: Optional[pd.Series] = 
                 strategy_id=strategy_id_bt,
                 symbol=symbol,
                 order_ref=trade_ref,
+                decision_cycle_id=decision_cycle_id,
                 payload={
                     "order_ref": trade_ref,
                     "side": direction,
                     "volume": sim_vol,
+                    "trade_id": trade_ref,
+                    "decision_cycle_id": decision_cycle_id,
                 },
             )
             ql_emitter.emit(
@@ -683,11 +661,15 @@ def run_backtest(cfg: Dict[str, Any], precomputed_regime: Optional[pd.Series] = 
                 strategy_id=strategy_id_bt,
                 symbol=symbol,
                 order_ref=trade_ref,
+                decision_cycle_id=decision_cycle_id,
                 payload={
                     "order_ref": trade_ref,
                     "fill_price": float(result["entry_price"]),
+                    "trade_id": trade_ref,
+                    "decision_cycle_id": decision_cycle_id,
                 },
             )
+            tex_dir = "LONG" if str(direction).upper() in ("LONG", "BUY") else "SHORT"
             ql_emitter.emit(
                 event_type="trade_executed",
                 trace_id=trace_id,
@@ -696,12 +678,14 @@ def run_backtest(cfg: Dict[str, Any], precomputed_regime: Optional[pd.Series] = 
                 strategy_id=strategy_id_bt,
                 symbol=symbol,
                 order_ref=trade_ref,
+                decision_cycle_id=decision_cycle_id,
                 payload={
                     "signal_id": signal_id,
-                    "direction": direction,
+                    "direction": tex_dir,
                     "trade_id": trade_ref,
                     "session": current_session,
                     "regime": regime_str,
+                    "decision_cycle_id": decision_cycle_id,
                 },
             )
             exit_ts_iso = _bar_timestamp_utc_iso(result["exit_ts"])
@@ -713,10 +697,11 @@ def run_backtest(cfg: Dict[str, Any], precomputed_regime: Optional[pd.Series] = 
                 strategy_id=strategy_id_bt,
                 symbol=symbol,
                 order_ref=trade_ref,
+                decision_cycle_id=decision_cycle_id,
                 payload={
                     "trade_id": trade_ref,
                     "order_ref": trade_ref,
-                    "direction": direction,
+                    "direction": tex_dir,
                     "exit_price": float(result["exit_price"]),
                     "pnl_abs": float(result["profit_usd"]),
                     "pnl_r": float(result["profit_r"]),
@@ -726,6 +711,7 @@ def run_backtest(cfg: Dict[str, Any], precomputed_regime: Optional[pd.Series] = 
                     "exit": _exit_tag_from_simulator(result["result"]),
                     "session": current_session,
                     "regime": regime_str,
+                    "decision_cycle_id": decision_cycle_id,
                 },
             )
 
@@ -778,32 +764,11 @@ def run_backtest(cfg: Dict[str, Any], precomputed_regime: Optional[pd.Series] = 
             run_metrics.get("trade_count", 0),
         )
 
-    if ql_emitter:
-        ts_last = _bar_timestamp_utc_iso(data.index[-1])
-        bookend_complete_cycle = str(uuid4())
-        complete_payload: Dict[str, Any] = {
-            "signal_type": "sqe_entry",
-            "signal_direction": "NONE",
-            "confidence": 0.0,
-            "regime": "none",
-            "setup": False,
-            "eval_stage": "backtest_run_complete",
-            "system_mode": system_mode,
-            "bars": len(data),
-            "entry_signals_pre_risk": len(entry_signals),
-            "trades_closed": len(trades),
-        }
-        if run_metrics:
-            complete_payload["metrics"] = run_metrics
-        ql_emitter.emit(
-            event_type="signal_evaluated",
-            trace_id=trace_bt_run,
-            timestamp_utc=ts_last,
-            account_id=account_id,
-            strategy_id=strategy_id_bt,
-            symbol=symbol,
-            decision_cycle_id=bookend_complete_cycle,
-            payload=complete_payload,
-        )
+    try:
+        from src.quantbuild.integration.quantanalytics_post_run import invoke_quantanalytics_after_quantlog
+
+        invoke_quantanalytics_after_quantlog(cfg, ql_emitter)
+    except Exception:
+        logger.debug("QuantAnalytics post-run hook skipped after exception", exc_info=True)
 
     return trades

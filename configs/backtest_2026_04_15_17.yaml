@@ -22,7 +22,7 @@ risk:
   max_daily_loss_r: 3.0
 
 quantlog:
-  enabled: false
+  enabled: true
 
 news:
   enabled: false

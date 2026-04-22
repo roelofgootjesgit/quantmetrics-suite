@@ -37,7 +37,7 @@ def format_suite_run_summary(
         f"env <code>{escape(str(broker.get('environment', '?')))}</code> · "
         f"instrument <code>{escape(str(broker.get('instrument', '')))}</code>",
         f"Data source: <code>{escape(str(data.get('source', '?')))}</code>",
-        f"QuantLog: {'on' if ql.get('enabled') else 'off'} · "
+        f"QuantLog: {'on' if ql.get('enabled', True) else 'off'} · "
         f"<code>{escape(str(ql.get('base_path', '')))}</code> · "
         f"run_id <code>{escape(str(ql.get('run_id', '')))}</code>",
         f"Strategy: <code>{escape(str(st.get('name', '')))}</code>",

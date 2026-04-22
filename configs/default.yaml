@@ -41,7 +41,10 @@ logging:
   timestamp_suffix: true
 
 quantlog:
-  enabled: false
+  enabled: true
+  # After backtest: run QuantAnalytics on this tree (``output_rapport/`` in quantanalyticsv1). Off: auto_analytics: false or QUANTMETRICS_ANALYTICS_AUTO=0.
+  auto_analytics: true
+  # Canonical stack location — QuantAnalytics discovers <quantbuild>/data/quantlog_events by default (env QUANTMETRICS_QUANTLOG_DIR overrides).
   base_path: data/quantlog_events
   environment: dry_run
   # run_id / session_id: weglaten voor auto (nooit lege string — correlatie P1).
