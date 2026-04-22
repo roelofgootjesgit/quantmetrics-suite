@@ -1,0 +1,9 @@
+# Research “ceiling” run: zelfde Q1-venster als backtest_2026_jan_mar, maar system_mode EDGE_DISCOVERY.
+# Legt vast hoeveel throughput er maximaal is als regime/session/news/cooldown/position/H1-gates (zoals in die modus) worden versoepeld.
+# NIET 1:1 vergelijkbaar met production expansion-NY — wel nuttig als bovengrens + contrast.
+#
+#   python -m src.quantbuild.app --config configs/backtest_2026_jan_mar_edge_discovery.yaml backtest
+
+extends: backtest_2026_jan_mar.yaml
+
+system_mode: EDGE_DISCOVERY
