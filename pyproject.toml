@@ -17,6 +17,8 @@ dev = ["pytest>=7.0"]
 
 [project.scripts]
 quantmetrics-analytics = "quantmetrics_analytics.cli.run_analysis:main"
+quantmetrics-guard-attribution = "quantmetrics_analytics.cli.guard_attribution:main"
+quantmetrics-guard-attribution-compare = "quantmetrics_analytics.cli.guard_attribution_compare:main"
 
 [tool.setuptools.packages.find]
 where = ["."]

@@ -1,0 +1,9 @@
+{"event_type":"risk_guard_decision","event_version":1,"timestamp_utc":"2026-04-19T08:00:00Z","source_system":"quantbuild","run_id":"base-run","payload":{"guard_name":"regime_profile","decision":"BLOCK","reason":"skip"}}
+{"event_type":"risk_guard_decision","event_version":1,"timestamp_utc":"2026-04-19T08:00:30Z","source_system":"quantbuild","run_id":"base-run","payload":{"guard_name":"regime_profile","decision":"BLOCK","reason":"skip"}}
+{"event_type":"risk_guard_decision","event_version":1,"timestamp_utc":"2026-04-19T08:01:00Z","source_system":"quantbuild","run_id":"base-run","payload":{"guard_name":"spread_guard","decision":"BLOCK","reason":"wide"}}
+{"event_type":"trade_closed","event_version":1,"timestamp_utc":"2026-04-19T09:00:00Z","source_system":"quantbuild","run_id":"base-run","payload":{"trade_id":"t1","pnl_r":1.0}}
+{"event_type":"trade_closed","event_version":1,"timestamp_utc":"2026-04-19T10:00:00Z","source_system":"quantbuild","run_id":"base-run","payload":{"trade_id":"t2","pnl_r":-0.5}}
+{"event_type":"risk_guard_decision","event_version":1,"timestamp_utc":"2026-04-19T08:00:00Z","source_system":"quantbuild","run_id":"var-run","payload":{"guard_name":"regime_profile","decision":"BLOCK","reason":"skip"}}
+{"event_type":"trade_closed","event_version":1,"timestamp_utc":"2026-04-19T09:00:00Z","source_system":"quantbuild","run_id":"var-run","payload":{"trade_id":"v1","pnl_r":1.0}}
+{"event_type":"trade_closed","event_version":1,"timestamp_utc":"2026-04-19T09:30:00Z","source_system":"quantbuild","run_id":"var-run","payload":{"trade_id":"v2","pnl_r":1.0}}
+{"event_type":"trade_closed","event_version":1,"timestamp_utc":"2026-04-19T10:00:00Z","source_system":"quantbuild","run_id":"var-run","payload":{"trade_id":"v3","pnl_r":-1.0}}
