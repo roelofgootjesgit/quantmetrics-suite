@@ -136,6 +136,10 @@ class TestBacktestQuantLog:
                 "trade_action",
             ):
                 assert e.get("decision_cycle_id"), f"missing decision_cycle_id on {e['event_type']}"
+            if e["event_type"] == "signal_evaluated":
+                pl = e["payload"]
+                for k in ("session", "setup_type", "regime", "decision_cycle_id"):
+                    assert str(pl.get(k) or "").strip(), f"signal_evaluated payload missing {k}"
         assert "order_submitted" in types
         assert "order_filled" in types
         assert "trade_executed" in types

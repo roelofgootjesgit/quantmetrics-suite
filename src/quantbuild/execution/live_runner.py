@@ -28,6 +28,10 @@ from src.quantbuild.alerts.telegram import TelegramAlerter
 from src.quantbuild.execution.broker_factory import create_broker
 from src.quantbuild.execution.quantlog_emitter import QuantLogEmitter
 from src.quantbuild.execution.signal_evaluated_desk_grade import build_desk_grade_payload
+from src.quantbuild.execution.signal_evaluated_payload import (
+    assert_signal_evaluated_payload_complete,
+    build_signal_evaluated_payload,
+)
 from src.quantbuild.execution.quantlog_ids import resolve_quantlog_run_id, resolve_quantlog_session_id
 from src.quantbuild.quantlog_repo import resolve_quantlog_repo_path
 from src.quantbuild.execution.order_manager import OrderManager
@@ -557,51 +561,6 @@ class LiveRunner:
         ctx.update(extra)
         return ctx
 
-    def _merge_signal_evaluated_blueprint_fields(
-        self,
-        payload: Dict[str, Any],
-        *,
-        decision_context: Optional[Dict[str, Any]],
-        regime: Optional[str],
-    ) -> None:
-        """Fill MVP blueprint fields on ``signal_evaluated`` when values exist (no overwrites)."""
-        if payload.get("signal_type") == "sqe_entry":
-            payload.setdefault("setup_type", "sqe")
-        dc = decision_context or {}
-        sess = dc.get("session")
-        if sess is not None:
-            payload.setdefault("session", str(sess))
-        eff_regime = regime if regime is not None else dc.get("regime")
-        if eff_regime is not None:
-            payload.setdefault("regime", str(eff_regime) if eff_regime not in ("", None) else "none")
-        cc = dc.get("combo_active_modules_count")
-        if cc is not None:
-            try:
-                payload.setdefault("combo_count", int(cc))
-            except (TypeError, ValueError):
-                pass
-        pat = dc.get("price_at_signal")
-        if pat is not None:
-            try:
-                payload.setdefault("price_at_signal", float(pat))
-            except (TypeError, ValueError):
-                pass
-        spr = dc.get("spread_pips")
-        if spr is not None:
-            try:
-                payload.setdefault("spread", float(spr))
-            except (TypeError, ValueError):
-                pass
-        # P0-A: never leave session/setup_type empty on sqe_entry rows
-        if payload.get("signal_type") == "sqe_entry":
-            if not str(payload.get("session") or "").strip():
-                fallback_s = dc.get("session")
-                payload["session"] = str(fallback_s) if fallback_s is not None else "unknown"
-            if not str(payload.get("setup_type") or "").strip():
-                payload["setup_type"] = "sqe"
-            if not str(payload.get("regime") or "").strip():
-                payload["regime"] = "none"
-
     def _emit_signal_evaluated(
         self,
         *,
@@ -664,26 +623,30 @@ class LiveRunner:
             bar_ts_str=bar_ts_key,
             new_bar_detected=new_bar_detected,
         )
-        payload: Dict[str, Any] = {
-            "signal_type": "sqe_entry",
-            "signal_direction": direction,
-            "confidence": confidence,
-            "regime": regime or "none",
-            "system_mode": getattr(self, "_system_mode", SYSTEM_MODE_PRODUCTION),
-            "bypassed_by_mode": getattr(self, "_bypassed_by_mode", []),
-        }
-        payload.update(desk_extra)
-        if not setup:
-            payload["setup"] = False
-        if eval_stage:
-            payload["eval_stage"] = eval_stage
-        if decision_context is not None:
-            payload["decision_context"] = decision_context
-        self._merge_signal_evaluated_blueprint_fields(
-            payload,
-            decision_context=decision_context,
+        dcid_eff = (decision_cycle_id or "").strip()
+        if not dcid_eff:
+            dcid_eff = f"dc_live_{uuid4().hex[:12]}"
+        sess_hint = ""
+        if isinstance(decision_context, dict):
+            s0 = decision_context.get("session")
+            if s0 is not None:
+                sess_hint = str(s0)
+        payload = build_signal_evaluated_payload(
+            decision_cycle_id=dcid_eff,
+            session=sess_hint,
             regime=regime,
+            signal_type="sqe_entry",
+            signal_direction=direction,
+            confidence=confidence,
+            system_mode=getattr(self, "_system_mode", SYSTEM_MODE_PRODUCTION),
+            bypassed_by_mode=list(getattr(self, "_bypassed_by_mode", []) or []),
+            setup_type="sqe",
+            setup=setup,
+            eval_stage=eval_stage,
+            decision_context=decision_context,
+            desk_extra=desk_extra,
         )
+        assert_signal_evaluated_payload_complete(payload)
         self._quantlog.emit(
             event_type="signal_evaluated",
             trace_id=trace_id,
@@ -691,7 +654,7 @@ class LiveRunner:
             strategy_id="sqe_live_runner",
             symbol=self.cfg.get("symbol", "XAUUSD"),
             payload=payload,
-            decision_cycle_id=decision_cycle_id,
+            decision_cycle_id=dcid_eff,
         )
 
     def _emit_guard_decision(

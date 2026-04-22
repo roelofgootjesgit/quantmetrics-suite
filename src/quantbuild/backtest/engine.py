@@ -30,7 +30,11 @@ from src.quantbuild.execution.quantlog_emitter import QuantLogEmitter
 from src.quantbuild.execution.quantlog_ids import resolve_quantlog_run_id, resolve_quantlog_session_id
 from src.quantbuild.execution.quantlog_no_action import canonical_no_action_reason
 from src.quantbuild.quantlog_repo import quantbuild_project_root, resolve_quantlog_repo_path
-from src.quantbuild.policy.system_mode import resolve_effective_filters
+from src.quantbuild.execution.signal_evaluated_payload import (
+    assert_signal_evaluated_payload_complete,
+    build_signal_evaluated_payload,
+)
+from src.quantbuild.policy.system_mode import bypassed_filters_vs_production, resolve_effective_filters
 
 logger = logging.getLogger(__name__)
 
@@ -256,6 +260,7 @@ def run_backtest(cfg: Dict[str, Any], precomputed_regime: Optional[pd.Series] = 
     base_max_trades_per_session = risk_cfg.get("max_trades_per_session", 1)
 
     system_mode, eff_f = resolve_effective_filters(cfg)
+    bypassed_by_mode = bypassed_filters_vs_production(eff_f)
     logger.info(
         "Backtest system_mode=%s effective_filters=%s",
         system_mode,
@@ -434,22 +439,30 @@ def run_backtest(cfg: Dict[str, Any], precomputed_regime: Optional[pd.Series] = 
         def _emit_signal_evaluated() -> None:
             if not ql_emitter:
                 return
-            se_payload: Dict[str, Any] = {
-                "signal_type": "sqe_entry",
-                "setup_type": "sqe",
-                "signal_direction": direction,
-                "confidence": 1.0,
-                "regime": regime_str,
-                "session": current_session,
-                "eval_stage": "backtest_candidate",
-            }
+            desk_bt: Dict[str, Any] = {}
             if combo_n is not None:
                 try:
-                    se_payload["combo_count"] = int(combo_n)
+                    desk_bt["combo_count"] = int(combo_n)
                 except (TypeError, ValueError):
                     pass
             if price_at_sig is not None:
-                se_payload["price_at_signal"] = price_at_sig
+                desk_bt["price_at_signal"] = price_at_sig
+            se_payload = build_signal_evaluated_payload(
+                decision_cycle_id=decision_cycle_id,
+                session=current_session,
+                regime=regime_str,
+                signal_type="sqe_entry",
+                signal_direction=direction,
+                confidence=1.0,
+                system_mode=system_mode,
+                bypassed_by_mode=list(bypassed_by_mode),
+                setup_type="sqe",
+                setup=True,
+                eval_stage="backtest_candidate",
+                decision_context=None,
+                desk_extra=desk_bt or None,
+            )
+            assert_signal_evaluated_payload_complete(se_payload)
             ql_emitter.emit(
                 event_type="signal_evaluated",
                 trace_id=trace_id,
