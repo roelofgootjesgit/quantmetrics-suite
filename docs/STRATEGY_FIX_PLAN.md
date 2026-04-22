@@ -128,10 +128,11 @@ if regime != "expansion":
     return NO_ACTION(reason="regime_not_target")
 ```
 
-**Config-first variant (aanbevolen voor vergelijkende backtests):** in `quantbuildv1` staat
-`configs/strategy_sprint1_expansion_only.yaml` — die zet `regime_profiles.trend.skip: true` bovenop
-`strict_prod_v2.yaml`, zodat alleen **expansion** (en wat je verder niet skipt) nog entries mag.
-Zelfde periode en data als je baseline-run; daarna QuantAnalytics op beide `run_id`s vergelijken.
+**Config-first A/B (zelfde backtest-venster):** in `quantbuildv1` staat
+`configs/backtest_2026_jan_mar_expansion_only.yaml` — die extendt `backtest_2026_jan_mar.yaml` en zet alleen
+`regime_profiles.trend.skip: true` (zelfde data, symbol, dates, quantlog als baseline).
+Baseline-run: `configs/backtest_2026_jan_mar.yaml`. Daarna QuantAnalytics per `run_id` vergelijken.
+Voor een generieke stack-only variant zonder vast venster: `configs/strategy_sprint1_expansion_only.yaml`.
 
 ---
 
