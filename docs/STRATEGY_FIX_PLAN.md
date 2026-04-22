@@ -10,6 +10,13 @@ Ik geef je een **quant-level strategy plan** met duidelijke hypothesen, meetmeth
 ````md id="qntfx1"
 # STRATEGY_FIX_PLAN.md
 
+## Gerelateerd (na eerste A/B)
+
+- **Exploit-fase (doorvoer, guards, NY-only):** `STRATEGY_EXPLOIT_ROADMAP.md` — koppelt jouw post-A/B conclusies aan concrete sprint 2–5-stappen.
+- **Parallel twee runs:** `../quantbuildv1/docs/PARALLEL_BACKTEST_AB.md`
+
+---
+
 ## Doel
 
 Transformeer de huidige strategie van:
