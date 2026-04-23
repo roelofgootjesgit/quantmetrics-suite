@@ -11,7 +11,7 @@ It covers the full operating chain from hypothesis and experimentation through e
 
 The suite operates as one controlled end-to-end system:
 
-Hypothesis → Market Data → Decision → Execution → Logging → Metrics → Analytics → Research conclusions → Improvement
+Suite orchestration → Decision → Execution → Logging → Analytics → Research conclusions → Improvement
 
 The objective is not to claim edge by narrative, but to evaluate decision quality under real operating conditions.
 
