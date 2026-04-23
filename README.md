@@ -17,12 +17,13 @@ The objective is not to claim edge by narrative, but to evaluate decision qualit
 
 ## End-to-end stack flow
 
-1. `quantresearch/` registers hypotheses, compares runs, and produces auditable research conclusions tied to artifacts.
+1. `quantresearch/` frames hypotheses, tracks experiments, and keeps comparisons auditable (pre-run governance + post-run conclusions).
 2. `quantbuild/` converts market context into constrained trade decisions.
 3. `quantbridge/` translates decisions into broker-facing execution actions.
 4. `quantlog/` records immutable operational events across the lifecycle.
-5. `quantmetrics_os/` assembles run artifacts, comparisons, and experiment outputs.
-6. `quantanalytics/` analyzes outcomes and feeds improvements back into decision design.
+5. `quantmetrics_os/` assembles run artifacts, comparisons, and experiment outputs from logged reality.
+6. `quantanalytics/` analyzes outcomes and produces diagnostics that inform the next iteration.
+7. The loop closes back into `quantresearch/` and `quantbuild/` (config, constraints, and hypotheses), without mixing responsibilities across layers.
 
 This is one looped stack, not six disconnected repositories.
 
