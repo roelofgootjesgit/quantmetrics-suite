@@ -1,19 +1,40 @@
-# Quant Metrics Suite
+# QuantMetrics Suite
 
-> Controlled quant infrastructure for research, decision, execution, logging, metrics, and analysis.
+> A disciplined, modular trading infrastructure: orchestrate, decide, execute, observe, measure, analyze, and iterate — with explicit boundaries and auditability.
 
-`QuantMetrics-Suite` is the GitHub repository for the complete Quant stack.  
-Recommended local checkout folder name: `QuantMetrics-Suite/` (Windows-friendly, matches how you want the workspace to read on disk).
+If you are evaluating this as a collaborator, allocator, or senior engineer: this repo is meant to read like **infrastructure**, not a “strategy repo”.
 
-It covers the full operating chain from hypothesis and experimentation through execution, logging, measurement, and post-trade analysis, with strict ownership per layer.
+---
 
-## System role
+## At a glance
 
-The suite operates as one controlled end-to-end system:
+- **What this is**: a coordinated stack for controlled iteration under real operational constraints
+- **What this is not**: a single script “alpha”, a black box, or a claim about profitability
+- **Why monorepo**: one review surface for cross-layer changes while preserving module ownership
+- **How trust is earned**: separation of concerns, append-only logs, reproducible artifacts, and failure containment
 
-Suite orchestration → Decision → Execution → Logging → Analytics → Research conclusions → Improvement
+---
 
-The objective is not to claim edge by narrative, but to evaluate decision quality under real operating conditions.
+## Who this is for
+
+- **Engineering partners** who want clean boundaries, testable layers, and operational rigor
+- **Capital / risk stakeholders** who want traceability and controlled change management
+- **Researchers** who want experiment discipline (baseline required, comparable windows, artifacts)
+
+---
+
+## The operating thesis
+
+Markets are noisy. The suite is built to separate:
+
+- **decision quality** (what should happen, under which constraints)
+- **execution reality** (what actually happened, with broker-specific behavior)
+- **measurement** (what can be proven from logs and artifacts)
+- **research governance** (what we tested, what we learned, what we do next)
+
+The goal is not to “sound smart”. The goal is to make performance attribution **defensible**.
+
+---
 
 ## End-to-end stack flow
 
@@ -25,82 +46,85 @@ The objective is not to claim edge by narrative, but to evaluate decision qualit
 6. `quantresearch/` frames hypotheses, tracks experiments, and records auditable conclusions tied to artifacts (what to test next, and why).
 7. The loop closes back into `quantmetrics_os/` and `quantbuild/` (configs, constraints, and operating parameters), without mixing responsibilities across layers.
 
-This is one looped stack, not six disconnected repositories.
+One-line mental model:
 
-## System boundary
+Suite orchestration → Decision → Execution → Logging → Analytics → Research conclusions → Improvement
 
-This repository does not represent one monolith. It represents coordinated layers with isolated ownership.
+---
 
-Each module is responsible for its own domain:
-- `quantresearch/`: hypothesis registry, comparisons, and research knowledge artifacts
-- `quantbuild/`: decision logic and risk constraints
-- `quantbridge/`: execution routing and broker connectivity
-- `quantlog/`: append-only event logging and traceability
-- `quantmetrics_os/`: experiment runs, metrics, and artifact orchestration
-- `quantanalytics/`: post-trade analysis and insight generation
+## System boundary (hard lines)
 
-This separation ensures:
-- deterministic behavior per layer
-- testability of each responsibility
-- containment of failures without cross-layer corruption
+This is not a monolith pretending to be modular. Each folder is a **contract**.
+
+| Layer | Owns | Explicitly does not own |
+|---|---|---|
+| `quantmetrics_os/` | Orchestration, paths, suite entrypoints | Strategy logic, broker execution |
+| `quantbuild/` | Decisions + risk constraints | Broker connectivity, append-only event storage |
+| `quantbridge/` | Execution routing + broker integration | Strategy generation, analytics |
+| `quantlog/` | Append-only event capture + audit trail | Decisioning, broker routing |
+| `quantanalytics/` | Diagnostics from logs/metrics outputs | Live execution |
+| `quantresearch/` | Experiment registry + comparisons + conclusions | Live execution |
+
+This separation is how you keep failures **localized** and systems **testable**.
+
+---
 
 ## Decision integrity and control
 
-Across the suite, components are built to reduce randomness leakage:
-- explicit gating before action
-- reproducible outputs from the same inputs
-- strict separation between decision quality and execution effects
+Design constraints that show up across the suite:
 
-Performance interpretation is therefore tied to system behavior, not incidental noise.
+- **Explicit gating** before capital is exposed
+- **Reproducibility**: same inputs should yield the same decision artifacts (within defined boundaries)
+- **Attribution hygiene**: separate “decision quality” from “execution noise” before drawing conclusions
+
+---
 
 ## Failure-aware design
 
-The architecture is built to degrade safely under stress:
+The stack is built to degrade safely:
+
 - decision and execution remain isolated
-- risk controls can tighten without changing execution plumbing
-- logging and analytics remain available for post-event diagnosis
+- risk controls can tighten without rewriting execution plumbing
+- logging and analytics remain available for post-incident diagnosis
 
-The priority is continuity, containment, and recoverability.
+The priority is **continuity, containment, recoverability**.
 
-## Suite map
-
-| Module | Core responsibility | Not responsible for |
-|---|---|---|
-| `quantresearch/` | Experiment registry, comparisons, and research conclusions | Live execution and broker connectivity |
-| `quantbuild/` | Decisions and risk logic | Order execution and event storage |
-| `quantbridge/` | Broker/execution integration | Strategy generation and analytics |
-| `quantlog/` | Event capture and audit trail | Decisioning and broker routing |
-| `quantmetrics_os/` | Metrics runs and artifact management | Execution routing and raw decision logic |
-| `quantanalytics/` | Analysis and reporting | Live execution and broker connectivity |
+---
 
 ## Quick start
 
 ```bash
 git clone https://github.com/roelofgootjesgit/QuantMetrics-Suite.git QuantMetrics-Suite
 cd QuantMetrics-Suite
+
 # inspect the full stack
 ls
 
-# start with research governance, then move through the runtime stack as needed
-cd quantresearch
-
-# or jump directly into the decision layer
+# typical navigation
+cd quantmetrics_os
+# or
 cd quantbuild
 ```
 
-## Working model
+---
+
+## Working model (how we collaborate)
 
 1. Work from repo root for cross-module visibility.
 2. Keep changes scoped to the owning module whenever possible.
 3. Validate with module-level tests before cross-module PRs.
 4. Use one PR when a change intentionally crosses boundaries.
 
-## Documentation
+---
 
-- Root `README.md`: architecture intent and module boundaries
-- Module `README.md` files: setup, operations, testing, and conventions
-- Module `docs/` directories: deep implementation notes
+## Documentation map
+
+- Root `README.md`: positioning, boundaries, and navigation
+- Module `README.md` files: setup, operations, testing, and local conventions
+- Module `docs/` directories: deep technical specifications and runbooks
+
+---
 
 ## Migration note
 
-The monorepo was assembled via `git subtree` imports, preserving history from original repositories.
+The monorepo was assembled via `git subtree` imports, preserving history from the original repositories.
