@@ -781,9 +781,11 @@ def run_backtest(cfg: Dict[str, Any], precomputed_regime: Optional[pd.Series] = 
 
     try:
         from src.quantbuild.integration.quantanalytics_post_run import invoke_quantanalytics_after_quantlog
+        from src.quantbuild.integration.quantos_artifacts import invoke_collect_run_artifacts
 
         invoke_quantanalytics_after_quantlog(cfg, ql_emitter)
+        invoke_collect_run_artifacts(cfg, ql_emitter)
     except Exception:
-        logger.debug("QuantAnalytics post-run hook skipped after exception", exc_info=True)
+        logger.debug("QuantAnalytics/QuantOS post-run hook skipped after exception", exc_info=True)
 
     return trades

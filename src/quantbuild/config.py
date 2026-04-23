@@ -155,6 +155,8 @@ def load_config(path: str | Path | None = None) -> Dict[str, Any]:
             os.getenv("TELEGRAM_REPORT_INTERVAL_SECONDS", "3600")
         )
 
+    merged["_quantbuild_config_path"] = str(cfg_path.resolve())
+
     return merged
 
 
