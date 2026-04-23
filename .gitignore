@@ -23,6 +23,9 @@ data/state.json
 decision.json
 reports/
 
+# Generated analytics / curve CSVs from local scripts (reproducible from configs)
+output_rapport/
+
 # Strategy-test outputs (configs blijven in git)
 strategy_tests/logs/*.log
 strategy_tests/runs/*
