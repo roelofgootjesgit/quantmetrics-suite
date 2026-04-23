@@ -2,7 +2,9 @@
 
 > Controlled quant infrastructure for research, decision, execution, logging, metrics, and analysis.
 
-`quantmetrics-suite` is the unified monorepo for the complete Quant stack.  
+`quantmetrics-suite` is the GitHub repository for the complete Quant stack.  
+Recommended local checkout folder name: `QuantMetrics-Suite/` (Windows-friendly, matches how you want the workspace to read on disk).
+
 It covers the full operating chain from hypothesis and experimentation through execution, logging, measurement, and post-trade analysis, with strict ownership per layer.
 
 ## System role
@@ -73,8 +75,8 @@ The priority is continuity, containment, and recoverability.
 ## Quick start
 
 ```bash
-git clone https://github.com/roelofgootjesgit/quantmetrics-suite.git
-cd quantmetrics-suite
+git clone https://github.com/roelofgootjesgit/quantmetrics-suite.git QuantMetrics-Suite
+cd QuantMetrics-Suite
 # inspect the full stack
 ls
 
