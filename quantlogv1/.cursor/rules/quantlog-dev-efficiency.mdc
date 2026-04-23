@@ -1,0 +1,43 @@
+---
+description: QuantLog development rules for token efficiency and minimal-context patching
+alwaysApply: true
+---
+
+# QuantLog Development Efficiency Rules
+
+## Core principle
+
+Work with minimal context: broad thinking, narrow reading, small patches.
+
+## Context budget
+
+- Read only the module related to the current task.
+- Read max 1-3 files before proposing a fix.
+- Prefer source-of-truth files (config/schema/interface) before implementation internals.
+- Do not scan full repo/docs unless task explicitly requires architecture-wide analysis.
+
+## Patch discipline
+
+- Diagnose first, patch second.
+- Choose the smallest low-risk patch; avoid broad refactors.
+- Do not change multiple core modules (signal/risk/execution/logging) in one step unless required by evidence.
+- Treat config as leading: fix config issues before code rewrites.
+
+## QuantLog-specific rules
+
+- Keep event envelope stable (`event_id`, `event_type`, `event_version`, `timestamp_utc`, `ingested_at_utc`, `trace_id`, `severity`, `payload`).
+- Preserve append-only event storage; never mutate historical events.
+- Keep correlation fields intact (`trace_id`, `order_ref`, `position_id`, `account_id`, `strategy_id`).
+- Ensure each block/guard decision has an explicit reason.
+
+## Output format for tasks
+
+Always structure work as:
+
+1. Problem
+2. Relevant module
+3. Files read
+4. Files explicitly not read
+5. Likely cause
+6. Smallest patch
+7. Verification step

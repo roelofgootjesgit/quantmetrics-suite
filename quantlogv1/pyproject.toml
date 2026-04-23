@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "quantlog-v1"
+version = "0.1.0"
+description = "QuantLog v1 event spine (validate, replay, summarize)"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+ops = ["streamlit>=1.28", "pandas>=2.0"]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
