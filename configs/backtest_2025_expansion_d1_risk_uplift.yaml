@@ -1,0 +1,12 @@
+# EXP-D1 — Expansion risk uplift (position_size_mult) vs strict prod baseline.
+# Heel 2025, zelfde venster als backtest_2025_full_strict_prod.yaml
+#
+#   python -m src.quantbuild.app --config configs/backtest_2025_expansion_d1_risk_uplift.yaml backtest
+
+extends: backtest_2025_full_strict_prod.yaml
+
+regime_profiles:
+  trend:
+    position_size_mult: 0.5
+  expansion:
+    position_size_mult: 1.5
