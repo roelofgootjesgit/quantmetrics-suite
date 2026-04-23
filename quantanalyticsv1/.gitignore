@@ -1,0 +1,9 @@
+# Generated CLI reports (folder kept via .gitkeep)
+output_rapport/*
+!output_rapport/.gitkeep
+
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
