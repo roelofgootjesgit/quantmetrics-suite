@@ -1,0 +1,2 @@
+# Run paper cycle every 5 minutes
+*/5 * * * * cd /opt/quantbridge && /usr/bin/python3 scripts/run_vps_paper_cycle.py >> logs/vps_paper.cron.log 2>&1

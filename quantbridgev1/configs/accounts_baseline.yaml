@@ -1,0 +1,35 @@
+accounts:
+  - account_id: "DEMO_A"
+    mode: demo
+    enabled: true
+    priority: 10
+    routing_mode: primary
+    account_group: core
+    sizing_multiplier: 1.0
+    allowed_symbols: ["XAUUSD", "EURUSD"]
+    limits:
+      daily_drawdown_limit_pct: 5.0
+      total_drawdown_limit_pct: 10.0
+      max_open_risk_pct: 3.0
+      max_risk_per_trade_pct: 1.0
+      max_concurrent_positions: 3
+      symbol_exposure_limit_pct: 2.0
+      min_units_per_trade: 1.0
+      max_units_per_trade: 1000.0
+  - account_id: "DEMO_B"
+    mode: challenge
+    enabled: true
+    priority: 20
+    routing_mode: backup
+    account_group: core
+    sizing_multiplier: 0.8
+    allowed_symbols: ["XAUUSD"]
+    limits:
+      daily_drawdown_limit_pct: 4.0
+      total_drawdown_limit_pct: 8.0
+      max_open_risk_pct: 2.5
+      max_risk_per_trade_pct: 0.8
+      max_concurrent_positions: 2
+      symbol_exposure_limit_pct: 1.5
+      min_units_per_trade: 1.0
+      max_units_per_trade: 500.0

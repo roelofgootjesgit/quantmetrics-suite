@@ -1,0 +1,19 @@
+broker:
+  provider: ctrader
+  environment: demo
+  account_id: ""      # numeric cTrader account id for openapi mode
+  access_token: ""
+  client_id: ""       # optional app client id
+  client_secret: ""   # optional app client secret
+  mode: mock   # mock | openapi
+
+symbol:
+  internal: XAUUSD
+
+risk:
+  risk_percent: 1.0
+
+execution:
+  units: 100.0
+  stop_loss_distance: 5.0
+  take_profit_distance: 10.0

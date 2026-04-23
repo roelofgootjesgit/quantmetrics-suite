@@ -1,0 +1,14 @@
+[Unit]
+Description=QuantBridge paper runtime control loop
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/quantbridge
+ExecStart=/usr/bin/python3 scripts/run_runtime_control.py --config configs/ctrader_icmarkets_demo.yaml --mode openapi --strategy OCLW --events-file logs/events.jsonl
+Restart=always
+RestartSec=5
+EnvironmentFile=/opt/quantbridge/local.env
+
+[Install]
+WantedBy=multi-user.target

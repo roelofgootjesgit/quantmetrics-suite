@@ -1,0 +1,29 @@
+profiles:
+  vps_paper:
+    - name: env_validation
+      command:
+        - "{python}"
+        - scripts/validate_account_env.py
+        - --config
+        - configs/accounts_baseline.yaml
+        - --env-file
+        - local.env
+        - --require-secrets
+    - name: regression_suite
+      command:
+        - "{python}"
+        - scripts/run_regression_suite.py
+    - name: runtime_probe
+      command:
+        - "{python}"
+        - scripts/run_runtime_control.py
+        - --config
+        - configs/ctrader_icmarkets_demo.yaml
+        - --mode
+        - mock
+        - --max-iterations
+        - "1"
+        - --account-status
+        - demo
+        - --events-file
+        - logs/events.jsonl
