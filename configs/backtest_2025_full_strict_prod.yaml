@@ -14,3 +14,11 @@ backtest:
 # (geen losse bestanden per kalenderdag).
 quantlog:
   consolidated_run_file: true
+
+# QuantOS artifact bundle naar ../quantmetrics_os/runs/<experiment>/<role>/ (QuantBuild hook)
+artifacts:
+  enabled: false
+  experiment_id: "EXP-2025-full"
+  role: single
+  bundle_analytics: true
+  analytics_recent_seconds: 1200
