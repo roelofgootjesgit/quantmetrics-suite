@@ -33,7 +33,7 @@ Alles hieronder is **backlog** — volgorde en scope bepalen we bij implementati
 
 1. **Verificatie** — `check`: alle verplichte env-variabelen en repo-mappen; optioneel Python/venv hints.
 2. **QuantBuild** — al grotendeels richting: `build` (live / dry-run / notify-start); eventueel expliciet doorgeven van extra args naar `quantbuild.app`.
-3. **QuantBridge** — naast regressie: wrappers voor `smoke`, `runtime_control`, VPS-paper-cycle, enz., zolang die als stabiele scripts in `quantbridgev1` bestaan.
+3. **QuantBridge** — naast regressie: wrappers voor `smoke`, `runtime_control`, VPS-paper-cycle, enz., zolang die als stabiele scripts in `quantbridge` bestaan.
 4. **QuantLog** — wrappers naar bestaande validate/summarize-CLI’s met paden uit env (`QUANTLOG_ROOT`, `QUANTLOG_EVENTS_ROOT`).
 5. **QuantAnalytics** — optioneel één entry “dagelijkse run” als die repo een vaste CLI krijgt.
 6. **Post-run** — één commando dat een logische keten aanroept (valideren → samenvatten → score), afhankelijk van wat we in de repos standaardiseren.

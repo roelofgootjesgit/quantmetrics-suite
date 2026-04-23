@@ -1,19 +1,19 @@
 {
 	"folders": [
 		{
-			"path": "../quantbuildv1"
+			"path": "../quantbuild"
 		},
 		{
-			"path": "../quantbridgev1"
+			"path": "../quantbridge"
 		},
 		{
-			"path": "../quantlogv1"
+			"path": "../quantlog"
 		},
 		{
 			"path": "."
 		},
 		{
-			"path": "../quantanalyticsv1"
+			"path": "../quantanalytics"
 		}
 	],
 	"settings": {}

@@ -44,7 +44,7 @@ Figures below are **published as static suite-level metrics** in the OS README; 
 | Backtest quality | Profit factor, win rate, max drawdown from controlled backtests (e.g. PF ~5.2, WR ~70%, MDD ~−7%) |
 | Prop-style stress | FTMO-style Monte Carlo pass rate (~51% in published example) |
 
-**Equity curve:** see `docs/assets/equity_curve_5y.png` in this repo (synced copy). Regenerate from QuantBuild with `scripts/export_equity_chart.py` (same PNG is written under `quantbuildv1/docs/assets/` and copied to **`quantmetrics_os/docs/assets/`** when the QuantOS sibling folder exists). Caption in the READMEs distinguishes **multi-instrument headline metrics** from this **single-config XAUUSD** chart.
+**Equity curve:** see `docs/assets/equity_curve_5y.png` in this repo (synced copy). Regenerate from QuantBuild with `scripts/export_equity_chart.py` (same PNG is written under `quantbuild/docs/assets/` and copied to **`quantmetrics_os/docs/assets/`** when the QuantOS sibling folder exists). Caption in the READMEs distinguishes **multi-instrument headline metrics** from this **single-config XAUUSD** chart.
 
 ---
 
@@ -67,10 +67,10 @@ Details and sprint alignment: [Roadmap_os.md](Roadmap_os.md), [QUANTMETRICS_SPRI
 - **Repo map and CLI:** [README](../README.md)
 - **GitHub (repo slugs):**
   - [`quantmetrics_os`](https://github.com/roelofgootjesgit/quantmetrics_os)
-  - [`quantbuildv1`](https://github.com/roelofgootjesgit/quantbuildv1)
-  - [`quantbridgev1`](https://github.com/roelofgootjesgit/quantbridgev1)
-  - [`quantlogv1`](https://github.com/roelofgootjesgit/quantlogv1)
-  - [`quantanalyticsv1`](https://github.com/roelofgootjesgit/quantanalyticsv1)
+  - [`quantbuild`](https://github.com/roelofgootjesgit/QuantBuild-Signal-Engine)
+  - [`quantbridge`](https://github.com/roelofgootjesgit/quantbridgev1)
+  - [`quantlog`](https://github.com/roelofgootjesgit/quantlogv1)
+  - [`quantanalytics`](https://github.com/roelofgootjesgit/quantanalyticsv1)
 
 ---
 

@@ -18,7 +18,7 @@ Leidende documenten: `QUANT_STACK_MVP_BLUEPRINT.md`, `QUANT_STACK_IMPLEMENTATION
 - [x] Geen silent exits op `_check_signals` / `_check_signals_research_raw_first` / `_evaluate_and_execute`: elke exit emitteert terminal `trade_action`; execution failure emitteert nu ook `risk_guard_decision`
 - [x] `signal_detected`: gestructureerde payload (`type`, `direction`, `session`, `regime`, …) — geen vrije-tekst “reason”; detail volgens `QUANTBUILD_EVENT_PRODUCER_SPEC.md`
 
-**Repo:** `quantbuildv1`
+**Repo:** `quantbuild`
 
 ---
 
@@ -30,7 +30,7 @@ Leidende documenten: `QUANT_STACK_MVP_BLUEPRINT.md`, `QUANT_STACK_IMPLEMENTATION
 - [x] `trade_executed` na `order_filled` (QuantBridge orchestrator → JSONL-sink; direction LONG|SHORT)
 - [ ] `trade_closed` vanuit broker-sync / positie-close — nog te koppelen; payload-doelset: `exit_reason`, `entry_time_utc`, `exit_time_utc`, `holding_time_seconds`, `net_pnl`, `r_multiple`, `mae`, `mfe` (+ QuantLog-schema uitbreiden waar nodig)
 
-**Repo:** `quantbridgev1`
+**Repo:** `quantbridge`
 
 ---
 
@@ -41,7 +41,7 @@ Leidende documenten: `QUANT_STACK_MVP_BLUEPRINT.md`, `QUANT_STACK_IMPLEMENTATION
 - [x] Referential checks (deel): cross-event stabiliteit voor `trade_id` + `order_ref` (run/session/trace + symbol; envelope vs payload gelijk); keten-keys op `decision_cycle_id`: zelfde `run_id` / `session_id` / `trace_id`; `symbol` fout bij conflict, **warn** bij gedeeltelijk ontbreken
 - [x] Minimaal één volledige run / handelsdag draaien + validatierapport (deel): `scripts/smoke_end_to_end.py` + `scripts/day_validation_report.py`; contract-map `decision_cycle_id`↔`trade_id` op `order_*`
 
-**Repo:** `quantlogv1`
+**Repo:** `quantlog`
 
 ---
 
@@ -52,7 +52,7 @@ Leidende documenten: `QUANT_STACK_MVP_BLUEPRINT.md`, `QUANT_STACK_IMPLEMENTATION
 - [x] Output: `run_summary.json` (+ optioneel `--run-summary-md`), rapport onder `output_rapport/`
 - [ ] Research-grade rapportage volgens **`docs/ANALYTICS_OUTPUT_GAPS.md`** (o.a. data-quality-blok, funnel per `decision_cycle_id`, guard diagnostics, expectancy slices, exit efficiency — P0/P1 daar)
 
-**Repo:** `quantanalyticsv1`
+**Repo:** `quantanalytics`
 
 ---
 
@@ -61,7 +61,7 @@ Leidende documenten: `QUANT_STACK_MVP_BLUEPRINT.md`, `QUANT_STACK_IMPLEMENTATION
 - [ ] Bottleneck-analyse op basis van fase 4 (dominante NO_ACTION, guard-overblocking, execution leak, exits)
 - [ ] Gecontroleerde wijzigingen (één hefboom per run) + cross-run vergelijking
 
-**Repo’s:** vooral `quantbuildv1` / configs; metingen uit `quantanalyticsv1`
+**Repo’s:** vooral `quantbuild` / configs; metingen uit `quantanalytics`
 
 ---
 
@@ -76,17 +76,17 @@ Leidende documenten: `QUANT_STACK_MVP_BLUEPRINT.md`, `QUANT_STACK_IMPLEMENTATION
 
 | Datum | Item |
 |-------|------|
-| 2026-04 | `decision_cycle_id` + tests/fixture; backtest `signal_detected` vóór `signal_evaluated` (`quantbuildv1`) |
-| 2026-04 | Guard-telemetry, `signal_evaluated`-blueprint merge, ENTER `trade_id`, `QUANT_STACK_TODO.md` (`quantbuildv1` + `quantmetrics_os`) |
-| 2026-04 | QuantBridge: fill-metrics op `OrderLifecycleResult`, canonieke `order_submitted` / `order_filled` via orchestrator + `trade_id` op JSONL (`quantbridgev1`) |
-| 2026-04 | QuantLog: validator + emitter voor keten-`decision_cycle_id` en ENTER-`trade_id`; contract-fixture en tests bijgewerkt (`quantlogv1`) |
-| 2026-04 | QuantLog: sequence-validatie op decision cycle (terminal `trade_action`, duplicaat-blokkade, ketenorde) (`quantlogv1`) |
-| 2026-04 | QuantLog: referentiële correlatie (`trade_id`/`order_ref`) + envelope-payload-afstemming (`quantlogv1`) |
-| 2026-04 | QuantLog: decision-chain envelope consistentie per `decision_cycle_id` (run/session/trace/symbol) (`quantlogv1`) |
-| 2026-04 | QuantLog: §2.3 linkage ENTER→`trade_id` vs latere events; verplicht `trade_id` op `order_submitted`/`order_filled`; `day_validation_report.py`; QuantBridge envelope `decision_cycle_id` (`quantlogv1` + `quantbridgev1`) |
-| 2026-04 | QuantBridge: orchestrator stuurt `trade_id` + optioneel `decision_cycle_id` op order-events; `TradeRequest` uitgebreid (`quantbridgev1`) |
-| 2026-04 | QuantAnalytics: MVP `decisions` TSV-export (`quantmetrics_analytics.datasets.decisions`, CLI flag) (`quantanalyticsv1`) |
-| 2026-04 | QuantAnalytics: guard/executions/closed_trades TSV + `run_summary.json`/`--run-summary-md`; funnel/NO_ACTION metrics in summary (`quantanalyticsv1`) |
-| 2026-04 | QuantBridge: `trade_executed` na fill (LONG/SHORT); QuantLog `source_system` uitbreiding `execution` voor script JSONL (`quantbridgev1` / `quantlogv1`) |
+| 2026-04 | `decision_cycle_id` + tests/fixture; backtest `signal_detected` vóór `signal_evaluated` (`quantbuild`) |
+| 2026-04 | Guard-telemetry, `signal_evaluated`-blueprint merge, ENTER `trade_id`, `QUANT_STACK_TODO.md` (`quantbuild` + `quantmetrics_os`) |
+| 2026-04 | QuantBridge: fill-metrics op `OrderLifecycleResult`, canonieke `order_submitted` / `order_filled` via orchestrator + `trade_id` op JSONL (`quantbridge`) |
+| 2026-04 | QuantLog: validator + emitter voor keten-`decision_cycle_id` en ENTER-`trade_id`; contract-fixture en tests bijgewerkt (`quantlog`) |
+| 2026-04 | QuantLog: sequence-validatie op decision cycle (terminal `trade_action`, duplicaat-blokkade, ketenorde) (`quantlog`) |
+| 2026-04 | QuantLog: referentiële correlatie (`trade_id`/`order_ref`) + envelope-payload-afstemming (`quantlog`) |
+| 2026-04 | QuantLog: decision-chain envelope consistentie per `decision_cycle_id` (run/session/trace/symbol) (`quantlog`) |
+| 2026-04 | QuantLog: §2.3 linkage ENTER→`trade_id` vs latere events; verplicht `trade_id` op `order_submitted`/`order_filled`; `day_validation_report.py`; QuantBridge envelope `decision_cycle_id` (`quantlog` + `quantbridge`) |
+| 2026-04 | QuantBridge: orchestrator stuurt `trade_id` + optioneel `decision_cycle_id` op order-events; `TradeRequest` uitgebreid (`quantbridge`) |
+| 2026-04 | QuantAnalytics: MVP `decisions` TSV-export (`quantmetrics_analytics.datasets.decisions`, CLI flag) (`quantanalytics`) |
+| 2026-04 | QuantAnalytics: guard/executions/closed_trades TSV + `run_summary.json`/`--run-summary-md`; funnel/NO_ACTION metrics in summary (`quantanalytics`) |
+| 2026-04 | QuantBridge: `trade_executed` na fill (LONG/SHORT); QuantLog `source_system` uitbreiding `execution` voor script JSONL (`quantbridge` / `quantlog`) |
 | 2026-04 | `quantmetrics_os`: `QUANTBUILD_EVENT_PRODUCER_SPEC.md` inhoud herschreven (geen kopie meer van implementation sequence) |
-| 2026-04 | QuantBuild Fase 1: NO_ACTION-mapping opgeschoond; `risk_guard_decision` bij QuantBridge exec-fouten; AST-contracttest `tests/test_live_runner_trade_action_reasons.py` (`quantbuildv1`) |
+| 2026-04 | QuantBuild Fase 1: NO_ACTION-mapping opgeschoond; `risk_guard_decision` bij QuantBridge exec-fouten; AST-contracttest `tests/test_live_runner_trade_action_reasons.py` (`quantbuild`) |

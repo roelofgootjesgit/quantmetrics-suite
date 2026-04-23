@@ -6,8 +6,8 @@ Invoked by QuantBuild after a run (optional) or manually:
     python scripts/collect_run_artifact.py \\
       --experiment-id EXP-20250423-test \\
       --run-id qb_run_... \\
-      --quantbuild-root ../quantbuildv1 \\
-      --config-yaml ../quantbuildv1/configs/backtest_2025_full_strict_prod.yaml
+      --quantbuild-root ../quantbuild \\
+      --config-yaml ../quantbuild/configs/backtest_2025_full_strict_prod.yaml
 """
 
 from __future__ import annotations

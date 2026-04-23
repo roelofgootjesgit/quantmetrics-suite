@@ -5,23 +5,23 @@
       "path": ".."
     },
     {
-      "name": "quantbuildv1",
-      "path": "../../quantbuildv1"
+      "name": "quantbuild",
+      "path": "../../quantbuild"
     },
     {
-      "name": "quantbridgev1",
-      "path": "../../quantbridgev1"
+      "name": "quantbridge",
+      "path": "../../quantbridge"
     },
     {
-      "name": "quantlogv1",
-      "path": "../../quantlogv1"
+      "name": "quantlog",
+      "path": "../../quantlog"
     }
   ],
   "settings": {
     "python.analysis.extraPaths": [
-      "${workspaceFolder:quantbuildv1}/src",
-      "${workspaceFolder:quantbridgev1}/src",
-      "${workspaceFolder:quantlogv1}/src"
+      "${workspaceFolder:quantbuild}/src",
+      "${workspaceFolder:quantbridge}/src",
+      "${workspaceFolder:quantlog}/src"
     ]
   }
 }

@@ -16,11 +16,11 @@ The objective is not to claim edge by narrative, but to evaluate decision qualit
 ## End-to-end stack flow
 
 1. `quantresearch/` registers hypotheses, compares runs, and produces auditable research conclusions tied to artifacts.
-2. `quantbuildv1/` converts market context into constrained trade decisions.
-3. `quantbridgev1/` translates decisions into broker-facing execution actions.
-4. `quantlogv1/` records immutable operational events across the lifecycle.
+2. `quantbuild/` converts market context into constrained trade decisions.
+3. `quantbridge/` translates decisions into broker-facing execution actions.
+4. `quantlog/` records immutable operational events across the lifecycle.
 5. `quantmetrics_os/` assembles run artifacts, comparisons, and experiment outputs.
-6. `quantanalyticsv1/` analyzes outcomes and feeds improvements back into decision design.
+6. `quantanalytics/` analyzes outcomes and feeds improvements back into decision design.
 
 This is one looped stack, not six disconnected repositories.
 
@@ -30,11 +30,11 @@ This repository does not represent one monolith. It represents coordinated layer
 
 Each module is responsible for its own domain:
 - `quantresearch/`: hypothesis registry, comparisons, and research knowledge artifacts
-- `quantbuildv1/`: decision logic and risk constraints
-- `quantbridgev1/`: execution routing and broker connectivity
-- `quantlogv1/`: append-only event logging and traceability
+- `quantbuild/`: decision logic and risk constraints
+- `quantbridge/`: execution routing and broker connectivity
+- `quantlog/`: append-only event logging and traceability
 - `quantmetrics_os/`: experiment runs, metrics, and artifact orchestration
-- `quantanalyticsv1/`: post-trade analysis and insight generation
+- `quantanalytics/`: post-trade analysis and insight generation
 
 This separation ensures:
 - deterministic behavior per layer
@@ -64,11 +64,11 @@ The priority is continuity, containment, and recoverability.
 | Module | Core responsibility | Not responsible for |
 |---|---|---|
 | `quantresearch/` | Experiment registry, comparisons, and research conclusions | Live execution and broker connectivity |
-| `quantbuildv1/` | Decisions and risk logic | Order execution and event storage |
-| `quantbridgev1/` | Broker/execution integration | Strategy generation and analytics |
-| `quantlogv1/` | Event capture and audit trail | Decisioning and broker routing |
+| `quantbuild/` | Decisions and risk logic | Order execution and event storage |
+| `quantbridge/` | Broker/execution integration | Strategy generation and analytics |
+| `quantlog/` | Event capture and audit trail | Decisioning and broker routing |
 | `quantmetrics_os/` | Metrics runs and artifact management | Execution routing and raw decision logic |
-| `quantanalyticsv1/` | Analysis and reporting | Live execution and broker connectivity |
+| `quantanalytics/` | Analysis and reporting | Live execution and broker connectivity |
 
 ## Quick start
 
@@ -82,7 +82,7 @@ ls
 cd quantresearch
 
 # or jump directly into the decision layer
-cd quantbuildv1
+cd quantbuild
 ```
 
 ## Working model

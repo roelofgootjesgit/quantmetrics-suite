@@ -16,9 +16,9 @@ Pas de paden aan als je repos ergens anders staan:
 
 | Variabele | Betekenis |
 |-----------|-----------|
-| `QUANTBUILD_ROOT` | Pad naar `quantbuildv1` |
-| `QUANTBRIDGE_ROOT` | Pad naar `quantbridgev1` |
-| `QUANTLOG_ROOT` | Pad naar `quantlogv1` |
+| `QUANTBUILD_ROOT` | Pad naar `quantbuild` |
+| `QUANTBRIDGE_ROOT` | Pad naar `quantbridge` |
+| `QUANTLOG_ROOT` | Pad naar `quantlog` |
 | `QUANTLOG_EVENTS_ROOT` | Optioneel. JSONL-dagmappen; default: `<QUANTBUILD_ROOT>/data/quantlog_events` |
 | `PYTHON` | Python-executable (default: `python`) |
 | `QUANTBUILD_CONFIG` | Default YAML t.o.v. QuantBuild-root |
@@ -69,7 +69,7 @@ Open het multi-root workspace-bestand:
 vscode/quant-suite.code-workspace
 ```
 
-Daarmee staan **quantmetrics_os** (QuantOS), **quantbuildv1** (QuantBuild), **quantbridgev1** (QuantBridge) en **quantlogv1** (QuantLog) naast elkaar (broer-mappen onder dezelfde parent).
+Daarmee staan **quantmetrics_os** (QuantOS), **quantbuild** (QuantBuild), **quantbridge** (QuantBridge) en **quantlog** (QuantLog) naast elkaar (broer-mappen onder dezelfde parent).
 
 ---
 
@@ -78,7 +78,7 @@ Daarmee staan **quantmetrics_os** (QuantOS), **quantbuildv1** (QuantBuild), **qu
 QuantBuild laadt de bridge-module dynamisch. Zet het pad naar de **src**-map van QuantBridge in de omgeving, bijvoorbeeld:
 
 ```text
-QUANTBRIDGE_SRC_PATH=C:/Users/<jij>/quantbridgev1/src
+QUANTBRIDGE_SRC_PATH=C:/Users/<jij>/quantbridge/src
 ```
 
 Dit is **los** van `quantmetrics.py`; het hoort bij runs die **vanuit QuantBuild** met `mock_mode: false` en OpenAPI willen verbinden. Credentials staan typisch in env of bridge-`local.env` / `.env` (zie QuantBridge-docs).
@@ -90,9 +90,9 @@ Dit is **los** van `quantmetrics.py`; het hoort bij runs die **vanuit QuantBuild
 ```text
 <parent>/
   quantmetrics_os/    ← QuantOS — orchestrator + deze docs
-  quantbuildv1/
-  quantbridgev1/
-  quantlogv1/
+  quantbuild/
+  quantbridge/
+  quantlog/
 ```
 
 Clonen/updaten in één keer kan met `scripts/clone_quant_suite.sh` (Linux/macOS/WSL); die kan ook een gegenereerde `orchestrator/.env` schrijven.

@@ -2,7 +2,7 @@
 
 ## Status t.o.v. implementatie (2026-04)
 
-Dit bestand blijft het **backlog-/gap-document** (wat we nog willen voor research-grade diagnostics). Het overlapt **deels** met andere docs (`QUANTANALYTICS_CONSUMER_PLAN.md`, `quantanalyticsv1/docs/LIVE_VPS_AND_LOCAL_BACKTEST.md`, `quantanalyticsv1/README.md`), maar beschrijft **meer detail** dan het huidige MVP.
+Dit bestand blijft het **backlog-/gap-document** (wat we nog willen voor research-grade diagnostics). Het overlapt **deels** met andere docs (`QUANTANALYTICS_CONSUMER_PLAN.md`, `quantanalytics/docs/LIVE_VPS_AND_LOCAL_BACKTEST.md`, `quantanalytics/README.md`), maar beschrijft **meer detail** dan het huidige MVP.
 
 | Thema (zie secties hieronder) | In de MDs / MVP al gedekt? | In code nu |
 |-------------------------------|----------------------------|------------|

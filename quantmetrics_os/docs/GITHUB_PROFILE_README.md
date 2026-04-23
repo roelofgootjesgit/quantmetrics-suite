@@ -10,10 +10,10 @@ Python developer focused on **systematic, multi-asset trading infrastructure**: 
 | Repo | GitHub |
 | --- | --- |
 | `quantmetrics_os` | [roelofgootjesgit/quantmetrics_os](https://github.com/roelofgootjesgit/quantmetrics_os) |
-| `quantbuildv1` | [roelofgootjesgit/quantbuildv1](https://github.com/roelofgootjesgit/quantbuildv1) |
-| `quantbridgev1` | [roelofgootjesgit/quantbridgev1](https://github.com/roelofgootjesgit/quantbridgev1) |
-| `quantlogv1` | [roelofgootjesgit/quantlogv1](https://github.com/roelofgootjesgit/quantlogv1) |
-| `quantanalyticsv1` | [roelofgootjesgit/quantanalyticsv1](https://github.com/roelofgootjesgit/quantanalyticsv1) |
+| `quantbuild` | [roelofgootjesgit/QuantBuild-Signal-Engine](https://github.com/roelofgootjesgit/QuantBuild-Signal-Engine) |
+| `quantbridge` | [roelofgootjesgit/quantbridgev1](https://github.com/roelofgootjesgit/quantbridgev1) |
+| `quantlog` | [roelofgootjesgit/quantlogv1](https://github.com/roelofgootjesgit/quantlogv1) |
+| `quantanalytics` | [roelofgootjesgit/quantanalyticsv1](https://github.com/roelofgootjesgit/quantanalyticsv1) |
 
 - **Narrative + diagram + equity:** [`quantmetrics_os` README](https://github.com/roelofgootjesgit/quantmetrics_os#readme) and [SHOWCASE.md](https://github.com/roelofgootjesgit/quantmetrics_os/blob/main/docs/SHOWCASE.md).
 
@@ -25,4 +25,4 @@ Python developer focused on **systematic, multi-asset trading infrastructure**: 
 
 ### Pinned repos
 
-Pin in order: **`quantmetrics_os`** → **`quantbuildv1`** → **`quantbridgev1`** → **`quantlogv1`** → **`quantanalyticsv1`** (same links as above).
+Pin in order: **`quantmetrics_os`** → **`quantbuild`** → **`quantbridge`** → **`quantlog`** → **`quantanalytics`** (same links as above).

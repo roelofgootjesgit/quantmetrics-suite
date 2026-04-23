@@ -13,7 +13,7 @@ Ik geef je een **quant-level strategy plan** met duidelijke hypothesen, meetmeth
 ## Gerelateerd (na eerste A/B)
 
 - **Exploit-fase (doorvoer, guards, NY-only):** `STRATEGY_EXPLOIT_ROADMAP.md` — koppelt jouw post-A/B conclusies aan concrete sprint 2–5-stappen.
-- **Parallel twee runs:** `../quantbuildv1/docs/PARALLEL_BACKTEST_AB.md`
+- **Parallel twee runs:** `../quantbuild/docs/PARALLEL_BACKTEST_AB.md`
 
 ---
 
@@ -135,7 +135,7 @@ if regime != "expansion":
     return NO_ACTION(reason="regime_not_target")
 ```
 
-**Config-first A/B (zelfde backtest-venster):** in `quantbuildv1` staat
+**Config-first A/B (zelfde backtest-venster):** in `quantbuild` staat
 `configs/backtest_2026_jan_mar_expansion_only.yaml` — die extendt `backtest_2026_jan_mar.yaml` en zet alleen
 `regime_profiles.trend.skip: true` (zelfde data, symbol, dates, quantlog als baseline).
 Baseline-run: `configs/backtest_2026_jan_mar.yaml`. Daarna QuantAnalytics per `run_id` vergelijken.

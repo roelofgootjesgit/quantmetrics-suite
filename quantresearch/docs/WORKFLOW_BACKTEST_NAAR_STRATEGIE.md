@@ -26,7 +26,7 @@ QuantAnalytics → “what happened” (aggregatie op events / exports)
 QuantResearch  → “what it means” + besluit + knowledge base
 ```
 
-Voor **puur backtest-gedreven** research volstaat vaak: QuantBuild-metrics (JSON) → QuantResearch. Zodra je live/paper vergelijkt, komen QuantLog + QuantAnalytics structureel mee (zie analytics-handboek in `quantanalyticsv1`).
+Voor **puur backtest-gedreven** research volstaat vaak: QuantBuild-metrics (JSON) → QuantResearch. Zodra je live/paper vergelijkt, komen QuantLog + QuantAnalytics structureel mee (zie analytics-handboek in `quantanalytics`).
 
 ---
 

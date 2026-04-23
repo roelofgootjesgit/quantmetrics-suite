@@ -1,8 +1,0 @@
-cd /opt/quantbuild/quantbuildv1
-source .venv/bin/activate
-git fetch origin && git checkout v2-development && git pull --ff-only
-python -m src.quantbuild.app --config configs/strict_prod_v2.yaml news-test
-sudo systemctl restart quantbuild-ctrader-demo.service
-sudo systemctl is-active quantbuild-ctrader-demo.service
-rg "Relevance filter|News budget|LLM advisor|decision_cycle|ERROR" logs/runtime_ctrader_demo.log
-tail -n 80 logs/runtime_ctrader_demo.log

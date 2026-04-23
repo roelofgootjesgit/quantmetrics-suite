@@ -4,7 +4,7 @@
 Loads `orchestrator/.env` into the process environment (non-destructive: existing
 OS vars win). Put all secrets and QUANTBUILD_ROOT / QUANTBRIDGE_ROOT here on the VPS.
 
-QuantAnalytics (quantmetrics_analytics): set QUANTANALYTICS_ROOT to the quantanalyticsv1
+QuantAnalytics (quantmetrics_analytics): set QUANTANALYTICS_ROOT to the quantanalytics
 checkout and install the package into the QuantBuild venv (``pip install -e ...``) or rely
 on PYTHONPATH (this script prepends QUANTANALYTICS_ROOT for ``analyze`` / ``backtest --analyze``).
 """

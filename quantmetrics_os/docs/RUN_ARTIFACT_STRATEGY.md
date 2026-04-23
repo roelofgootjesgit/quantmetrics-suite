@@ -250,7 +250,7 @@ Schrijft naar **`research/runs_digest.md`** (Markdown met tabel + per-run KEY_FI
 2. **Baseline en variant** zijn het standaard-patroon voor causal guard-attributie (losse runs alleen waar vergelijking géén doel is).
 3. **`run_id`s altijd** in manifest en in research log — zonder reproduceer je niet.
 4. **Config snapshot verplicht** naast verwijzing naar YAML in repo (hash/commit mag in `run_info.json`).
-5. **Strategy-wijziging pas na compare** voor guard-hypothesen — zie ook `quantanalyticsv1/docs/GUARD_ATTRIBUTION_ENGINE.md` (niveau B leidend).
+5. **Strategy-wijziging pas na compare** voor guard-hypothesen — zie ook `quantanalytics/docs/GUARD_ATTRIBUTION_ENGINE.md` (niveau B leidend).
 
 ---
 

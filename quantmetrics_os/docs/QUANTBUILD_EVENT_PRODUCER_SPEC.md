@@ -3,7 +3,7 @@
 Producer-specificatie voor **QuantBuild** als bron van QuantLog-events.  
 Implementatievolgorde van de hele stack staat in `QUANT_STACK_IMPLEMENTATION_SEQUENCE.md`; dit document beschrijft alleen **wat QuantBuild moet emitteren**.
 
-Uitgewerkt logging-contract (velden en voorbeelden): `quantbuildv1/docs/QUANTBUILD_DECISION_LOGGING_SPEC.md`.
+Uitgewerkt logging-contract (velden en voorbeelden): `quantbuild/docs/QUANTBUILD_DECISION_LOGGING_SPEC.md`.
 
 ---
 
@@ -34,7 +34,7 @@ Per voltooide evaluatiecyclus (minimaal):
 
 ## Canonical reasons
 
-- `trade_action` met `NO_ACTION`: alleen waarden uit het QuantLog-schema (`NO_ACTION_REASONS_*` in `quantlogv1`).
+- `trade_action` met `NO_ACTION`: alleen waarden uit het QuantLog-schema (`NO_ACTION_REASONS_*` in `quantlog`).
 - `risk_guard_decision`: canonieke `reason` bij BLOCK; waar meetbaar `threshold` / `observed_value` / `session` / `regime` meesturen.
 - `signal_detected`: gestructureerde velden (geen vrije-tekst “reason” als enige uitleg).
 
