@@ -1,0 +1,7 @@
+.env
+__pycache__/
+*.pyc
+
+# Regenerate with: python scripts/research_digest.py
+research/runs_digest.md
+research/runs_registry.json

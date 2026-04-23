@@ -1,0 +1,2 @@
+# Bash scripts must use LF for shebang / WSL / Linux
+*.sh text eol=lf

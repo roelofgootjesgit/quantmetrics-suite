@@ -1,0 +1,27 @@
+{
+  "folders": [
+    {
+      "name": "QuantOS (quantmetrics_os)",
+      "path": ".."
+    },
+    {
+      "name": "quantbuildv1",
+      "path": "../../quantbuildv1"
+    },
+    {
+      "name": "quantbridgev1",
+      "path": "../../quantbridgev1"
+    },
+    {
+      "name": "quantlogv1",
+      "path": "../../quantlogv1"
+    }
+  ],
+  "settings": {
+    "python.analysis.extraPaths": [
+      "${workspaceFolder:quantbuildv1}/src",
+      "${workspaceFolder:quantbridgev1}/src",
+      "${workspaceFolder:quantlogv1}/src"
+    ]
+  }
+}

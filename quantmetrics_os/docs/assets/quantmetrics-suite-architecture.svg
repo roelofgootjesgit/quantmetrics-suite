@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 560" role="img" aria-labelledby="title desc">
+  <title id="title">Quant suite architecture</title>
+  <desc id="desc">QuantOS orchestrates QuantBuild (signal engine), QuantBridge (execution engine), and QuantLog (observability layer) with market data input and feedback to strategy.</desc>
+  <defs>
+    <filter id="shadow" x="-8%" y="-8%" width="116%" height="116%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.12"/>
+    </filter>
+    <marker id="arrowHead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+    </marker>
+    <marker id="arrowHeadDash" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8"/>
+    </marker>
+  </defs>
+
+  <rect width="880" height="560" fill="#f8fafc"/>
+
+  <text x="440" y="44" text-anchor="middle" font-family="Segoe UI, system-ui, sans-serif" font-size="20" font-weight="700" fill="#0f172a">Quant suite</text>
+  <text x="440" y="68" text-anchor="middle" font-family="Segoe UI, system-ui, sans-serif" font-size="13" fill="#64748b">Orchestration | research | execution | observability</text>
+
+  <!-- OS -->
+  <g filter="url(#shadow)">
+    <rect x="220" y="92" width="440" height="64" rx="12" fill="#1e40af"/>
+  </g>
+  <text x="440" y="122" text-anchor="middle" font-family="Segoe UI, system-ui, sans-serif" font-size="16" font-weight="700" fill="#ffffff">QuantOS</text>
+  <text x="440" y="144" text-anchor="middle" font-family="Segoe UI, system-ui, sans-serif" font-size="12" fill="#bfdbfe">Orchestrator | unified CLI | env | PYTHONPATH</text>
+
+  <line x1="440" y1="156" x2="440" y2="188" stroke="#64748b" stroke-width="2" marker-end="url(#arrowHead)"/>
+
+  <!-- Build -->
+  <g filter="url(#shadow)">
+    <rect x="220" y="188" width="440" height="72" rx="12" fill="#047857"/>
+  </g>
+  <text x="440" y="220" text-anchor="middle" font-family="Segoe UI, system-ui, sans-serif" font-size="16" font-weight="700" fill="#ffffff">QuantBuild</text>
+  <text x="440" y="242" text-anchor="middle" font-family="Segoe UI, system-ui, sans-serif" font-size="12" fill="#a7f3d0">Signal engine | signals | risk | backtests &amp; validation</text>
+
+  <!-- Market data feed -->
+  <g filter="url(#shadow)">
+    <rect x="48" y="200" width="120" height="48" rx="8" fill="#e2e8f0" stroke="#cbd5e1" stroke-width="1"/>
+  </g>
+  <text x="108" y="228" text-anchor="middle" font-family="Segoe UI, system-ui, sans-serif" font-size="11" font-weight="600" fill="#334155">Market data</text>
+  <line x1="168" y1="224" x2="210" y2="224" stroke="#64748b" stroke-width="2" marker-end="url(#arrowHead)"/>
+
+  <line x1="440" y1="260" x2="440" y2="292" stroke="#64748b" stroke-width="2" marker-end="url(#arrowHead)"/>
+
+  <!-- Bridge -->
+  <g filter="url(#shadow)">
+    <rect x="220" y="292" width="440" height="72" rx="12" fill="#b45309"/>
+  </g>
+  <text x="440" y="324" text-anchor="middle" font-family="Segoe UI, system-ui, sans-serif" font-size="16" font-weight="700" fill="#ffffff">QuantBridge</text>
+  <text x="440" y="346" text-anchor="middle" font-family="Segoe UI, system-ui, sans-serif" font-size="12" fill="#fde68a">Execution engine | broker | cTrader | smoke &amp; regression</text>
+
+  <line x1="440" y1="364" x2="440" y2="396" stroke="#64748b" stroke-width="2" marker-end="url(#arrowHead)"/>
+
+  <!-- Log -->
+  <g filter="url(#shadow)">
+    <rect x="220" y="396" width="440" height="72" rx="12" fill="#6d28d9"/>
+  </g>
+  <text x="440" y="428" text-anchor="middle" font-family="Segoe UI, system-ui, sans-serif" font-size="16" font-weight="700" fill="#ffffff">QuantLog</text>
+  <text x="440" y="450" text-anchor="middle" font-family="Segoe UI, system-ui, sans-serif" font-size="12" fill="#ddd6fe">Observability | JSONL | validate | summarize | score</text>
+
+  <line x1="440" y1="468" x2="440" y2="498" stroke="#64748b" stroke-width="2" marker-end="url(#arrowHead)"/>
+
+  <!-- Outcome -->
+  <text x="440" y="518" text-anchor="middle" font-family="Segoe UI, system-ui, sans-serif" font-size="13" font-weight="600" fill="#0f172a">Post-run analysis | metrics | strategy iteration</text>
+
+  <!-- Feedback loop -->
+  <path d="M 200 432 C 120 432, 120 220, 200 220" fill="none" stroke="#94a3b8" stroke-width="2" stroke-dasharray="8 6" marker-end="url(#arrowHeadDash)"/>
+  <text x="118" y="328" text-anchor="middle" font-family="Segoe UI, system-ui, sans-serif" font-size="10" fill="#64748b" transform="rotate(-90 118 328)">feedback</text>
+</svg>
