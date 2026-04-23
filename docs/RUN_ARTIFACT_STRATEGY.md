@@ -196,9 +196,27 @@ runs/<experiment_id>/manifest.json
 
 ## Workflow (QuantOS)
 
+### Automatisering na backtest (QuantBuild)
+
+Als in QuantBuild **`artifacts.enabled: true`** staat (in `configs/default.yaml` overrulen of via geladen config):
+
+1. Na een succesvolle backtest + QuantAnalytics kopieert **`quantmetrics_os/scripts/collect_run_artifact.py`** naar `quantmetrics_os/runs/<experiment_id>/<role>/` onder andere:
+   - `quantlog_events.jsonl` (consolidated run)
+   - `config_snapshot.yaml` (kopie van de gebruikte YAML)
+   - `run_info.json` (metadata)
+   - optioneel recente rapportbestanden onder **`analytics/`** (`bundle_analytics`, standaard aan)
+
+- **`experiment_id`** — vrij te kiezen; als leeg: automatisch `EXP-YYYYMMDD-<run_suffix>`.
+- **`role`** — `baseline` \| `variant` \| `single` (default `single`).
+- **`quantmetrics_os_root`** — optioneel; default: sibling-map `../quantmetrics_os` naast QuantBuild.
+
+Uitschakelen: **`artifacts.enabled: false`** of env **`QUANTMETRICS_ARTIFACTS=0`**.
+
+---
+
 1. **Runs uitvoeren** — QuantBuild schrijft events naar QuantLog; elk run krijgt een **`run_id`**.
 2. **Analytics** — QuantAnalytics bouwt summaries en guard attribution voor elk relevant `run_id`.
-3. **Artifacts verzamelen** — QuantOS kopieert of archiveert naar `runs/EXP-…/baseline|variant/` en slaat **config snapshots** op.
+3. **Artifacts verzamelen** — handmatig of via bovenstaande automatische stap naar `runs/EXP-…/baseline|variant/` inclusief **config snapshots**.
 4. **Compare** — niveau B:
 
 ```bash
