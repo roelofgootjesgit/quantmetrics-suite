@@ -1,0 +1,16 @@
+{
+  "experiment_id": "EXP-001",
+  "baseline": {
+    "mean_r": -0.727,
+    "trade_count": 11
+  },
+  "variant": {
+    "mean_r": 0.5,
+    "trade_count": 8
+  },
+  "delta": {
+    "mean_r": 1.227,
+    "trade_count": -3
+  },
+  "decision": "variant_outperforms_baseline"
+}

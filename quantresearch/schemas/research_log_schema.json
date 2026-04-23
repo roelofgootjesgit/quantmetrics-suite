@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://quantresearch.local/schemas/research_log_schema.json",
+  "title": "Research log (structured meta for markdown generation)",
+  "type": "object",
+  "properties": {
+    "experiment_id": { "type": "string" },
+    "date": { "type": "string", "format": "date" },
+    "baseline_run_id": { "type": "string" },
+    "variant_run_id": { "type": "string" },
+    "baseline_config": { "type": "string" },
+    "variant_config": { "type": "string" },
+    "data_window": {
+      "type": "object",
+      "properties": {
+        "start": { "type": "string" },
+        "end": { "type": "string" }
+      }
+    },
+    "strategy_version": { "type": "string" },
+    "hypothesis": { "type": "string" },
+    "intervention": { "type": "string" },
+    "expectation": { "type": "string" },
+    "baseline_metrics": { "type": "object" },
+    "variant_metrics": { "type": "object" },
+    "analysis": { "type": "string" },
+    "conclusion": { "type": "string" },
+    "decision": { "type": "string" },
+    "next_step": { "type": "string" }
+  },
+  "additionalProperties": true
+}

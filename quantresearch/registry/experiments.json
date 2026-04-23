@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "experiments": [
+    {
+      "experiment_id": "EXP-001",
+      "title": "Expansion-only regime test",
+      "status": "completed",
+      "date_created": "2026-04-22",
+      "hypothesis": "Expansion regime has positive expectancy while trend regime is negative.",
+      "baseline_run_id": "20260422_192631Z",
+      "variant_run_id": "20260422_192633Z",
+      "baseline_config": "backtest_2026_jan_mar.yaml",
+      "variant_config": "strategy_sprint1_expansion_only.yaml",
+      "data_window": {
+        "start": "2026-01-01",
+        "end": "2026-03-31"
+      },
+      "strategy_version": "strict_prod_v2",
+      "result": "positive",
+      "decision": "promote_for_next_research_stage",
+      "tags": ["regime", "expansion", "baseline_vs_variant"]
+    }
+  ]
+}
