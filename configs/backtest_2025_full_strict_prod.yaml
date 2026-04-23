@@ -15,10 +15,10 @@ backtest:
 quantlog:
   consolidated_run_file: true
 
-# QuantOS artifact bundle naar ../quantmetrics_os/runs/<experiment>/<role>/ (QuantBuild hook)
+# QuantOS artifact bundle + QuantAnalytics post-run (default.yaml: quantlog.auto_analytics)
 artifacts:
-  enabled: false
-  experiment_id: "EXP-2025-full"
+  enabled: true
+  experiment_id: "EXP-2025-baseline"
   role: single
   bundle_analytics: true
   analytics_recent_seconds: 1200
