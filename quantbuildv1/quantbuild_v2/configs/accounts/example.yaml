@@ -1,0 +1,15 @@
+account_id: demo_account_01
+mode: demo
+
+strategies:
+  - id: noop
+    class: quantbuild_v2.strategies.noop:NoopStrategy
+    enabled: true
+    config:
+      symbols:
+        - XAUUSD
+
+portfolio:
+  max_total_risk_pct: 2.0
+  max_open_trades: 3
+  correlation_guard: true

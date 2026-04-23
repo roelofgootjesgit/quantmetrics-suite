@@ -1,0 +1,468 @@
+# ============================================================
+# Instrument Execution Profiles — Cluster-Aware Architecture
+# ============================================================
+#
+# ARCHITECTURE:
+#   Core(5) = self-sufficient engine (challenge + funded)
+#   NAS100  = OPTIONAL throughput tool (challenge only, off by default)
+#   EURUSD  = Mean Reversion module (funded only)
+#
+# CLASSIFICATION:
+#   CORE_PROMOTE         = validated edge, challenge + funded
+#   OPTIONAL_TOOL        = useful in specific scenarios, not default
+#   REGIME_FILTER        = no direct trading edge, used as market state input
+#   WATCHLIST            = partial edge, not yet deployable
+#   REJECT               = no viable edge
+#
+# CLUSTER RISK:
+#   risk_on_fx      = GBP+NZD (corr +0.60) — max 2 concurrent, 1.5% heat cap
+#   usd_bloc        = JPY+CHF (corr +0.50) — max 2 concurrent, 1.5% heat cap
+#   chf_eur_inverse = CHF+EUR (corr -0.85) — max 1 concurrent, 1.0% heat cap
+#
+# INSTRUMENT ROLES:
+#   XAUUSD = ALPHA (highest priority, primary profit driver)
+#   GBPUSD = HIGH_QUALITY (low freq, high exp, expansion off)
+#   NZDUSD = THROUGHPUT_CORE (highest trade count, balanced)
+#   USDJPY = STABILIZER (consistent, low correlation)
+#   USDCHF = EXPANSION_SPECIALIST (expansion regime edge)
+#
+# Validated by cross_instrument_runner.py + portfolio_optimization_v2.py
+# on 5yr data (2021-2026)
+# ============================================================
+
+instruments:
+
+  # ── BOOK 1: CORE QUALITY (funded + challenge) ─────────────
+
+  XAUUSD:
+    label: "Gold"
+    asset_class: "metals"
+    status: "CORE_PROMOTE"
+    role: "ALPHA"
+    priority: 100
+    book: "core"
+    dukascopy_symbol: "XAUUSD"
+    oanda_instrument: "XAU_USD"
+    regimes:
+      trend: true       # 201 trades, PF 1.41, exp +0.208R
+      expansion: true   # 53 trades, PF 2.82, exp +0.755R (best cluster)
+      compression: false
+    expansion_sessions: ["New York", "Overlap"]
+    expansion_min_hour_utc: 10
+    max_spread_pips: 4.0
+    max_slippage_r: 0.15
+    pip_value: 0.01
+    primary_sessions: ["London", "Overlap", "New York"]
+    session_mode: "extended"
+    risk_multiplier: 1.0
+    max_concurrent: 2
+    max_trades_per_day: 4
+    _5yr_exp: 0.322
+    _5yr_pf: 1.65
+    _5yr_rdd: 4.18
+
+  GBPUSD:
+    label: "Cable"
+    asset_class: "fx_major"
+    status: "CORE_PROMOTE"
+    role: "HIGH_QUALITY"
+    priority: 80
+    book: "core"
+    dukascopy_symbol: "GBPUSD"
+    oanda_instrument: "GBP_USD"
+    regimes:
+      trend: true       # 46 trades, PF 4.23, exp +1.123R
+      expansion: false   # 15 trades, 0% WR — kills edge
+      compression: false
+    max_spread_pips: 2.0
+    max_slippage_r: 0.10
+    pip_value: 0.0001
+    primary_sessions: ["London", "Overlap", "New York"]
+    session_mode: "extended"
+    risk_multiplier: 1.0
+    max_concurrent: 2
+    max_trades_per_day: 3
+    cluster: "risk_on_fx"
+    _5yr_exp: 0.601
+    _5yr_pf: 2.18
+    _5yr_rdd: 3.06
+
+  USDJPY:
+    label: "Yen"
+    asset_class: "fx_major"
+    status: "CORE_PROMOTE"
+    role: "STABILIZER"
+    priority: 60
+    book: "core"
+    dukascopy_symbol: "USDJPY"
+    oanda_instrument: "USD_JPY"
+    regimes:
+      trend: true       # 113 trades, PF 1.67, exp +0.331R
+      expansion: true   # 29 trades, PF 1.62, exp +0.345R
+      compression: false
+    max_spread_pips: 1.5
+    max_slippage_r: 0.10
+    pip_value: 0.01
+    primary_sessions: ["London", "Overlap", "New York"]
+    session_mode: "extended"
+    risk_multiplier: 1.0
+    max_concurrent: 2
+    max_trades_per_day: 3
+    cluster: "usd_bloc"
+    _5yr_exp: 0.334
+    _5yr_pf: 1.66
+    _5yr_rdd: 2.94
+
+  # ── OPTIONAL TOOL (not in default stack) ──────────────────
+
+  NAS100:
+    label: "Nasdaq 100"
+    asset_class: "index_us"
+    status: "OPTIONAL_TOOL"
+    role: "THROUGHPUT_OPTIONAL"
+    priority: 30
+    book: "throughput"
+    dukascopy_symbol: "NAS100"
+    oanda_instrument: "NAS100_USD"
+    regimes:
+      trend: true       # 956 trades, exp +0.106R, total +101R
+      expansion: false   # 57 trades, exp -0.211R — kills edge
+      compression: false
+    max_spread_pips: 3.0
+    max_slippage_r: 0.20
+    pip_value: 0.1
+    primary_sessions: ["New York", "Overlap"]
+    session_mode: "standard"
+    risk_multiplier: 0.5
+    max_concurrent: 1
+    max_trades_per_day: 2
+    max_instrument_heat_pct: 1.5
+    _5yr_trend_only_exp: 0.106
+    _5yr_trend_only_total: 101.3
+    _5yr_trend_trades: 956
+    _downgrade_reason: "Core(5) achieves 65.4% pass rate. NAS100 adds throughput but increases DD failures, netting LOWER pass rate (56.8%). Use only under specific challenge pressure."
+    _notes: "OFF by default. Enable manually when challenge clock is running behind schedule."
+
+  # ── REGIME FILTER (no trading, market state input) ─────────
+
+  EURUSD:
+    label: "Euro"
+    asset_class: "fx_major"
+    status: "REGIME_FILTER"
+    book: "filter"
+    dukascopy_symbol: "EURUSD"
+    oanda_instrument: "EUR_USD"
+    regimes:
+      trend: false
+      expansion: false
+      compression: false
+    role: "regime_filter"
+    _role_description: "EURUSD chop/trend state used as confidence modifier for core instruments"
+    _diagnostic: "49 trades in 5yr, negative expectancy as trend system. Mean-reversion profile detected."
+
+  # ── NEW FX PAIRS (validated March 2026) ────────────────────
+
+  USDCHF:
+    label: "Swissie"
+    asset_class: "fx_major"
+    status: "CORE_PROMOTE"
+    role: "EXPANSION_SPECIALIST"
+    priority: 50
+    book: "core"
+    dukascopy_symbol: "USDCHF"
+    oanda_instrument: "USD_CHF"
+    regimes:
+      trend: true
+      expansion: true    # 132 trades combined, exp +0.220R, PF 1.56
+      compression: false
+    max_spread_pips: 1.5
+    max_slippage_r: 0.10
+    pip_value: 0.0001
+    primary_sessions: ["London", "Overlap", "New York"]
+    session_mode: "extended"
+    risk_multiplier: 1.0
+    max_concurrent: 2
+    max_trades_per_day: 3
+    cluster: "usd_bloc"
+    _5yr_exp: 0.220
+    _5yr_pf: 1.56
+    _5yr_rdd: 4.51
+    _5yr_trades: 132
+    _5yr_total_r: 29.0
+    _notes: "Strong R/DD (4.51). Expansion works here (unique among FX). London session strongest."
+
+  NZDUSD:
+    label: "Kiwi"
+    asset_class: "fx_major"
+    status: "CORE_PROMOTE"
+    role: "THROUGHPUT_CORE"
+    priority: 70
+    book: "core"
+    dukascopy_symbol: "NZDUSD"
+    oanda_instrument: "NZD_USD"
+    regimes:
+      trend: true
+      expansion: false
+      compression: false
+    max_spread_pips: 2.0
+    max_slippage_r: 0.10
+    pip_value: 0.0001
+    primary_sessions: ["London", "Overlap", "Asia"]
+    session_mode: "extended"
+    risk_multiplier: 1.0
+    max_concurrent: 2
+    max_trades_per_day: 3
+    cluster: "risk_on_fx"
+    _5yr_exp: 0.202
+    _5yr_pf: 1.44
+    _5yr_rdd: 2.79
+    _5yr_trades: 312
+    _5yr_total_r: 63.1
+    _notes: "Highest trade count (62/yr). London 71% WR, Overlap 93% WR. Balanced LONG/SHORT. Slippage marginal at 0.1R — needs tight spread control."
+
+  # ── WATCHLIST ──────────────────────────────────────────────
+
+  AUDUSD:
+    label: "Aussie"
+    asset_class: "fx_major"
+    status: "WATCHLIST"
+    dukascopy_symbol: "AUDUSD"
+    oanda_instrument: "AUD_USD"
+    regimes:
+      trend: true
+      expansion: false
+      compression: false
+    max_spread_pips: 1.5
+    risk_multiplier: 0.8
+    max_concurrent: 1
+    _5yr_exp: 0.179
+    _5yr_pf: 1.37
+    _5yr_rdd: 1.27
+    _5yr_trades: 248
+    _watchlist_reason: "Algorithmisch CORE_PROMOTE maar handmatig downgraded: slippage faalt bij 0.2R, 2024 was -26.5R, puur SHORT bias (+46R SHORT vs -1.5R LONG). Re-evaluate met regime gates."
+
+  USDCAD:
+    label: "Loonie"
+    asset_class: "fx_major"
+    status: "WATCHLIST"
+    dukascopy_symbol: "USDCAD"
+    oanda_instrument: "USD_CAD"
+    regimes:
+      trend: false
+      expansion: false
+      compression: false
+    risk_multiplier: 0.7
+    max_concurrent: 1
+    _5yr_exp: 0.005
+    _5yr_pf: 1.01
+    _5yr_rdd: 0.02
+    _5yr_trades: 65
+    _watchlist_reason: "No trend edge (exp +0.005R). MR test also negative (-0.197R). BUT: 83% losers had MFE>1R (median 4.2R) — entries work, exits don't. London session 88% WR (8 trades). Revisit with custom exit logic."
+
+  SPX500:
+    label: "S&P 500"
+    asset_class: "index_us"
+    status: "WATCHLIST"
+    dukascopy_symbol: "SPX500"
+    oanda_instrument: "SPX500_USD"
+    regimes:
+      trend: true
+      expansion: false
+      compression: false
+    risk_multiplier: 0.8
+    max_concurrent: 1
+    _notes: "Marginal edge +0.058R. 92% correlated with NAS100 — pick one, not both."
+
+  UK100:
+    label: "FTSE 100"
+    asset_class: "index_eu"
+    status: "CANDIDATE"
+    dukascopy_symbol: "UK100"
+    oanda_instrument: "UK100_GBP"
+    regimes:
+      trend: true
+      expansion: false
+      compression: false
+    _notes: "Not yet tested. Queue for next validation round."
+
+  JP225:
+    label: "Nikkei 225"
+    asset_class: "index_asia"
+    status: "CANDIDATE"
+    dukascopy_symbol: "JP225"
+    oanda_instrument: "JP225_USD"
+    regimes:
+      trend: true
+      expansion: false
+      compression: false
+    _notes: "Not yet tested. Queue for next validation round."
+
+  # ── REJECTED ───────────────────────────────────────────────
+
+  XAGUSD:
+    label: "Silver"
+    asset_class: "metals"
+    status: "REJECT"
+    dukascopy_symbol: "XAGUSD"
+    oanda_instrument: "XAG_USD"
+    regimes: { trend: false, expansion: false, compression: false }
+    _reject_reason: "Noisy microstructure, negative expectancy despite high MFE"
+
+  US30:
+    label: "Dow Jones"
+    asset_class: "index_us"
+    status: "REJECT"
+    dukascopy_symbol: "US30"
+    oanda_instrument: "US30_USD"
+    regimes: { trend: false, expansion: false, compression: false }
+    _reject_reason: "Negative expectancy. TREND +0.046R but MAE 7.3R, DD -48R. Too noisy."
+
+  GER40:
+    label: "DAX 40"
+    asset_class: "index_eu"
+    status: "REJECT"
+    dukascopy_symbol: "GER40"
+    oanda_instrument: "DE30_EUR"
+    regimes: { trend: false, expansion: false, compression: false }
+    _reject_reason: "Negative expectancy all regimes. ICT structure does not produce clean signals on DAX."
+
+# ============================================================
+# Promotion Rubric Thresholds
+# ============================================================
+promotion:
+  core_promote:
+    min_expectancy_r: 0.15
+    min_profit_factor: 1.2
+    max_drawdown_r: -35
+    min_trades: 50
+    min_rdd: 1.0
+    dynamic_exit_improvement: true
+  challenge_candidate:
+    min_expectancy_r: 0.05
+    min_profit_factor: 1.05
+    min_trades: 100
+    min_rdd: 0.5
+    _notes: "Lower bar than core, but must provide meaningful trade frequency"
+  watchlist:
+    min_expectancy_r: 0.05
+    min_profit_factor: 1.0
+    max_drawdown_r: -50
+    min_trades: 30
+
+# ============================================================
+# Trading Modes — Core(5) Self-Sufficient
+# ============================================================
+modes:
+
+  challenge:
+    description: "FTMO Challenge — Core(5) only, 65.4% pass rate"
+    target_pct: 10.0
+    max_daily_loss_pct: 5.0
+    max_total_dd_pct: 10.0
+    risk_per_trade_pct: 1.5
+    max_portfolio_heat_pct: 6.0
+    max_correlated_exposure: 2
+    books: ["core"]
+    core_instruments: ["XAUUSD", "GBPUSD", "USDJPY", "USDCHF", "NZDUSD"]
+    optional_instruments: ["NAS100"]
+    _notes: "NAS100 OFF by default. Only enable if challenge clock running behind."
+
+  funded:
+    description: "Funded Account — Core(5) + EURUSD MR, +3.22%/mo"
+    target_pct_monthly: 4.0
+    max_daily_loss_pct: 2.0
+    max_total_dd_pct: 6.0
+    risk_per_trade_pct: 0.75
+    max_portfolio_heat_pct: 3.0
+    max_correlated_exposure: 2
+    books: ["core"]
+    core_instruments: ["XAUUSD", "GBPUSD", "USDJPY", "USDCHF", "NZDUSD"]
+    supplemental_instruments: ["EURUSD"]
+
+# ============================================================
+# Pass Acceleration (FTMO Challenge Optimizer)
+# ============================================================
+pass_accelerator:
+  target_pct: 10.0
+  max_daily_loss_pct: 5.0
+  max_total_dd_pct: 10.0
+  challenge_days: 30
+  attack_until_day: 10
+  secure_at_pct: 7.0
+  coast_at_pct: 9.0
+  dd_danger_zone_pct: 3.0
+
+# ============================================================
+# Cluster Risk Rules
+# ============================================================
+clusters:
+
+  risk_on_fx:
+    instruments: ["GBPUSD", "NZDUSD"]
+    max_concurrent: 2
+    max_heat_pct: 1.5
+    sizing_penalty: 0.7
+    reason: "GBP+NZD corr +0.60 — risk-on commodity FX, same flow direction"
+
+  usd_bloc:
+    instruments: ["USDJPY", "USDCHF"]
+    max_concurrent: 2
+    max_heat_pct: 1.5
+    sizing_penalty: 0.8
+    reason: "JPY+CHF corr +0.50 — USD strength cluster"
+
+  chf_eur_inverse:
+    instruments: ["USDCHF", "EURUSD"]
+    max_concurrent: 1
+    max_heat_pct: 1.0
+    sizing_penalty: 0.6
+    reason: "CHF+EUR corr -0.85 — near-mirror pair, don't trade both simultaneously"
+
+# ============================================================
+# Instrument Priority (conflict resolution)
+# ============================================================
+instrument_priority:
+  XAUUSD: 100
+  GBPUSD: 80
+  NZDUSD: 70
+  USDJPY: 60
+  USDCHF: 50
+  EURUSD: 40
+  NAS100: 30
+
+# ============================================================
+# Correlation Matrix (empirical, 2021-2026)
+# ============================================================
+correlations:
+  # Core instruments
+  XAUUSD_GBPUSD: -0.03
+  XAUUSD_USDJPY: -0.001
+  XAUUSD_USDCHF: -0.15
+  XAUUSD_NZDUSD: 0.10
+  GBPUSD_USDJPY: -0.001
+  GBPUSD_USDCHF: -0.55
+  GBPUSD_NZDUSD: 0.60
+  USDJPY_USDCHF: 0.50
+  USDJPY_NZDUSD: -0.30
+  USDCHF_NZDUSD: -0.55
+  # Throughput
+  XAUUSD_NAS100: 0.05
+  NAS100_GBPUSD: 0.02
+  NAS100_USDJPY: -0.10
+  NAS100_USDCHF: -0.05
+  NAS100_NZDUSD: 0.10
+  # Other
+  XAUUSD_US30: 0.10
+  XAUUSD_SPX500: 0.08
+  GBPUSD_GER40: 0.20
+  GBPUSD_UK100: 0.35
+  US30_SPX500: 0.95
+  US30_NAS100: 0.88
+  SPX500_NAS100: 0.92
+  GER40_UK100: 0.70
+  US30_GER40: 0.55
+  # Watchlist FX
+  GBPUSD_AUDUSD: 0.45
+  NZDUSD_AUDUSD: 0.85
+  USDCHF_USDCAD: 0.40
+  AUDUSD_NZDUSD: 0.85

@@ -1,0 +1,15 @@
+# STRATEGY_FIX_PLAN.md — Sprint 1 (regime isolation), stack-only variant.
+# Hypothese: edge zit in expansion; trend op regime-niveau uit.
+#
+# Voor A/B met exact hetzelfde backtest-venster als je baseline-yaml: gebruik liever
+#   configs/backtest_2026_jan_mar_expansion_only.yaml
+# (extendt backtest_2026_jan_mar + trend.skip). Dit bestand extendt alleen strict_prod_v2
+# en wijzigt geen backtest-dates — alleen nuttig als je venster elders in de CLI/config zet.
+#
+#   python -m src.quantbuild.app --config configs/strategy_sprint1_expansion_only.yaml backtest
+
+extends: strict_prod_v2.yaml
+
+regime_profiles:
+  trend:
+    skip: true

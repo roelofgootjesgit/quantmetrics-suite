@@ -1,0 +1,12 @@
+# Zelfde als backtest_2025_full_strict_prod.yaml; data uit Dukascopy-cache.
+#
+#   python -m src.quantbuild.app --config configs/backtest_2025_full_strict_prod_dukascopy.yaml backtest
+
+extends: strict_prod_v2.yaml
+
+data:
+  base_path: data/market_cache_dukascopy
+
+backtest:
+  start_date: "2025-01-01"
+  end_date: "2025-12-31"

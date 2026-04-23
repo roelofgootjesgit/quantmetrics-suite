@@ -1,0 +1,30 @@
+# Heel kalenderjaar 2025 (UTC, 1 jan t/m 31 dec inclusief).
+# Let op: geen `strategy:` hier — SQE gebruikt dan alleen get_sqe_default_config() → vaak 0 entries.
+# Productie-gedrag: merge configs/strict_prod_v2.yaml of kopieer daar `strategy` + `regime_profiles`.
+# Cache moet deze datums bevatten: eerst fetch met genoeg dagen (zie hieronder).
+#
+#   python -m src.quantbuild.app fetch --days 550
+#   python -m src.quantbuild.app --config configs/backtest_2025_full.yaml backtest
+
+symbol: XAUUSD
+timeframes:
+  - 15m
+  - 1h
+
+data:
+  base_path: data/market_cache
+
+backtest:
+  start_date: "2025-01-01"
+  end_date: "2025-12-31"
+  tp_r: 2.0
+  sl_r: 1.0
+
+risk:
+  max_daily_loss_r: 3.0
+
+quantlog:
+  enabled: true
+
+news:
+  enabled: false

@@ -1,0 +1,18 @@
+# EXP-D3 — Trend alleen New York; expansion ongewijzigd t.o.v. strict_prod (NY+Overlap, min uur).
+# Eén duidelijke session-allocation wijziging voor trend.
+#
+#   python -m src.quantbuild.app --config configs/backtest_2025_expansion_d3_trend_ny_only.yaml backtest
+
+extends: backtest_2025_full_strict_prod.yaml
+
+artifacts:
+  enabled: true
+  experiment_id: "EXP-2025-D3-trend-NY"
+  role: single
+  bundle_analytics: true
+  analytics_recent_seconds: 1200
+
+regime_profiles:
+  trend:
+    allowed_sessions:
+      - New York

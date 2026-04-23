@@ -1,0 +1,34 @@
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+.env
+envvps.txt
+*.egg-info/
+dist/
+build/
+data/market_cache/
+data/market_cache_dukascopy/
+data/news_cache/
+data/quantlog_events/
+data/quantlog_events_demo_loose/
+data/quantlog_events_test/
+data/source_smoke_auto/
+data/source_smoke_dukascopy/
+data/state.json
+/logs/
+*.parquet
+.cursor/
+decision.json
+reports/
+
+# Generated analytics / curve CSVs from local scripts (reproducible from configs)
+output_rapport/
+
+# Strategy-test outputs (configs blijven in git)
+strategy_tests/logs/*.log
+strategy_tests/runs/*
+!strategy_tests/runs/.gitkeep
+strategy_tests/quantlog_events/**
+!strategy_tests/quantlog_events/.gitkeep

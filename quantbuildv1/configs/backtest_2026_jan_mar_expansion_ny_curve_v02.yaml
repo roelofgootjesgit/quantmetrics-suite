@@ -1,0 +1,7 @@
+# Curve v02: v01 + cooldown uit
+
+extends: backtest_2026_jan_mar_expansion_ny.yaml
+
+filters:
+  structure_h1_gate: false
+  cooldown: false

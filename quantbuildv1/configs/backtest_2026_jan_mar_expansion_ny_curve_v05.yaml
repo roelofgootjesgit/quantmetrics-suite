@@ -1,0 +1,10 @@
+# Curve v05: v04 + research_raw_first (live-achtige eval-volgorde); regime/trend-isolatie blijft aan.
+
+extends: backtest_2026_jan_mar_expansion_ny.yaml
+
+filters:
+  structure_h1_gate: false
+  cooldown: false
+  position_limit: false
+  session: false
+  research_raw_first: true

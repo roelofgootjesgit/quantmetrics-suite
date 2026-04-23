@@ -1,0 +1,17 @@
+# EXP-D2 (light) — Minder trend-throughput: max 1 trade per session in trend; expansion ongewijzigd.
+# Geen confidence-wijziging in code; alleen position cap t.o.v. trend.
+#
+#   python -m src.quantbuild.app --config configs/backtest_2025_expansion_d2_trend_fewer_trades.yaml backtest
+
+extends: backtest_2025_full_strict_prod.yaml
+
+artifacts:
+  enabled: true
+  experiment_id: "EXP-2025-D2-trend-cap"
+  role: single
+  bundle_analytics: true
+  analytics_recent_seconds: 1200
+
+regime_profiles:
+  trend:
+    max_trades_per_session: 1

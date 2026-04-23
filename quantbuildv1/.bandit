@@ -1,0 +1,4 @@
+[bandit]
+# Many setups need: bandit --ini .bandit -r .
+# (Bandit may not pick up this file on all platforms unless --ini is passed.)
+exclude = tests

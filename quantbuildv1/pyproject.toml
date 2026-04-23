@@ -1,0 +1,5 @@
+[tool.bandit]
+# Use: python -m bandit -c pyproject.toml -r .   (requires: pip install "bandit[toml]")
+# Pytest uses `assert` in tests; subprocess in scripts uses argv lists + shell=False.
+exclude_dirs = ["tests"]
+skips = ["B101", "B404"]

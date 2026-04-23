@@ -1,0 +1,27 @@
+# cTrader + IC Markets Demo profile (execution-first)
+
+symbol: XAUUSD
+
+broker:
+  provider: ctrader
+  environment: demo
+  account_id: "icmarkets-demo-001"
+  access_token: ""
+  instrument: XAUUSD
+  mock_mode: true
+  mock_spread: 0.2
+  mock_price: 2500.0
+  initial_balance: 10000
+
+execution:
+  check_interval_seconds: 60
+  regime_update_seconds: 900
+
+execution_guards:
+  max_spread_pips: 4.0
+  max_slippage_r: 0.15
+  max_open_positions: 3
+
+risk:
+  max_position_pct: 1.0
+  max_daily_loss_r: 3.0

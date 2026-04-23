@@ -1,0 +1,14 @@
+# A/B-variant: identiek venster en stack als configs/backtest_2026_jan_mar.yaml
+# (strict_prod_v2 + Q1 2026 data/quantlog), alleen trend-regime uit voor expansion-only isolatie.
+#
+# STRATEGY_FIX_PLAN.md Sprint 1 — vergelijk met baseline:
+#   python -m src.quantbuild.app --config configs/backtest_2026_jan_mar.yaml backtest
+#   python -m src.quantbuild.app --config configs/backtest_2026_jan_mar_expansion_only.yaml backtest
+#
+# Daarna QuantAnalytics per run_id (post-run doet dat automatisch).
+
+extends: backtest_2026_jan_mar.yaml
+
+regime_profiles:
+  trend:
+    skip: true

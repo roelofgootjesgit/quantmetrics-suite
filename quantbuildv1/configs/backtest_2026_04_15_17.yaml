@@ -1,0 +1,28 @@
+# Slice backtest — 15–17 April 2026 (UTC calendar days inclusive).
+# Requires cached bars under data.market_cache/XAUUSD/ (fetch if missing).
+#
+# Run from repo root (--config vóór subcommando backtest):
+#   python -m src.quantbuild.app --config configs/backtest_2026_04_15_17.yaml backtest
+
+symbol: XAUUSD
+timeframes:
+  - 15m
+  - 1h
+
+data:
+  base_path: data/market_cache
+
+backtest:
+  start_date: "2026-04-15"
+  end_date: "2026-04-17"
+  tp_r: 2.0
+  sl_r: 1.0
+
+risk:
+  max_daily_loss_r: 3.0
+
+quantlog:
+  enabled: true
+
+news:
+  enabled: false

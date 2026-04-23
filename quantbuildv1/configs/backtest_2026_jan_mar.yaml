@@ -1,0 +1,26 @@
+# Backtest januari–maart 2026 (UTC, eerste dag jan t/m laatste dag mrt inclusief).
+# Strategy/regime gedrag via strict_prod_v2; hier alleen venster + logging voorkeuren.
+extends: strict_prod_v2.yaml
+
+symbol: XAUUSD
+timeframes:
+  - 15m
+  - 1h
+
+data:
+  base_path: data/market_cache
+
+backtest:
+  start_date: "2026-01-01"
+  end_date: "2026-03-31"
+  tp_r: 2.0
+  sl_r: 1.0
+
+risk:
+  max_daily_loss_r: 3.0
+
+quantlog:
+  enabled: true
+
+news:
+  enabled: false

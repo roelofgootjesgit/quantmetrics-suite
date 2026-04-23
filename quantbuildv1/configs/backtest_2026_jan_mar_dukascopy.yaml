@@ -1,0 +1,29 @@
+# Zelfde venster als backtest_2026_jan_mar.yaml met data uit Dukascopy-cache.
+# Bij geen data in het venster: verwijder data/market_cache_dukascopy/XAUUSD/*.parquet
+# en fetch opnieuw: --days 180 --source dukascopy
+#
+#   python -m src.quantbuild.app --config configs/data_dukascopy_compare.yaml fetch --days 180 --source dukascopy
+#   python -m src.quantbuild.app --config configs/backtest_2026_jan_mar_dukascopy.yaml backtest
+
+symbol: XAUUSD
+timeframes:
+  - 15m
+  - 1h
+
+data:
+  base_path: data/market_cache_dukascopy
+
+backtest:
+  start_date: "2026-01-01"
+  end_date: "2026-03-31"
+  tp_r: 2.0
+  sl_r: 1.0
+
+risk:
+  max_daily_loss_r: 3.0
+
+quantlog:
+  enabled: true
+
+news:
+  enabled: false

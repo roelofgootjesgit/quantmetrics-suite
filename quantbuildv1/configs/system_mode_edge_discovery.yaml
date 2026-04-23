@@ -1,0 +1,8 @@
+# Quick edge-discovery overlay: relax regime/session/cooldown/news/position gates.
+# Use with a full SQE profile, e.g. strict_prod_v2:
+#
+#   python -m src.quantbuild.app backtest --config configs/system_mode_edge_discovery.yaml
+#
+extends: strict_prod_v2.yaml
+
+system_mode: EDGE_DISCOVERY

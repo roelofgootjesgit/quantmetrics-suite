@@ -1,0 +1,7 @@
+# Sprint 2 — Edge density curve (stap 1/4): H1-structure gate uit, verder production filters.
+# Zelfde venster + regime-stack als backtest_2026_jan_mar_expansion_ny.yaml
+
+extends: backtest_2026_jan_mar_expansion_ny.yaml
+
+filters:
+  structure_h1_gate: false

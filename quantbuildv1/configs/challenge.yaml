@@ -1,0 +1,213 @@
+# ============================================================
+# CHALLENGE MODE — Ticket Generator
+# ============================================================
+# Core(5) only + pass accelerator
+# NAS100 OFF by default — Core(5) achieves 65.4% pass rate
+# Enable NAS100 manually only if challenge clock running behind
+#
+# Expected: ~178 trades/yr, 65.4% FTMO pass rate
+# ============================================================
+
+mode: "challenge"
+description: "FTMO Challenge — pass speed optimized, controlled aggression"
+
+# ── Data ─────────────────────────────────────────────────────
+data:
+  base_path: "data/market_cache"
+  source: "dukascopy"
+  timeframes: ["15m", "1h"]
+
+# ── Strategy ─────────────────────────────────────────────────
+strategy:
+  liquidity_sweep:
+    lookback_candles: 20
+    sweep_threshold_pct: 0.2
+    reversal_candles: 3
+  displacement:
+    min_body_pct: 70
+    min_candles: 3
+    min_move_pct: 1.5
+  fair_value_gaps:
+    min_gap_pct: 0.5
+    validity_candles: 50
+  market_structure_shift:
+    swing_lookback: 5
+    break_threshold_pct: 0.2
+  structure_context:
+    lookback: 30
+    pivot_bars: 2
+  order_blocks:
+    min_candles: 2
+    min_move_pct: 1.5
+    validity_candles: 40
+  imbalance_zones:
+    min_gap_size: 3.0
+    validity_candles: 50
+  trend_context:
+    modules: ["market_structure_shift", "displacement"]
+    require_all: false
+  liquidity_levels:
+    modules: ["liquidity_sweep", "fair_value_gaps"]
+    require_all: true
+  entry_trigger:
+    module: "displacement"
+  require_structure: true
+  entry_require_sweep_displacement_fvg: true
+  entry_sweep_disp_fvg_lookback_bars: 5
+  structure_use_h1_gate: true
+
+# ── Regime Detection ─────────────────────────────────────────
+regime:
+  atr_period: 14
+  atr_sma_period: 20
+  expansion_threshold: 1.5
+  compression_threshold: 0.7
+  structure_lookback: 30
+  structure_pivot_bars: 2
+
+# ── Risk ─────────────────────────────────────────────────────
+risk:
+  risk_per_trade_pct: 0.75
+  max_daily_loss_r: 3.0
+  max_concurrent_positions: 5
+  equity_kill_switch_pct: 8.0
+
+# ── Execution Guards ─────────────────────────────────────────
+execution_guards:
+  max_spread_pips: 4.0
+  max_slippage_r: 0.15
+  max_open_positions: 5
+
+execution:
+  check_interval_seconds: 60
+  regime_update_seconds: 900
+
+# ── Adaptive Mode ────────────────────────────────────────────
+adaptive_mode:
+  aggressive_dd_max: 1.5
+  aggressive_momentum_window: 5
+  defensive_dd: 3.0
+  lockdown_dd: 7.0
+  defensive_losing_streak: 4
+  lockdown_losing_streak: 6
+  recovery_wins: 3
+
+# ── Pass Accelerator ─────────────────────────────────────────
+pass_accelerator:
+  enabled: true
+  target_pct: 10.0
+  max_daily_loss_pct: 5.0
+  max_total_dd_pct: 10.0
+  challenge_days: 30
+  attack_until_day: 10
+  secure_at_pct: 7.0
+  coast_at_pct: 9.0
+  dd_danger_zone_pct: 3.0
+
+# ── Portfolio Heat + Cluster Risk ────────────────────────────
+portfolio_heat:
+  max_portfolio_heat_pct: 6.0
+  max_instrument_heat_pct: 3.0
+  max_correlated_exposure: 2
+  max_same_direction: 4
+
+clusters:
+  risk_on_fx:
+    instruments: ["GBPUSD", "NZDUSD"]
+    max_concurrent: 2
+    max_heat_pct: 1.5
+    sizing_penalty: 0.7
+  usd_bloc:
+    instruments: ["USDJPY", "USDCHF"]
+    max_concurrent: 2
+    max_heat_pct: 1.5
+    sizing_penalty: 0.8
+
+instrument_priority:
+  XAUUSD: 100
+  GBPUSD: 80
+  NZDUSD: 70
+  USDJPY: 60
+  USDCHF: 50
+  NAS100: 30
+
+# ── Instruments ──────────────────────────────────────────────
+instruments:
+  XAUUSD:
+    enabled: true
+    engine: "sqe_trend"
+    regimes: { trend: true, expansion: true, compression: false }
+    expansion_sessions: ["New York", "Overlap"]
+    expansion_min_hour_utc: 10
+    risk_multiplier: 1.0
+    max_spread_pips: 4.0
+    max_concurrent: 2
+
+  GBPUSD:
+    enabled: true
+    engine: "sqe_trend"
+    regimes: { trend: true, expansion: false, compression: false }
+    risk_multiplier: 1.0
+    max_spread_pips: 2.0
+    max_concurrent: 2
+
+  USDJPY:
+    enabled: true
+    engine: "sqe_trend"
+    regimes: { trend: true, expansion: true, compression: false }
+    risk_multiplier: 1.0
+    max_spread_pips: 1.5
+    max_concurrent: 2
+
+  USDCHF:
+    enabled: true
+    engine: "sqe_trend"
+    regimes: { trend: true, expansion: true, compression: false }
+    risk_multiplier: 1.0
+    max_spread_pips: 1.5
+    max_concurrent: 2
+
+  NZDUSD:
+    enabled: true
+    engine: "sqe_trend"
+    regimes: { trend: true, expansion: false, compression: false }
+    risk_multiplier: 1.0
+    max_spread_pips: 2.0
+    max_concurrent: 2
+
+  NAS100:
+    enabled: false
+    engine: "sqe_trend"
+    book: "throughput"
+    regimes: { trend: true, expansion: false, compression: false }
+    risk_multiplier: 0.5
+    max_spread_pips: 3.0
+    max_concurrent: 1
+    max_trades_per_day: 2
+    max_instrument_heat_pct: 1.5
+    _notes: "OFF by default. Enable only if challenge is behind schedule after day 15."
+
+  EURUSD:
+    enabled: false
+
+# ── Kill Switches ────────────────────────────────────────────
+kill_switches:
+  max_daily_loss_pct: 2.5
+  max_total_dd_pct: 8.0
+  challenge_reset_dd_pct: 8.0
+
+# ── News ─────────────────────────────────────────────────────
+news:
+  enabled: true
+  gate_enabled: true
+  block_minutes_before: 30
+  block_minutes_after: 15
+
+# ── Alerts ───────────────────────────────────────────────────
+alerts:
+  telegram:
+    enabled: true
+    on_trade: true
+    on_kill_switch: true
+    on_phase_change: true
+    on_daily_summary: true

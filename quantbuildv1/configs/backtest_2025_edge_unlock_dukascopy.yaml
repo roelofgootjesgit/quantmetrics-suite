@@ -1,0 +1,9 @@
+# Zelfde venster en Edge Unlock-instellingen als backtest_2025_edge_unlock.yaml;
+# OHLC uit Dukascopy-cache i.p.v. default market_cache.
+#
+#   python -m src.quantbuild.app --config configs/backtest_2025_edge_unlock_dukascopy.yaml backtest
+
+extends: backtest_2025_edge_unlock.yaml
+
+data:
+  base_path: data/market_cache_dukascopy

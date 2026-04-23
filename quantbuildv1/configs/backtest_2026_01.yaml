@@ -1,0 +1,22 @@
+# Eerste maand 2026 (UTC) — discovery-profiel + QuantLog consolidated JSONL.
+# Cache: minstens ~120 dagen 15m/1h (bijv. scripts/fetch_dukascopy_xauusd.py --days 120 --tf 15m 1h).
+#
+#   python -m src.quantbuild.app --config configs/backtest_2026_01.yaml backtest
+#
+# Quant OS:
+#   cd quantmetrics_os/orchestrator && python quantmetrics.py backtest -c configs/backtest_2026_01.yaml --analyze
+
+extends: edge_unlock_discovery.yaml
+
+backtest:
+  start_date: "2026-01-01"
+  end_date: "2026-01-31"
+
+risk:
+  equity_kill_switch_pct: 999
+
+quantlog:
+  enabled: true
+  consolidated_run_file: true
+  run_id: bt_2026_01
+  session_id: january_2026

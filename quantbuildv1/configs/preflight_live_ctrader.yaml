@@ -1,0 +1,29 @@
+symbol: XAUUSD
+
+data:
+  source: ctrader
+  base_path: data/source_smoke_live_ctrader
+  timeframes: ["15m", "1h"]
+
+broker:
+  provider: ctrader
+  environment: demo
+  account_id: ""
+  access_token: ""
+  client_id: ""
+  client_secret: ""
+  instrument: XAUUSD
+  mock_mode: false
+
+execution:
+  check_interval_seconds: 10
+  regime_update_seconds: 120
+
+execution_guards:
+  max_spread_pips: 4.0
+  max_slippage_r: 0.15
+  max_open_positions: 3
+
+risk:
+  max_position_pct: 1.0
+  max_daily_loss_r: 3.0
