@@ -2,6 +2,8 @@
 
 [![CI](https://github.com/roelofgootjesgit/QuantMetrics-Suite/actions/workflows/ci.yml/badge.svg)](https://github.com/roelofgootjesgit/QuantMetrics-Suite/actions/workflows/ci.yml)
 
+This repository shows how to evaluate trading systems - not the proprietary strategies themselves.
+
 > We don't claim edge - we build the system that proves it.
 
 QuantMetrics Suite is a modular Python-based trading infrastructure for evaluating strategy decisions under controlled, reproducible conditions.
@@ -71,3 +73,10 @@ decision events -> immutable logging -> analytics -> verdict.
 
 The system does not optimize strategies blindly.
 It enforces controlled iteration and evidence-based promotion.
+
+## License and usage
+
+This repository is open-source under the MIT License.
+
+The code demonstrates infrastructure and evaluation design principles.
+It does not include proprietary research configurations, datasets, or production deployment setups.
