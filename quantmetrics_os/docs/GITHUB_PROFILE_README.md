@@ -11,9 +11,9 @@ Python developer focused on **systematic, multi-asset trading infrastructure**: 
 | --- | --- |
 | `quantmetrics_os` | [roelofgootjesgit/quantmetrics_os](https://github.com/roelofgootjesgit/quantmetrics_os) |
 | `quantbuild` | [roelofgootjesgit/QuantBuild-Signal-Engine](https://github.com/roelofgootjesgit/QuantBuild-Signal-Engine) |
-| `quantbridge` | [roelofgootjesgit/quantbridgev1](https://github.com/roelofgootjesgit/quantbridgev1) |
-| `quantlog` | [roelofgootjesgit/quantlogv1](https://github.com/roelofgootjesgit/quantlogv1) |
-| `quantanalytics` | [roelofgootjesgit/quantanalyticsv1](https://github.com/roelofgootjesgit/quantanalyticsv1) |
+| `quantbridge` | canonical module: `quantbridge` |
+| `quantlog` | canonical module: `quantlog` |
+| `quantanalytics` | canonical module: `quantanalytics` |
 
 - **Narrative + diagram + equity:** [`quantmetrics_os` README](https://github.com/roelofgootjesgit/quantmetrics_os#readme) and [SHOWCASE.md](https://github.com/roelofgootjesgit/quantmetrics_os/blob/main/docs/SHOWCASE.md).
 

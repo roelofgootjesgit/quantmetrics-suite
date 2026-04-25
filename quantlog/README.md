@@ -1,5 +1,11 @@
 # quantlog
 
+## SYSTEM IDENTITY
+
+This module is part of the QuantMetrics system.
+Canonical name: `quantlog`
+Role: Event Backbone
+
 Observability and truth layer for the Quant stack (`quantbuild` → `quantbridge` → **`quantlog`** JSONL):
 
 - **`quantbuild`** generates strategy/risk decisions.
@@ -203,9 +209,9 @@ Local CI gates:
 | --- | --- |
 | `quantmetrics_os` | [roelofgootjesgit/quantmetrics_os](https://github.com/roelofgootjesgit/quantmetrics_os) |
 | `quantbuild` | [roelofgootjesgit/QuantBuild-Signal-Engine](https://github.com/roelofgootjesgit/QuantBuild-Signal-Engine) |
-| `quantbridge` | [roelofgootjesgit/quantbridgev1](https://github.com/roelofgootjesgit/quantbridgev1) |
-| `quantlog` (**this**) | [roelofgootjesgit/quantlogv1](https://github.com/roelofgootjesgit/quantlogv1) |
-| `quantanalytics` | [roelofgootjesgit/quantanalyticsv1](https://github.com/roelofgootjesgit/quantanalyticsv1) |
+| `quantbridge` | canonical module: `quantbridge` |
+| `quantlog` (**this**) | canonical module: `quantlog` |
+| `quantanalytics` | canonical module: `quantanalytics` |
 
 ## Documentation
 

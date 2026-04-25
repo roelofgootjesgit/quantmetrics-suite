@@ -68,9 +68,9 @@ Details and sprint alignment: [Roadmap_os.md](Roadmap_os.md), [QUANTMETRICS_SPRI
 - **GitHub (repo slugs):**
   - [`quantmetrics_os`](https://github.com/roelofgootjesgit/quantmetrics_os)
   - [`quantbuild`](https://github.com/roelofgootjesgit/QuantBuild-Signal-Engine)
-  - [`quantbridge`](https://github.com/roelofgootjesgit/quantbridgev1)
-  - [`quantlog`](https://github.com/roelofgootjesgit/quantlogv1)
-  - [`quantanalytics`](https://github.com/roelofgootjesgit/quantanalyticsv1)
+  - `quantbridge` (canonical module name)
+  - `quantlog` (canonical module name)
+  - `quantanalytics` (canonical module name)
 
 ---
 

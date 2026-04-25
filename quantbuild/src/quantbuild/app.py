@@ -7,6 +7,7 @@ from pathlib import Path
 
 from src.quantbuild.config import load_config, quantbuild_repo_root
 from src.quantbuild.logging_config import setup_logging
+from src.quantbuild.suite_layout import SuiteLayoutError, validate_suite_layout
 
 
 def cmd_backtest(args: argparse.Namespace) -> int:
@@ -237,6 +238,11 @@ def main() -> int:
     sn.set_defaults(func=cmd_suite_notify)
 
     args = parser.parse_args()
+    try:
+        validate_suite_layout()
+    except SuiteLayoutError as exc:
+        print(f"Suite preflight failed: {exc}", file=sys.stderr)
+        return 2
     if getattr(args, "command", None) == "live" and getattr(args, "real", False):
         args.dry_run = False
     return args.func(args)

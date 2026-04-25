@@ -1,5 +1,11 @@
 # quantbuild
 
+## SYSTEM IDENTITY
+
+This module is part of the QuantMetrics system.
+Canonical name: `quantbuild`
+Role: Decision Engine
+
 Strategy and risk engine for the Quant suite (siblings: **`quantmetrics_os`**, **`quantbridge`**, **`quantlog`**, **`quantanalytics`**).
 
 **quantbuild** is responsible for one thing: processing market data and producing 
@@ -177,6 +183,33 @@ documented in `scripts/validation_protocol.py`.
 
 ---
 
+## Suite path policy (required)
+
+QuantBuild now enforces one canonical layout in production mode:
+
+- Canonical root: `.../quantmetrics-suite`
+- Required sibling repos: `quantbuild`, `quantbridge`, `quantlog`, `quantanalytics`, `quantmetrics_os`
+- No legacy local path fallbacks (`*v1` folders) for runtime wiring
+- Preflight is fail-fast at app startup when suite root/env is inconsistent
+
+Expected environment values in this layout:
+
+- `QUANTMETRICS_OS_ROOT=.../quantmetrics-suite/quantmetrics_os`
+- `QUANTLOG_REPO_PATH=.../quantmetrics-suite/quantlog`
+- `QUANTBRIDGE_SRC_PATH=.../quantmetrics-suite/quantbridge/src`
+- `QUANTMETRICS_ANALYTICS_OUTPUT_DIR=.../quantmetrics-suite/quantanalytics/output_rapport`
+
+Quick local check:
+
+- `python scripts/check_suite_layout.py`
+
+CI also enforces this policy:
+
+- `scripts/check_suite_layout.py` (path consistency preflight)
+- `scripts/check_no_legacy_v1_paths.py` (blocks legacy `*v1` local path references)
+
+---
+
 ## Quick start
 python -m venv .venv
 .venv\Scripts\activate
@@ -218,6 +251,6 @@ When **`quantlog.enabled`** is on (default) and **`quantlog.auto_analytics`** is
 |-----------|------------|
 | `quantmetrics_os` | [roelofgootjesgit/quantmetrics_os](https://github.com/roelofgootjesgit/quantmetrics_os) |
 | `quantbuild` (**this**) | [roelofgootjesgit/QuantBuild-Signal-Engine](https://github.com/roelofgootjesgit/QuantBuild-Signal-Engine) |
-| `quantbridge` | [roelofgootjesgit/quantbridgev1](https://github.com/roelofgootjesgit/quantbridgev1) |
-| `quantlog` | [roelofgootjesgit/quantlogv1](https://github.com/roelofgootjesgit/quantlogv1) |
-| `quantanalytics` | [roelofgootjesgit/quantanalyticsv1](https://github.com/roelofgootjesgit/quantanalyticsv1) |
+| `quantbridge` | canonical module: `quantbridge` |
+| `quantlog` | canonical module: `quantlog` |
+| `quantanalytics` | canonical module: `quantanalytics` |

@@ -1,5 +1,11 @@
 # quantbridge
 
+## SYSTEM IDENTITY
+
+This module is part of the QuantMetrics system.
+Canonical name: `quantbridge`
+Role: Execution Engine
+
 Broker-agnostic execution infrastructure for trading bots (**Quant suite**: sibling repos `quantmetrics_os`, `quantbuild`, **`quantbridge`**, `quantlog`, `quantanalytics`).
 
 ## Why This Exists
@@ -251,9 +257,9 @@ Expected output:
 | --- | --- |
 | `quantmetrics_os` | [roelofgootjesgit/quantmetrics_os](https://github.com/roelofgootjesgit/quantmetrics_os) |
 | `quantbuild` | [roelofgootjesgit/QuantBuild-Signal-Engine](https://github.com/roelofgootjesgit/QuantBuild-Signal-Engine) |
-| `quantbridge` (**this**) | [roelofgootjesgit/quantbridgev1](https://github.com/roelofgootjesgit/quantbridgev1) |
-| `quantlog` | [roelofgootjesgit/quantlogv1](https://github.com/roelofgootjesgit/quantlogv1) |
-| `quantanalytics` | [roelofgootjesgit/quantanalyticsv1](https://github.com/roelofgootjesgit/quantanalyticsv1) |
+| `quantbridge` (**this**) | canonical module: `quantbridge` |
+| `quantlog` | canonical module: `quantlog` |
+| `quantanalytics` | canonical module: `quantanalytics` |
 
 ## Milestones
 

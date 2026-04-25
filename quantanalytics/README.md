@@ -1,5 +1,11 @@
 # quantanalytics
 
+## SYSTEM IDENTITY
+
+This module is part of the QuantMetrics system.
+Canonical name: `quantanalytics`
+Role: Analysis Engine (read-only on QuantLog JSONL)
+
 Read-only analytics for **JSONL** event files in the same shape as **`quantlog`**: turn a day folder, a single file, or a glob of logs into **text reports** (funnel, no-trade reasons, performance, regime). **By default** each run writes a UTF-8 **`.txt`** under **`quantanalytics/output_rapport/`** (timestamped name): the CLI resolves your checkout by walking up from **`cwd`** until it finds `quantmetrics_analytics` + `pyproject.toml`, or (within a few parent levels) a sibling folder **`quantanalytics/`** — so runs started from a sibling repo in the same workspace still land reports in **`quantanalytics/output_rapport`**. Override with **`QUANTMETRICS_ANALYTICS_OUTPUT_DIR`** (absolute path to the folder) or **`QUANTMETRICS_ANALYTICS_REPO_ROOT`**. Non-editable **`pip install`** without a discoverable clone falls back to **`./output_rapport`** under **`cwd`**. Use **`--stdout`** for console-only output, or **`--output`** / **`-o`** for a single explicit file. This repo is **downstream only** — it does not place orders, call brokers, or write back to your logs.
 
 Data flow: `quantbuild` / `quantbridge` → `quantlog` (JSONL) → **`quantanalytics`** (reports).
@@ -157,9 +163,9 @@ Events are produced upstream and stored as JSONL in **`quantlog`**; contracts li
 | --- | --- |
 | `quantmetrics_os` | [roelofgootjesgit/quantmetrics_os](https://github.com/roelofgootjesgit/quantmetrics_os) |
 | `quantbuild` | [roelofgootjesgit/QuantBuild-Signal-Engine](https://github.com/roelofgootjesgit/QuantBuild-Signal-Engine) |
-| `quantbridge` | [roelofgootjesgit/quantbridgev1](https://github.com/roelofgootjesgit/quantbridgev1) |
-| `quantlog` | [roelofgootjesgit/quantlogv1](https://github.com/roelofgootjesgit/quantlogv1) |
-| `quantanalytics` (**this**) | [roelofgootjesgit/quantanalyticsv1](https://github.com/roelofgootjesgit/quantanalyticsv1) |
+| `quantbridge` | canonical module: `quantbridge` |
+| `quantlog` | canonical module: `quantlog` |
+| `quantanalytics` (**this**) | canonical module: `quantanalytics` |
 
 ---
 

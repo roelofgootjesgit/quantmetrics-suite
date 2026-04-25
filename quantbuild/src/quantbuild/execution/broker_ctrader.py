@@ -23,6 +23,7 @@ import time
 from typing import Dict, List, Optional
 
 from src.quantbuild.execution.broker_oanda import AccountInfo, OandaPosition, OrderResult
+from src.quantbuild.suite_layout import canonical_quantbridge_src_path
 
 logger = logging.getLogger(__name__)
 
@@ -70,13 +71,15 @@ class CTraderBroker:
     def _init_real_bridge(self) -> bool:
         if self._real_bridge is not None:
             return True
-        # Support overriding bridge location on VPS/local.
-        candidate_roots = []
+        candidate_roots: list[Path] = []
         env_path = os.getenv("QUANTBRIDGE_SRC_PATH", "").strip()
         if env_path:
             candidate_roots.append(Path(env_path))
-        # Common sibling checkout: ../quantbridge/src
-        candidate_roots.append(Path(__file__).resolve().parents[4] / "quantbridge" / "src")
+        else:
+            try:
+                candidate_roots.append(canonical_quantbridge_src_path())
+            except Exception:
+                pass
 
         for candidate in candidate_roots:
             try_path = candidate.resolve()
@@ -102,7 +105,10 @@ class CTraderBroker:
             except Exception as e:
                 logger.warning("Failed loading QuantBridge from %s: %s", try_path, e)
                 continue
-        logger.error("QuantBridge OpenAPI module not found. Set QUANTBRIDGE_SRC_PATH to quantbridge/src")
+        logger.error(
+            "QuantBridge OpenAPI module not found. "
+            "Set QUANTBRIDGE_SRC_PATH to <suite_root>/quantbridge/src."
+        )
         return False
 
     def _hydrate_credentials_from_dotenv(self, bridge_repo_root: Path) -> None:

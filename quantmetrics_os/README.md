@@ -1,5 +1,11 @@
 # quantmetrics_os
 
+## SYSTEM IDENTITY
+
+This module is part of the QuantMetrics system.
+Canonical name: `quantmetrics_os` (operational alias: QuantOS)
+Role: Orchestration Layer
+
 **Orchestrator for the Quant suite:** sibling checkouts **`quantbuild`** (signals/risk), **`quantbridge`** (execution), **`quantlog`** (JSONL observability), **`quantanalytics`** (read-only JSONL analytics).
 
 This repository is the **front door**: one place to resolve paths, environment, and subprocess entrypoints so research, execution, and observability run as a single system — not three disconnected scripts. *(Older docs may say “QuantMetrics OS”; same repo.)*
@@ -14,9 +20,9 @@ This repository is the **front door**: one place to resolve paths, environment, 
 | --- | --- |
 | `quantmetrics_os` (**this**) | [roelofgootjesgit/quantmetrics_os](https://github.com/roelofgootjesgit/quantmetrics_os) |
 | `quantbuild` | [roelofgootjesgit/QuantBuild-Signal-Engine](https://github.com/roelofgootjesgit/QuantBuild-Signal-Engine) |
-| `quantbridge` | [roelofgootjesgit/quantbridgev1](https://github.com/roelofgootjesgit/quantbridgev1) |
-| `quantlog` | [roelofgootjesgit/quantlogv1](https://github.com/roelofgootjesgit/quantlogv1) |
-| `quantanalytics` | [roelofgootjesgit/quantanalyticsv1](https://github.com/roelofgootjesgit/quantanalyticsv1) |
+| `quantbridge` | canonical module: `quantbridge` |
+| `quantlog` | canonical module: `quantlog` |
+| `quantanalytics` | canonical module: `quantanalytics` |
 
 *Fork under another user? Update links or use `GITHUB_USER` in [`scripts/clone_quant_suite.sh`](scripts/clone_quant_suite.sh).*
 

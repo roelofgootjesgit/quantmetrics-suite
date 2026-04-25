@@ -24,6 +24,18 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Suite path preflight
+        run: |
+          mkdir -p ../quantbridge/src ../quantlog/src/quantlog ../quantanalytics/output_rapport ../quantmetrics_os
+          export QUANTMETRICS_OS_ROOT="${GITHUB_WORKSPACE}/../quantmetrics_os"
+          export QUANTLOG_REPO_PATH="${GITHUB_WORKSPACE}/../quantlog"
+          export QUANTBRIDGE_SRC_PATH="${GITHUB_WORKSPACE}/../quantbridge/src"
+          export QUANTMETRICS_ANALYTICS_OUTPUT_DIR="${GITHUB_WORKSPACE}/../quantanalytics/output_rapport"
+          python scripts/check_suite_layout.py
+
+      - name: Block legacy v1 paths
+        run: python scripts/check_no_legacy_v1_paths.py
+
       - name: Run tests
         run: python -m pytest tests/ -q --tb=short
 

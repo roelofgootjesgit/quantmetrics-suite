@@ -5,6 +5,8 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
+from src.quantbuild.suite_layout import canonical_quantlog_repo_path
+
 
 def quantbuild_project_root() -> Path:
     """Root of quantbuild (contains ``src/``, ``tests/``, ``configs/``)."""
@@ -19,14 +21,13 @@ def resolve_quantlog_repo_path() -> Path | None:
             continue
         p = Path(raw)
         if (p / "src" / "quantlog").is_dir():
-            return p
-    candidates = [
-        Path("/opt/quantbuild/quantlog"),
-        quantbuild_project_root().parent / "quantlog",
-    ]
-    for p in candidates:
-        if (p / "src" / "quantlog").is_dir():
-            return p
+            return p.resolve()
+    try:
+        p = canonical_quantlog_repo_path()
+    except Exception:
+        return None
+    if (p / "src" / "quantlog").is_dir():
+        return p
     return None
 
 
