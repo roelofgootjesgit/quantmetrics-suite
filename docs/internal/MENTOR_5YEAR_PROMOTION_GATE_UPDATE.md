@@ -56,4 +56,3 @@ Historical market cache was expanded (Dukascopy fetch) and the run was re-execut
 - expectancy remains positive (`0.2931`)
 - profit factor remains above threshold (`1.5151`)
 - protective guard detected (`true`)
-

@@ -109,4 +109,3 @@ Confirmed by implementation:
 ## Recommendation
 
 Proceed with additional run collection and guard-level sample expansion before any promotion decision.
-
