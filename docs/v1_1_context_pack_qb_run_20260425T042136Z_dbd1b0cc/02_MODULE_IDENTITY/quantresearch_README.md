@@ -1,21 +1,8 @@
-# quantresearch
+# QuantResearch
 
-## SYSTEM IDENTITY
+**Hypothesis-driven research layer** on top of your quant stack: register experiments, compare baseline vs variant runs, capture decisions in Markdown and JSON, and keep a living index of confirmed edge and rejected hypotheses.
 
-This module is part of the QuantMetrics suite.
-- Canonical name: `quantresearch`
-- Role: Research and Decision Layer
-
-`quantresearch` captures hypothesis-driven strategy research: what was tested, what was learned, and what should change next.
-
----
-
-## Core responsibility
-
-- Register experiments and link baseline/variant runs.
-- Compare run metrics and generate decision-oriented artifacts.
-- Store validated edges and rejected hypotheses as knowledge files.
-- Keep a living research index for portfolio-level strategy learning.
+QuantResearch answers: *what did we test, what did we learn, what do we do next* — not only *what happened* (that stays with QuantAnalytics / QuantLog).
 
 ---
 
@@ -53,7 +40,7 @@ Design rules baked in: **one hypothesis per experiment**, **same data window** f
 
 ---
 
-## Install
+## Installation
 
 From the repository root:
 
@@ -142,18 +129,6 @@ docs/                   # Workflow guide + generated RESEARCH_INDEX.md
 ```bash
 py -3 -m pytest -q
 ```
-
----
-
-## Suite repositories (GitHub)
-
-| Repo | Remote |
-| --- | --- |
-| `quantmetrics_os` | [roelofgootjesgit/quantmetrics_os](https://github.com/roelofgootjesgit/quantmetrics_os) |
-| `quantbuild` | [roelofgootjesgit/QuantBuild-Signal-Engine](https://github.com/roelofgootjesgit/QuantBuild-Signal-Engine) |
-| `quantbridge` | canonical module: `quantbridge` |
-| `quantlog` | canonical module: `quantlog` |
-| `quantresearch` (**this**) | [QuantResearch-Decision-Engine](https://github.com/roelofgootjesgit/QuantResearch-Decision-Engine) |
 
 ---
 

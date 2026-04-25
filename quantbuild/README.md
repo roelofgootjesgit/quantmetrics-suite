@@ -2,153 +2,30 @@
 
 ## SYSTEM IDENTITY
 
-This module is part of the QuantMetrics system.
-Canonical name: `quantbuild`
-Role: Decision Engine
+This module is part of the QuantMetrics suite.
+- Canonical name: `quantbuild`
+- Role: Decision Engine
 
-Strategy and risk engine for the Quant suite (siblings: **`quantmetrics_os`**, **`quantbridge`**, **`quantlog`**, **`quantanalytics`**).
-
-**quantbuild** is responsible for one thing: processing market data and producing 
-trade decisions. It does not place orders, does not store events, and does not 
-manage broker connections. Those concerns live in **`quantbridge`** and **`quantlog`**.
-
-**84 source files · 99 tests · 8 test files**
+`quantbuild` processes market data into trade decisions. It owns strategy and risk logic, and delegates execution to `quantbridge` and event storage to `quantlog`.
 
 ---
 
-## Design principle
+## Core responsibility
 
-Strategy and risk are separated by design. Signal generation, regime 
-classification, and portfolio heat calculation are independent modules. 
-Each can be tested, replaced, or extended without touching the others.
+- Generate and filter signals through modular strategy components.
+- Apply risk logic (portfolio heat, adaptive mode, trade constraints).
+- Run backtests and dry/live decision loops without broker API coupling.
+- Emit decision events for downstream observability and analytics.
 
-Execution is a boundary — **quantbuild** produces decisions, **quantbridge** 
-acts on them. No broker API calls exist anywhere in this codebase.
-
----
-
-## Modularity
-
-**quantbuild** is built around a single interface: `IStrategyModule`. Every 
-component that produces or filters a signal implements this interface. 
-Swapping a strategy means swapping a module — nothing else changes.
-IStrategyModule
-│
-├── RegimeDetector        # classify market state
-├── SQEEntryEngine        # 3-pillar ICT signal model (default)
-├── NewsGate              # permission filter
-├── PortfolioHeatEngine   # risk sizing
-└── AdaptiveModeLayer     # equity-curve scaling
-
-To run a different strategy:
-- Implement `IStrategyModule`
-- Register it in the YAML config
-- The engine, risk layer, and execution boundary stay unchanged
-
-Instrument profiles, regime gates, and capital constraints are all 
-YAML-configurable — no code changes required to add a new market 
-or adjust operating parameters.
+Design boundary: `quantbuild` decides, `quantbridge` executes.
 
 ---
 
 ## Architecture
-Market Data (Dukascopy / Oanda / cTrader)
-│
-┌─────────▼──────────┐
-│   Indicator Layer   │  ATR, EMA, Swing Detection (centralized)
-└─────────┬──────────┘
-│
-┌─────────▼──────────┐
-│   Regime Detector   │  TREND / EXPANSION / COMPRESSION
-└─────────┬──────────┘
-│
-┌─────────▼──────────┐
-│   SQE Entry Engine  │  3-pillar signal model
-│   (strategy_modules)│  MSS + Sweep + Displacement + H1 gate
-└─────────┬──────────┘
-│
-┌─────────▼──────────┐
-│    News Gate        │  Permission filter — blocks or boosts signals
-│    (10 modules)     │  RSS → normalize → classify → sentiment → gate
-└─────────┬──────────┘
-│
-┌─────────▼──────────┐
-│  Instrument Profiles│  Per-market regime gates and constraints
-└─────────┬──────────┘
-│
-┌─────────▼──────────┐
-│  Portfolio Heat     │  Correlation-weighted risk (not naive position count)
-│  Engine             │  effective_heat = sqrt(Σ w_i * w_j * ρ_ij)
-└─────────┬──────────┘
-│
-┌─────────▼──────────┐
-│  Adaptive Mode      │  Equity-curve scaling: AGGRESSIVE / BASE /
-│  Layer              │  DEFENSIVE / LOCKDOWN
-└─────────┬──────────┘
-│
-┌─────────▼──────────┐
-│  Execution boundary │  Trade decisions passed to quantbridge
-│  (no broker calls)  │  Paper shadow runs in parallel for validation
-└────────────────────┘
 
----
-
-## Module breakdown
-
-### Indicators (`indicators/`)
-Centralized indicator library: ATR, EMA, SMA, swing detection. All strategy 
-modules consume from here — no duplicated calculations across the codebase.
-
-### Regime Detector (`strategy_modules/`)
-Classifies market state per bar from ATR ratio and price structure:
-
-| Regime | Condition | Trading rule |
-|--------|-----------|--------------|
-| TREND | ATR ratio normal, directional structure | Full strategy active |
-| EXPANSION | ATR ratio > 1.5x | Active NY/Overlap only (XAUUSD, USDJPY). Disabled for GBPUSD |
-| COMPRESSION | ATR ratio < 0.7x | Blocked — no edge |
-
-### SQE Entry Engine (`strategies/`)
-Three-pillar signal model. All three must be present for a signal to emit:
-1. Market Structure Shift + Displacement (directional bias)
-2. Liquidity Sweep + Fair Value Gap (institutional order flow)
-3. Displacement confirmation (momentum validation)
-
-Additional gate: H1 structure context. HH/HL required for longs, LH/LL for shorts.
-
-### News Gate (`news/`)
-10-module pipeline operating as a permission filter, not a signal source:
-RSS (Kitco, Reuters, Bloomberg, Fed)
-→ normalize + dedup
-→ relevance filter (70% semantic / 30% time decay)
-→ event classifier (type, speed, niche)
-→ sentiment engine (rule-based + GPT-4o-mini hybrid)
-→ gate (block / boost / suppress)
-→ counter-news detector (invalidates thesis on open positions)
-
-### Portfolio Heat Engine (`execution/`)
-Replaces naive position counting with portfolio variance:
-effective_heat = sqrt(Σᵢ Σⱼ wᵢ * wⱼ * ρᵢⱼ)
-For uncorrelated instruments (XAUUSD / GBPUSD / USDJPY), effective heat 
-is materially lower than naive heat — real diversification, not assumed.
-
-### Adaptive Mode Layer (`execution/`)
-Four-state equity-curve risk scaler:
-
-| Mode | Multiplier | Trigger |
-|------|-----------|---------|
-| AGGRESSIVE | 1.3x | DD < 1%, positive momentum |
-| BASE | 1.0x | Normal |
-| DEFENSIVE | 0.6x | DD > 3% or 4+ consecutive losses |
-| LOCKDOWN | 0.3x | DD > 5% or 6+ consecutive losses |
-
-Recovery requires consecutive wins to upgrade. Capital preservation optimizer, 
-not a return maximizer.
-
-### Paper Shadow (`execution/`)
-Dual-track evaluator running adaptive and static allocators in parallel on 
-every live signal. Logs missed winners, avoided losers, and net block value 
-for post-hoc validation before real capital deployment.
+```text
+Market data -> indicators -> regime -> strategy -> news gate -> risk engines -> decision output
+```
 
 ---
 
@@ -172,6 +49,25 @@ reports/              JSON output from backtests and validation
 
 ---
 
+## Suite path policy (required)
+
+Production layout expects one canonical suite root with sibling repos:
+`quantbuild`, `quantbridge`, `quantlog`, `quantanalytics`, and `quantmetrics_os`.
+
+Environment values used by this layout:
+- `QUANTMETRICS_OS_ROOT`
+- `QUANTLOG_REPO_PATH`
+- `QUANTBRIDGE_SRC_PATH`
+- `QUANTMETRICS_ANALYTICS_OUTPUT_DIR`
+
+Quick check:
+
+```bash
+python scripts/check_suite_layout.py
+```
+
+---
+
 ## Testing
 
 99 tests across 8 files covering: backtest engine, ICT modules, indicators, 
@@ -180,33 +76,6 @@ pytest tests/ -v
 
 Three-test validation protocol (walk-forward, Monte Carlo, frozen-rules) 
 documented in `scripts/validation_protocol.py`.
-
----
-
-## Suite path policy (required)
-
-QuantBuild now enforces one canonical layout in production mode:
-
-- Canonical root: `.../quantmetrics-suite`
-- Required sibling repos: `quantbuild`, `quantbridge`, `quantlog`, `quantanalytics`, `quantmetrics_os`
-- No legacy local path fallbacks (`*v1` folders) for runtime wiring
-- Preflight is fail-fast at app startup when suite root/env is inconsistent
-
-Expected environment values in this layout:
-
-- `QUANTMETRICS_OS_ROOT=.../quantmetrics-suite/quantmetrics_os`
-- `QUANTLOG_REPO_PATH=.../quantmetrics-suite/quantlog`
-- `QUANTBRIDGE_SRC_PATH=.../quantmetrics-suite/quantbridge/src`
-- `QUANTMETRICS_ANALYTICS_OUTPUT_DIR=.../quantmetrics-suite/quantanalytics/output_rapport`
-
-Quick local check:
-
-- `python scripts/check_suite_layout.py`
-
-CI also enforces this policy:
-
-- `scripts/check_suite_layout.py` (path consistency preflight)
-- `scripts/check_no_legacy_v1_paths.py` (blocks legacy `*v1` local path references)
 
 ---
 
@@ -227,31 +96,23 @@ See `docs/CREDENTIALS_AND_ENVIRONMENT.md` for full environment setup.
 
 ---
 
-## Market data routing
+## Notes
 
-```yaml
-data:
-  source: auto   # auto | ctrader | dukascopy | yfinance
-```
-
-`auto` tries cTrader → Dukascopy → yfinance. Execution provider and 
-data source are independent — configurable separately per YAML.
+- `data.source: auto` tries cTrader -> Dukascopy -> yfinance.
+- With `quantlog.auto_analytics: true`, finished backtests can auto-run `quantanalytics`.
+- With `artifacts.enabled: true`, post-backtest artifacts are copied to `quantmetrics_os/runs/...`.
 
 ---
 
-## QuantAnalytics after backtest
+## Documentation
 
-When **`quantlog.enabled`** is on (default) and **`quantlog.auto_analytics`** is **true** (default in `configs/default.yaml`), each finished **backtest** runs **`quantmetrics_analytics.cli.run_analysis`** on your QuantLog tree (`quantlog.base_path`). Unless you already set **`QUANTMETRICS_ANALYTICS_OUTPUT_DIR`**, QuantBuild passes **`QUANTMETRICS_ANALYTICS_OUTPUT_DIR`** pointing at **``../quantanalytics/output_rapport/``** (direct sibling of **`quantbuild`** only — same parent directory). Deeper monorepos: set the env var yourself. Set **`QUANTMETRICS_ANALYTICS_AUTO=0`** or **`quantlog.auto_analytics: false`** to skip; pytest sets **`QUANTMETRICS_ANALYTICS_AUTO=0`** automatically.
-
----
-
-## QuantOS run artifacts (optional)
-
-With **`artifacts.enabled: true`** in config, post-backtest collection copies QuantLog and config material into **`quantmetrics_os/runs/<experiment>/<role>/`**. There are two YAML snapshots: **`config_snapshot.yaml`** (copy of your **`--config`** file, often an `extends` wrapper) and **`resolved_config.yaml`** (full merged runtime config used by the engine, secrets redacted). See **`../quantmetrics_os/docs/RUN_ARTIFACT_STRATEGY.md`**.
+- `docs/CREDENTIALS_AND_ENVIRONMENT.md`
+- `scripts/validation_protocol.py`
+- `../quantmetrics_os/docs/RUN_ARTIFACT_STRATEGY.md`
 
 ---
 
-## Suite
+## Suite repositories (GitHub)
 
 | Repo | GitHub |
 |-----------|------------|

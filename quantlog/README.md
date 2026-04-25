@@ -2,18 +2,15 @@
 
 ## SYSTEM IDENTITY
 
-This module is part of the QuantMetrics system.
-Canonical name: `quantlog`
-Role: Event Backbone
+This module is part of the QuantMetrics suite.
+- Canonical name: `quantlog`
+- Role: Event Backbone
 
-Observability and truth layer for the Quant stack (`quantbuild` → `quantbridge` → **`quantlog`** JSONL):
+`quantlog` is the observability truth layer for the suite: append-only JSONL events, replay, validation, and quality scoring.
 
-- **`quantbuild`** generates strategy/risk decisions.
-- **`quantbridge`** handles broker and execution lifecycle.
-- **`quantlog`** (this repo) stores canonical events, replays traces, validates contracts, and reports run quality signals.
-- **`quantanalytics`** reads the same JSONL for downstream reports (funnel, no-trade reasons, performance slices).
+---
 
-## What this repo does
+## Core responsibility
 
 - Canonical event envelope across systems.
 - Append-only JSONL event store.
@@ -22,7 +19,11 @@ Observability and truth layer for the Quant stack (`quantbuild` → `quantbridge
 - Daily metrics summary.
 - Ingest health checks with `audit_gap_detected` support.
 
-This repo is intentionally scoped as an event spine, not a full BI platform.
+Data flow: `quantbuild` / `quantbridge` -> `quantlog` -> `quantanalytics`.
+
+This repository is intentionally an event spine, not a BI platform.
+
+---
 
 ## Core contracts
 
@@ -34,6 +35,8 @@ This repo is intentionally scoped as an event spine, not a full BI platform.
 - **Replay ordering**: `timestamp_utc` -> `source_seq` -> `ingested_at_utc`
 
 See [docs/EVENT_SCHEMA.md](docs/EVENT_SCHEMA.md) for full schema and examples. **Index:** [docs/README.md](docs/README.md).
+
+---
 
 ## Repository layout
 
@@ -53,6 +56,8 @@ quantlog/
 └── docs/             all Markdown documentation (index: docs/README.md)
 ```
 
+---
+
 ## Quickstart (Windows PowerShell)
 
 ```powershell
@@ -61,6 +66,8 @@ python -m venv .venv
 .venv\Scripts\activate
 python -m pip install -e .
 ```
+
+---
 
 ## CLI commands
 
@@ -150,6 +157,8 @@ python -m quantlog.cli export-v1-schema
 
 `summarize-day` and `score-run` include `count_unique_run_ids`, `count_unique_session_ids`, and `count_unique_trace_ids` (distinct non-empty envelope values) to spot merged folders or multi-run days.
 
+---
+
 ## Build and test workflows
 
 Unit tests:
@@ -197,11 +206,7 @@ Local CI gates:
 .\scripts\ci_smoke.ps1
 ```
 
-## GitHub CI
-
-- Workflow: `.github/workflows/ci.yml`
-- Runs on push and pull request
-- Executes the same smoke gates as local CI script
+---
 
 ## Suite repositories (GitHub)
 
@@ -212,6 +217,8 @@ Local CI gates:
 | `quantbridge` | canonical module: `quantbridge` |
 | `quantlog` (**this**) | canonical module: `quantlog` |
 | `quantanalytics` | canonical module: `quantanalytics` |
+
+---
 
 ## Documentation
 

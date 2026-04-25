@@ -91,6 +91,7 @@ cd quantbuild
 - Root `README.md`: architecture intent and module boundaries
 - Module `README.md` files: setup, operations, testing, and conventions
 - Module `docs/` directories: deep implementation notes
+- **Run bundles (`quantmetrics_os/runs/`)** — [Run artifact strategy](../quantmetrics_os/docs/RUN_ARTIFACT_STRATEGY.md): `config_snapshot.yaml` (CLI entry file) vs **`resolved_config.yaml`** (merged effective strategy parameters for diffs and improvement loops)
 
 ## Migration note
 

@@ -1,0 +1,176 @@
+{
+  "generated_at_utc": "2026-04-25T07:01:46.504269Z",
+  "version": "v0",
+  "mode": "dry_run",
+  "actions_performed": [],
+  "runs_scanned": 15,
+  "unknown_status_runs": 15,
+  "total_bytes": 12094001,
+  "runs": [
+    {
+      "experiment": "EXP-2021-2025-session-relax-watchlist-v1",
+      "role": "b0_baseline",
+      "path": "runs/EXP-2021-2025-session-relax-watchlist-v1/b0_baseline",
+      "bytes_total": 955515,
+      "status": "unknown",
+      "status_source": "inferred_missing_status",
+      "run_id": "qb_run_20260425T055434Z_78f6ef7c",
+      "delete_allowed": false,
+      "notes": "missing status.json; manual classification required"
+    },
+    {
+      "experiment": "EXP-2021-2025-session-relax-watchlist-v1",
+      "role": "b1_london_only_relaxed",
+      "path": "runs/EXP-2021-2025-session-relax-watchlist-v1/b1_london_only_relaxed",
+      "bytes_total": 956101,
+      "status": "unknown",
+      "status_source": "inferred_missing_status",
+      "run_id": "qb_run_20260425T055454Z_3f78ff9c",
+      "delete_allowed": false,
+      "notes": "missing status.json; manual classification required"
+    },
+    {
+      "experiment": "EXP-2021-2025-session-relax-watchlist-v1",
+      "role": "b2_ny_only_relaxed",
+      "path": "runs/EXP-2021-2025-session-relax-watchlist-v1/b2_ny_only_relaxed",
+      "bytes_total": 943729,
+      "status": "unknown",
+      "status_source": "inferred_missing_status",
+      "run_id": "qb_run_20260425T055514Z_7a7f7a73",
+      "delete_allowed": false,
+      "notes": "missing status.json; manual classification required"
+    },
+    {
+      "experiment": "EXP-2021-2025-session-relax-watchlist-v1",
+      "role": "b3_overlap_relaxed",
+      "path": "runs/EXP-2021-2025-session-relax-watchlist-v1/b3_overlap_relaxed",
+      "bytes_total": 956054,
+      "status": "unknown",
+      "status_source": "inferred_missing_status",
+      "run_id": "qb_run_20260425T055536Z_36979f52",
+      "delete_allowed": false,
+      "notes": "missing status.json; manual classification required"
+    },
+    {
+      "experiment": "EXP-2021-2025-session-relax-watchlist-v1",
+      "role": "b4_full_session_relaxed",
+      "path": "runs/EXP-2021-2025-session-relax-watchlist-v1/b4_full_session_relaxed",
+      "bytes_total": 759211,
+      "status": "unknown",
+      "status_source": "inferred_missing_status",
+      "run_id": "qb_run_20260425T055556Z_45ea944c",
+      "delete_allowed": false,
+      "notes": "missing status.json; manual classification required"
+    },
+    {
+      "experiment": "EXP-2021-2025-throughput-discovery-v1",
+      "role": "_generated_configs",
+      "path": "runs/EXP-2021-2025-throughput-discovery-v1/_generated_configs",
+      "bytes_total": 5603,
+      "status": "unknown",
+      "status_source": "inferred_missing_status",
+      "run_id": "",
+      "delete_allowed": false,
+      "notes": "missing status.json; manual classification required"
+    },
+    {
+      "experiment": "EXP-2021-2025-throughput-discovery-v1",
+      "role": "a0_baseline",
+      "path": "runs/EXP-2021-2025-throughput-discovery-v1/a0_baseline",
+      "bytes_total": 955491,
+      "status": "unknown",
+      "status_source": "inferred_missing_status",
+      "run_id": "qb_run_20260425T053826Z_7c56e609",
+      "delete_allowed": false,
+      "notes": "missing status.json; manual classification required"
+    },
+    {
+      "experiment": "EXP-2021-2025-throughput-discovery-v1",
+      "role": "a1_session_relaxed",
+      "path": "runs/EXP-2021-2025-throughput-discovery-v1/a1_session_relaxed",
+      "bytes_total": 759147,
+      "status": "unknown",
+      "status_source": "inferred_missing_status",
+      "run_id": "qb_run_20260425T053850Z_4e551417",
+      "delete_allowed": false,
+      "notes": "missing status.json; manual classification required"
+    },
+    {
+      "experiment": "EXP-2021-2025-throughput-discovery-v1",
+      "role": "a2_regime_relaxed",
+      "path": "runs/EXP-2021-2025-throughput-discovery-v1/a2_regime_relaxed",
+      "bytes_total": 957093,
+      "status": "unknown",
+      "status_source": "inferred_missing_status",
+      "run_id": "qb_run_20260425T053907Z_61305cdc",
+      "delete_allowed": false,
+      "notes": "missing status.json; manual classification required"
+    },
+    {
+      "experiment": "EXP-2021-2025-throughput-discovery-v1",
+      "role": "a3_cooldown_relaxed",
+      "path": "runs/EXP-2021-2025-throughput-discovery-v1/a3_cooldown_relaxed",
+      "bytes_total": 957738,
+      "status": "unknown",
+      "status_source": "inferred_missing_status",
+      "run_id": "qb_run_20260425T053925Z_5fe05f75",
+      "delete_allowed": false,
+      "notes": "missing status.json; manual classification required"
+    },
+    {
+      "experiment": "EXP-2021-2025-throughput-discovery-v1",
+      "role": "a4_session_regime_relaxed",
+      "path": "runs/EXP-2021-2025-throughput-discovery-v1/a4_session_regime_relaxed",
+      "bytes_total": 759683,
+      "status": "unknown",
+      "status_source": "inferred_missing_status",
+      "run_id": "qb_run_20260425T053950Z_656da8a9",
+      "delete_allowed": false,
+      "notes": "missing status.json; manual classification required"
+    },
+    {
+      "experiment": "EXP-2021-2025-throughput-discovery-v1",
+      "role": "a5_throughput_discovery",
+      "path": "runs/EXP-2021-2025-throughput-discovery-v1/a5_throughput_discovery",
+      "bytes_total": 762141,
+      "status": "unknown",
+      "status_source": "inferred_missing_status",
+      "run_id": "qb_run_20260425T054010Z_1a326ba3",
+      "delete_allowed": false,
+      "notes": "missing status.json; manual classification required"
+    },
+    {
+      "experiment": "EXP-2025-5year",
+      "role": "single",
+      "path": "runs/EXP-2025-5year/single",
+      "bytes_total": 1011523,
+      "status": "unknown",
+      "status_source": "inferred_missing_status",
+      "run_id": "qb_run_20260425T050607Z_d3b45081",
+      "delete_allowed": false,
+      "notes": "missing status.json; manual classification required"
+    },
+    {
+      "experiment": "EXP-2025-5year-expanded",
+      "role": "single",
+      "path": "runs/EXP-2025-5year-expanded/single",
+      "bytes_total": 955131,
+      "status": "unknown",
+      "status_source": "inferred_missing_status",
+      "run_id": "qb_run_20260425T051333Z_7e01f5fe",
+      "delete_allowed": false,
+      "notes": "missing status.json; manual classification required"
+    },
+    {
+      "experiment": "EXP-2025-baseline",
+      "role": "single",
+      "path": "runs/EXP-2025-baseline/single",
+      "bytes_total": 399841,
+      "status": "unknown",
+      "status_source": "inferred_missing_status",
+      "run_id": "qb_run_20260425T042136Z_dbd1b0cc",
+      "delete_allowed": false,
+      "notes": "missing status.json; manual classification required"
+    }
+  ]
+}

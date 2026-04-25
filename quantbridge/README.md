@@ -2,54 +2,30 @@
 
 ## SYSTEM IDENTITY
 
-This module is part of the QuantMetrics system.
-Canonical name: `quantbridge`
-Role: Execution Engine
+This module is part of the QuantMetrics suite.
+- Canonical name: `quantbridge`
+- Role: Execution Engine
 
-Broker-agnostic execution infrastructure for trading bots (**Quant suite**: sibling repos `quantmetrics_os`, `quantbuild`, **`quantbridge`**, `quantlog`, `quantanalytics`).
+`quantbridge` handles broker execution, routing, and runtime safeguards while keeping strategy logic out of the broker layer.
 
-## Why This Exists
+---
 
-**quantbridge** separates strategy logic from broker execution:
+## Core responsibility
 
-bot -> risk -> routing -> broker adapter -> broker API -> execution result
+- Keep execution broker-agnostic via adapters and a canonical contract.
+- Provide runtime safety (health, reconciliation, lifecycle checks, risk gates).
+- Support account governance and policy-based account selection.
+- Emit structured observability events for operations and analysis.
 
-This enables:
-- faster broker switching
-- multi-account deployment
-- centralized risk enforcement
-- execution resilience for propfirm workflows
+Execution chain:
 
-## Current Status
+```text
+decision -> risk gate -> router -> broker adapter -> broker API -> execution result
+```
 
-This repository is a clean execution-focused codebase.
+---
 
-Implemented now:
-- broker contract (canonical interface)
-- cTrader adapter layer
-- transport split (mock client + openapi client)
-- symbol registry (mapping, precision, pip size, volume rules)
-- error taxonomy
-- health model
-- smoke test flow (connect, price, place, close)
-- startup recovery + state registry
-- state validator + reconciliation actions
-- runtime control loop (continuous sync + failsafe pause)
-- order lifecycle manager (submit/fill/protection validation)
-- prop risk gate (pre-trade limits + breach blocking)
-- account state machine + policy-aware account selection
-- persistent account governance store + health-aware eligibility checks
-- multi-account execution planning (single/primary-backup/fanout)
-- structured observability events (JSONL) + summary reporting
-
-Partially implemented:
-- cTrader Open API connect/auth + basic request flows
-
-Not yet complete:
-- multi-account fanout runner
-- full monitoring dashboard and metrics backend
-
-## Repository Structure
+## Repository layout
 
 ```text
 configs/
@@ -98,6 +74,8 @@ src/quantbridge/
   ops/
     observability.py
 ```
+
+---
 
 ## Quick Start
 
@@ -240,7 +218,7 @@ Auth help:
 - `docs/AUTH_SETUP.md`
 - `docs/PAPER_ROLLOUT.md`
 
-Expected output:
+Smoke expected output:
 
 ```json
 {
@@ -250,6 +228,8 @@ Expected output:
   "close_order": true
 }
 ```
+
+---
 
 ## Suite repositories (GitHub)
 
@@ -261,6 +241,16 @@ Expected output:
 | `quantlog` | canonical module: `quantlog` |
 | `quantanalytics` | canonical module: `quantanalytics` |
 
+---
+
+## Documentation
+
+- `docs/ROADMAP.md`
+- `docs/PAPER_ROLLOUT.md`
+- `docs/AUTH_SETUP.md`
+
+---
+
 ## Milestones
 
 - Milestone A: mock abstraction (done)
@@ -271,6 +261,8 @@ Expected output:
 - Milestone F: persistent governance + health-aware routing (done baseline)
 - Milestone G: multi-account routing + execution planning (done baseline)
 - Milestone H: multi-account scaling + production observability (in progress, observability baseline done)
+
+---
 
 ## Engineering Rules
 
