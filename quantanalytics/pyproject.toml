@@ -19,10 +19,11 @@ dev = ["pytest>=7.0"]
 quantmetrics-analytics = "quantmetrics_analytics.cli.run_analysis:main"
 quantmetrics-guard-attribution = "quantmetrics_analytics.cli.guard_attribution:main"
 quantmetrics-guard-attribution-compare = "quantmetrics_analytics.cli.guard_attribution_compare:main"
+quantanalytics-guard-attribution-v1 = "quantanalytics.guard_attribution.cli:main"
 
 [tool.setuptools.packages.find]
-where = ["."]
-include = ["quantmetrics_analytics*"]
+where = [".", "src"]
+include = ["quantmetrics_analytics*", "quantanalytics*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

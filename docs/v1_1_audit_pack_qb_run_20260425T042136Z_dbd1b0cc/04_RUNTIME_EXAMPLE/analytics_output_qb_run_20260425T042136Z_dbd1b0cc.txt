@@ -1,0 +1,287 @@
+Total events: 408
+
+Event types:
+  - signal_detected: 75
+  - signal_evaluated: 75
+  - risk_guard_decision: 75
+  - trade_action: 75
+  - signal_filtered: 64
+  - order_submitted: 11
+  - order_filled: 11
+  - trade_executed: 11
+  - trade_closed: 11
+
+NO TRADE ANALYSIS
+NO_ACTION events: 64
+
+  session_blocked: 57 (89.1%)
+  risk_blocked: 6 (9.4%)
+  regime_blocked: 1 (1.6%)
+
+SIGNAL FUNNEL
+(QuantBuild rows only when source_system is present; same trace may emit multiple events)
+
+  signal_detected: 75
+  signal_evaluated: 75
+  risk_guard_decision (ALLOW only): 11
+  trade_action (ENTER/REVERSE): 11
+
+  signal_detected -> signal_evaluated: 100.0% retained (0.0% drop)
+  signal_evaluated -> risk_guard_decision (ALLOW only): 14.7% retained (85.3% drop)
+  risk_guard_decision (ALLOW only) -> trade_action (ENTER/REVERSE): 100.0% retained (0.0% drop)
+
+PERFORMANCE
+
+  trade_action events: 75
+  order_filled events: 11
+
+  Numeric payload columns present: payload_pnl_r, payload_mae_r, payload_mfe_r
+  payload_pnl_r: n=11 mean=-0.7273 median=-1.0000
+  payload_mae_r: n=11 mean=1.2781 median=1.4815
+  payload_mfe_r: n=11 mean=0.7144 median=0.6402
+
+REGIME / CONTEXT
+
+  signal_evaluated by regime (volume proxy):
+    trend: 65
+    expansion: 9
+    compression: 1
+
+  signal_evaluated by session:
+    Asia: 60
+    New York: 7
+    London: 5
+    Overlap: 3
+
+  ENTER/REVERSE trade_action by regime (via trace -> last signal_evaluated):
+    trend: 11
+
+  Expectancy per regime needs payload_pnl_r (or closed-trade events); extend schema or Sprint 4 joins when available.
+
+=== KEY FINDINGS ===
+
+{
+  "headline": "data/context integrity issues dominate interpretation; guards heavily shape flow; regime expectancy differs materially",
+  "top_problems": [
+    "session: present on 100.0% of signal_evaluated rows (75 rows)",
+    "setup_type: present on 100.0% of signal_evaluated rows (75 rows)",
+    "regime: present on 100.0% of signal_evaluated rows (75 rows)"
+  ],
+  "top_edges": [
+    "trend: mean_r=-0.727 (n=11)"
+  ],
+  "top_blockers": [
+    "regime_allowed_sessions: 57 BLOCKs (89% of guard blocks)",
+    "daily_loss_cap: 5 BLOCKs (8% of guard blocks)",
+    "regime_profile: 1 BLOCKs (2% of guard blocks)"
+  ],
+  "system_state": [
+    "Closed-trade expectancy (overall): mean_r=-0.727 over n=11",
+    "Exit efficiency (median capture vs |MFE|): ~151%",
+    "Raw funnel counts: detected=75, evaluated=75, ENTER/REVERSE=11"
+  ]
+}
+
+=== ANALYTICS WARNINGS ===
+
+[
+  {
+    "level": "MEDIUM",
+    "code": "GUARD_DOMINANCE",
+    "detail": "'regime_allowed_sessions' accounts for 89% of BLOCK decisions (57/64). Risk lockdown may dominate throughput."
+  }
+]
+
+RESEARCH DIAGNOSTICS (ANALYTICS_OUTPUT_GAPS-style)
+
+
+=== DATA QUALITY ===
+
+{
+  "event_counts": {
+    "signal_detected": 75,
+    "signal_evaluated": 75,
+    "risk_guard_decision": 75,
+    "trade_action": 75,
+    "signal_filtered": 64,
+    "order_submitted": 11,
+    "order_filled": 11,
+    "trade_executed": 11,
+    "trade_closed": 11
+  },
+  "anomalies": [],
+  "missing_decision_cycle_id_on_chain_rows": 0,
+  "duplicate_decision_cycle_ids_with_multiple_trade_action_rows": 0,
+  "duplicate_trade_id_on_envelope": 0
+}
+
+=== DECISION CYCLE FUNNEL ===
+
+{
+  "unique_decision_cycles": 75,
+  "cycle_stage_presence": {
+    "has_signal_detected": 75,
+    "has_signal_evaluated": 75,
+    "has_risk_guard_decision": 75,
+    "terminal_enter": 11,
+    "terminal_no_action": 64,
+    "terminal_other_or_missing": 0
+  },
+  "cycles_signal_evaluated_without_signal_detected": 0,
+  "cycles_with_order_filled": 11,
+  "cycles_with_trade_closed": 11,
+  "terminal_trade_action_mix": {
+    "NO_ACTION": 64,
+    "ENTER": 11
+  }
+}
+
+=== LIFECYCLE STATUS ===
+
+{
+  "trade_action_enter_rows": 11,
+  "order_filled_events": 11,
+  "trade_closed_events": 11,
+  "filled_minus_closed": 0,
+  "note": "filled_minus_closed approximates outstanding closes if 1:1 fill→close mapping"
+}
+
+=== CONTEXT COMPLETENESS ===
+
+{
+  "rows": 75,
+  "session": {
+    "present_pct": 100.0
+  },
+  "regime": {
+    "present_pct": 100.0
+  },
+  "setup_type": {
+    "present_pct": 100.0
+  },
+  "signal_type": {
+    "present_pct": 100.0
+  },
+  "confidence": {
+    "present_pct": 100.0
+  }
+}
+
+=== GUARD DIAGNOSTICS ===
+
+{
+  "blocks_total": 64,
+  "blocks_by_guard_name": {
+    "regime_allowed_sessions": 57,
+    "daily_loss_cap": 5,
+    "regime_profile": 1,
+    "equity_drawdown_kill_switch": 1
+  },
+  "blocks_by_guard_and_session": [
+    {
+      "payload_guard_name": "daily_loss_cap",
+      "payload_session": "Asia",
+      "n": 2
+    },
+    {
+      "payload_guard_name": "daily_loss_cap",
+      "payload_session": "London",
+      "n": 2
+    },
+    {
+      "payload_guard_name": "daily_loss_cap",
+      "payload_session": "New York",
+      "n": 1
+    },
+    {
+      "payload_guard_name": "equity_drawdown_kill_switch",
+      "payload_session": "Overlap",
+      "n": 1
+    },
+    {
+      "payload_guard_name": "regime_allowed_sessions",
+      "payload_session": "Asia",
+      "n": 57
+    },
+    {
+      "payload_guard_name": "regime_profile",
+      "payload_session": "Asia",
+      "n": 1
+    }
+  ],
+  "blocks_by_guard_and_regime": [
+    {
+      "payload_guard_name": "daily_loss_cap",
+      "payload_regime": "trend",
+      "n": 5
+    },
+    {
+      "payload_guard_name": "equity_drawdown_kill_switch",
+      "payload_regime": "trend",
+      "n": 1
+    },
+    {
+      "payload_guard_name": "regime_allowed_sessions",
+      "payload_regime": "expansion",
+      "n": 9
+    },
+    {
+      "payload_guard_name": "regime_allowed_sessions",
+      "payload_regime": "trend",
+      "n": 48
+    },
+    {
+      "payload_guard_name": "regime_profile",
+      "payload_regime": "compression",
+      "n": 1
+    }
+  ]
+}
+
+=== EXPECTANCY SLICES ===
+
+{
+  "metric_column": "payload_pnl_r",
+  "overall": {
+    "n": 11,
+    "mean_r": -0.7272727272727273
+  },
+  "by_regime_on_close": {
+    "trend": {
+      "n": 11,
+      "mean_r": -0.7272727272727273,
+      "sum_r": -8.0
+    }
+  },
+  "by_session_on_close": {
+    "London": {
+      "n": 3,
+      "mean_r": -1.0,
+      "sum_r": -3.0
+    },
+    "New York": {
+      "n": 6,
+      "mean_r": -0.5,
+      "sum_r": -3.0
+    },
+    "Overlap": {
+      "n": 2,
+      "mean_r": -1.0,
+      "sum_r": -2.0
+    }
+  }
+}
+
+=== EXIT EFFICIENCY ===
+
+{
+  "rows": 11,
+  "avg_realized_r": -0.7272727272727273,
+  "avg_abs_mae_r": 1.2780617743916236,
+  "avg_abs_mfe_r": 0.7143682842387418,
+  "median_capture_ratio_abs_r_over_abs_mfe": 1.5060896831041475,
+  "exit_tag_counts": {
+    "SL": 10,
+    "TP": 1
+  }
+}

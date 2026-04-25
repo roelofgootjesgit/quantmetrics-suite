@@ -1,0 +1,12 @@
+{
+  "run_id": "qb_run_20260425T055434Z_78f6ef7c",
+  "experiment_id": "EXP-2021-2025-session-relax-watchlist-v1",
+  "role": "b0_baseline",
+  "collected_at_utc": "2026-04-25T05:54:46.380752Z",
+  "quantbuild_root": "C:\\Users\\Gebruiker\\quantmetrics-suite\\quantbuild",
+  "quantlog_source": "C:\\Users\\Gebruiker\\quantmetrics-suite\\quantbuild\\data\\quantlog_events\\runs\\qb_run_20260425T055434Z_78f6ef7c.jsonl",
+  "config_snapshot": "config_snapshot.yaml",
+  "config_source_path": "C:\\Users\\Gebruiker\\quantmetrics-suite\\quantbuild\\configs\\_throughput_discovery\\EXP-2021-2025-session-relax-watchlist-v1\\B0_BASELINE.yaml",
+  "resolved_config": "",
+  "resolved_config_source_path": null
+}

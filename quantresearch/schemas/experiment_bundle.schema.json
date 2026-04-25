@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://quantresearch.local/schemas/experiment_bundle.schema.json",
+  "title": "QuantResearch experiment bundle (folder layout)",
+  "type": "object",
+  "required": [
+    "experiment_id",
+    "title",
+    "status",
+    "created_at_utc",
+    "quantresearch_files",
+    "matrix_definition"
+  ],
+  "properties": {
+    "experiment_id": {
+      "type": "string",
+      "pattern": "^EXP-[A-Za-z0-9._-]+$",
+      "description": "Stable folder name / registry key, e.g. EXP-2021-2025-throughput-discovery-v1"
+    },
+    "title": { "type": "string", "minLength": 1 },
+    "status": {
+      "type": "string",
+      "enum": ["draft", "planned", "running", "completed", "rejected", "archived"]
+    },
+    "created_at_utc": { "type": "string", "description": "ISO-8601 instant, Z suffix preferred" },
+    "suite": {
+      "type": "object",
+      "description": "Optional pointers to suite roots (portable; may be filled by humans)",
+      "properties": {
+        "suite_root": { "type": "string" },
+        "quantbuild_root": { "type": "string" },
+        "quantmetrics_os_root": { "type": "string" },
+        "quantanalytics_root": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "quantmetrics_os": {
+      "type": "object",
+      "description": "Links to QuantOS run artifacts for this experiment",
+      "properties": {
+        "experiment_folder_name": { "type": "string" },
+        "runs_relative_path": {
+          "type": "string",
+          "description": "Relative to quantmetrics_os root, e.g. runs/EXP-2021-2025-throughput-discovery-v1"
+        },
+        "throughput_discovery_summary": { "type": "string" },
+        "throughput_discovery_registry": { "type": "string" },
+        "throughput_compare_json": { "type": "string" },
+        "throughput_compare_md": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "quantresearch_files": {
+      "type": "object",
+      "required": ["hypothesis_md", "experiment_plan_md", "results_summary_md", "decision_md"],
+      "properties": {
+        "hypothesis_md": { "type": "string", "description": "Relative path under experiment folder" },
+        "experiment_plan_md": { "type": "string" },
+        "results_summary_md": { "type": "string" },
+        "decision_md": { "type": "string" },
+        "links_json": { "type": "string", "description": "Ledger v1: relative path to links.json (default links.json)" }
+      },
+      "additionalProperties": true
+    },
+    "matrix_definition": {
+      "type": "object",
+      "required": ["base_config", "start_date", "end_date", "variants"],
+      "properties": {
+        "base_config": {
+          "type": "string",
+          "description": "Path relative to quantbuild root, e.g. configs/strict_prod_v2.yaml"
+        },
+        "start_date": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
+        "end_date": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
+        "variants": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["key", "description"],
+            "properties": {
+              "key": { "type": "string" },
+              "description": { "type": "string" },
+              "filter_overrides": { "type": "object", "additionalProperties": true }
+            },
+            "additionalProperties": true
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "notes": { "type": "string" }
+  },
+  "additionalProperties": true
+}

@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """Bundle backtest artifacts into quantmetrics_os/runs/<experiment>/<role>/.
 
+Writes ``config_snapshot.yaml`` (copy of ``--config`` entry YAML) and optionally
+``resolved_config.yaml`` (merged effective config from ``--resolved-config-yaml``).
+
 Invoked by QuantBuild after a run (optional) or manually:
 
     python scripts/collect_run_artifact.py \\
@@ -45,13 +48,14 @@ def collect(
     quantbuild_root: Path,
     quantmetrics_os_root: Path,
     config_yaml: Path | None,
+    resolved_config_yaml: Path | None,
     bundle_analytics: bool,
     analytics_output_dir: Path | None,
     analytics_recent_seconds: int,
 ) -> Path:
-    role_norm = role.strip().lower()
-    if role_norm not in {"baseline", "variant", "single"}:
-        raise ValueError(f"role must be baseline|variant|single, got {role!r}")
+    role_norm = _sanitize_segment(role)
+    if not role_norm:
+        raise ValueError(f"role must be a non-empty string, got {role!r}")
 
     runs = quantmetrics_os_root / "runs"
     dest = runs / _sanitize_segment(experiment_id) / role_norm
@@ -67,6 +71,11 @@ def collect(
     if config_yaml is not None and config_yaml.is_file():
         shutil.copy2(config_yaml, dest / "config_snapshot.yaml")
         config_dest_rel = "config_snapshot.yaml"
+
+    resolved_dest_rel = ""
+    if resolved_config_yaml is not None and resolved_config_yaml.is_file():
+        shutil.copy2(resolved_config_yaml, dest / "resolved_config.yaml")
+        resolved_dest_rel = "resolved_config.yaml"
 
     analytics_copied = 0
     analytics_dir = dest / "analytics"
@@ -94,6 +103,10 @@ def collect(
         "quantlog_source": str(jsonl_src.resolve()),
         "config_snapshot": config_dest_rel,
         "config_source_path": str(config_yaml.resolve()) if config_yaml else None,
+        "resolved_config": resolved_dest_rel,
+        "resolved_config_source_path": str(resolved_config_yaml.resolve())
+        if resolved_config_yaml
+        else None,
     }
     if bundle_analytics:
         run_info["analytics_files_copied"] = analytics_copied
@@ -105,11 +118,21 @@ def collect(
 def main() -> int:
     parser = argparse.ArgumentParser(description="Collect run artifacts under quantmetrics_os/runs/")
     parser.add_argument("--experiment-id", required=True)
-    parser.add_argument("--role", default="single", choices=["baseline", "variant", "single"])
+    parser.add_argument(
+        "--role",
+        default="single",
+        help="Run role folder name under runs/<experiment-id>/ (will be sanitized).",
+    )
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--quantbuild-root", type=Path, default=None)
     parser.add_argument("--quantmetrics-os-root", type=Path, default=None)
     parser.add_argument("--config-yaml", type=Path, default=None)
+    parser.add_argument(
+        "--resolved-config-yaml",
+        type=Path,
+        default=None,
+        help="Merged effective config (default+extends+env), redacted; stored as resolved_config.yaml",
+    )
     parser.add_argument(
         "--bundle-analytics",
         action="store_true",
@@ -140,6 +163,7 @@ def main() -> int:
         quantbuild_root=qb.resolve(),
         quantmetrics_os_root=qmos,
         config_yaml=args.config_yaml,
+        resolved_config_yaml=args.resolved_config_yaml,
         bundle_analytics=bool(args.bundle_analytics),
         analytics_output_dir=args.analytics_output_dir,
         analytics_recent_seconds=int(args.analytics_recent_seconds),

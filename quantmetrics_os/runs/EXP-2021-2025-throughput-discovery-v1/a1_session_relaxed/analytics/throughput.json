@@ -1,0 +1,66 @@
+{
+  "raw_signals_detected": 122,
+  "signals_after_filters": 63,
+  "signals_executed": 63,
+  "filter_kill_ratio": 0.48360655737704916,
+  "execution_ratio": 0.5163934426229508,
+  "cycle_counts": {
+    "total_cycles": 122,
+    "risk_allow_cycles": 63,
+    "risk_block_cycles": 59,
+    "no_action_cycles": 59,
+    "entered_cycles": 63,
+    "executed_cycles": 63
+  },
+  "event_counts": {
+    "risk_guard_decision_events": 122,
+    "signal_filtered_events": 59,
+    "trade_action_events": 122
+  },
+  "throughput_rates": {
+    "trades_per_month": 4.2,
+    "months_span_inclusive": 15
+  },
+  "breakdowns": {
+    "guard_decisions": {
+      "backtest_pipeline:ALLOW": 63,
+      "max_trades_per_session:BLOCK": 34,
+      "regime_profile:BLOCK": 8,
+      "daily_loss_cap:BLOCK": 16,
+      "equity_drawdown_kill_switch:BLOCK": 1
+    },
+    "guard_blocks": {
+      "max_trades_per_session": 34,
+      "regime_profile": 8,
+      "daily_loss_cap": 16,
+      "equity_drawdown_kill_switch": 1
+    },
+    "guard_allows": {
+      "backtest_pipeline": 63
+    },
+    "regime_guard_blocks": {
+      "trend:max_trades_per_session": 28,
+      "expansion:max_trades_per_session": 6,
+      "compression:regime_profile": 8,
+      "expansion:daily_loss_cap": 3,
+      "trend:daily_loss_cap": 13,
+      "trend:equity_drawdown_kill_switch": 1
+    },
+    "session_guard_blocks": {
+      "London:max_trades_per_session": 6,
+      "Overlap:max_trades_per_session": 9,
+      "New York:max_trades_per_session": 6,
+      "Asia:max_trades_per_session": 13,
+      "Asia:regime_profile": 8,
+      "Asia:daily_loss_cap": 2,
+      "New York:daily_loss_cap": 10,
+      "Overlap:daily_loss_cap": 4,
+      "Asia:equity_drawdown_kill_switch": 1
+    },
+    "filter_reasons": {
+      "position_limit_reached": 34,
+      "regime_blocked": 8,
+      "risk_blocked": 17
+    }
+  }
+}

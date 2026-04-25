@@ -1,0 +1,70 @@
+{
+  "raw_signals_detected": 166,
+  "signals_after_filters": 55,
+  "signals_executed": 55,
+  "filter_kill_ratio": 0.6686746987951807,
+  "execution_ratio": 0.3313253012048193,
+  "cycle_counts": {
+    "total_cycles": 166,
+    "risk_allow_cycles": 55,
+    "risk_block_cycles": 111,
+    "no_action_cycles": 111,
+    "entered_cycles": 55,
+    "executed_cycles": 55
+  },
+  "event_counts": {
+    "risk_guard_decision_events": 166,
+    "signal_filtered_events": 111,
+    "trade_action_events": 166
+  },
+  "throughput_rates": {
+    "trades_per_month": 2.8947368421052633,
+    "months_span_inclusive": 19
+  },
+  "breakdowns": {
+    "guard_decisions": {
+      "backtest_pipeline:ALLOW": 55,
+      "max_trades_per_session:BLOCK": 24,
+      "regime_allowed_sessions:BLOCK": 57,
+      "regime_profile:BLOCK": 15,
+      "daily_loss_cap:BLOCK": 14,
+      "equity_drawdown_kill_switch:BLOCK": 1
+    },
+    "guard_blocks": {
+      "max_trades_per_session": 24,
+      "regime_allowed_sessions": 57,
+      "regime_profile": 15,
+      "daily_loss_cap": 14,
+      "equity_drawdown_kill_switch": 1
+    },
+    "guard_allows": {
+      "backtest_pipeline": 55
+    },
+    "regime_guard_blocks": {
+      "trend:max_trades_per_session": 20,
+      "expansion:max_trades_per_session": 4,
+      "trend:regime_allowed_sessions": 46,
+      "compression:regime_profile": 15,
+      "expansion:regime_allowed_sessions": 11,
+      "trend:daily_loss_cap": 14,
+      "trend:equity_drawdown_kill_switch": 1
+    },
+    "session_guard_blocks": {
+      "London:max_trades_per_session": 6,
+      "Overlap:max_trades_per_session": 10,
+      "New York:max_trades_per_session": 8,
+      "Asia:regime_allowed_sessions": 55,
+      "Asia:regime_profile": 15,
+      "Overlap:regime_allowed_sessions": 2,
+      "Overlap:daily_loss_cap": 4,
+      "New York:daily_loss_cap": 10,
+      "London:equity_drawdown_kill_switch": 1
+    },
+    "filter_reasons": {
+      "position_limit_reached": 24,
+      "session_blocked": 57,
+      "regime_blocked": 15,
+      "risk_blocked": 15
+    }
+  }
+}

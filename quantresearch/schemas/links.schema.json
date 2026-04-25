@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://quantresearch.local/schemas/links.schema.json",
+  "title": "QuantResearch links.json (evidence pointers)",
+  "type": "object",
+  "required": ["quantos_run_dir"],
+  "properties": {
+    "quantos_run_dir": {
+      "type": "string",
+      "description": "Path relative to suite root unless paths_are_absolute is true"
+    },
+    "paths_are_absolute": { "type": "boolean", "default": false },
+    "throughput_compare_json": { "type": "string" },
+    "throughput_compare_md": { "type": "string" },
+    "throughput_discovery_registry": { "type": "string" },
+    "throughput_discovery_summary": { "type": "string" }
+  },
+  "additionalProperties": true
+}

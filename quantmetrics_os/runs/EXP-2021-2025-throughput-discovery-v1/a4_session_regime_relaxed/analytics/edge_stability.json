@@ -1,0 +1,350 @@
+{
+  "symbol": [
+    {
+      "symbol": "UNKNOWN",
+      "trade_count": 63,
+      "expectancy_r": 0.4285714285714302,
+      "win_rate": 0.47619047619047616,
+      "profit_factor": 1.8181818181818212,
+      "max_drawdown_r": 10.0,
+      "avg_mfe_r": 3.0089694869680454,
+      "avg_mae_r": 0.9892161319331809,
+      "sample_quality": "USABLE",
+      "verdict": "PROMISING"
+    }
+  ],
+  "regime": [
+    {
+      "regime": "compression",
+      "trade_count": 0,
+      "expectancy_r": null,
+      "win_rate": null,
+      "profit_factor": null,
+      "max_drawdown_r": null,
+      "avg_mfe_r": null,
+      "avg_mae_r": null,
+      "sample_quality": "INSUFFICIENT_DATA",
+      "verdict": "UNSTABLE"
+    },
+    {
+      "regime": "expansion",
+      "trade_count": 18,
+      "expectancy_r": 0.1666666666666723,
+      "win_rate": 0.3888888888888889,
+      "profit_factor": 1.272727272727282,
+      "max_drawdown_r": 4.0,
+      "avg_mfe_r": 1.46951670221771,
+      "avg_mae_r": 1.206078862033313,
+      "sample_quality": "INSUFFICIENT_DATA",
+      "verdict": "PROMISING_BUT_WEAK"
+    },
+    {
+      "regime": "trend",
+      "trade_count": 45,
+      "expectancy_r": 0.5333333333333333,
+      "win_rate": 0.5111111111111111,
+      "profit_factor": 2.090909090909091,
+      "max_drawdown_r": 8.0,
+      "avg_mfe_r": 3.522120415218157,
+      "avg_mae_r": 0.8992974389648336,
+      "sample_quality": "WEAK_EVIDENCE",
+      "verdict": "PROMISING_BUT_WEAK"
+    }
+  ],
+  "session": [
+    {
+      "session": "Asia",
+      "trade_count": 20,
+      "expectancy_r": 0.19999999999999485,
+      "win_rate": 0.4,
+      "profit_factor": 1.3333333333333248,
+      "max_drawdown_r": 8.0,
+      "avg_mfe_r": 5.589765485363127,
+      "avg_mae_r": 1.1853181233748842,
+      "sample_quality": "WEAK_EVIDENCE",
+      "verdict": "PROMISING_BUT_WEAK"
+    },
+    {
+      "session": "London",
+      "trade_count": 7,
+      "expectancy_r": 0.7142857142857262,
+      "win_rate": 0.5714285714285714,
+      "profit_factor": 2.6666666666666945,
+      "max_drawdown_r": 2.0,
+      "avg_mfe_r": 1.814771600362717,
+      "avg_mae_r": 1.0294722098437867,
+      "sample_quality": "INSUFFICIENT_DATA",
+      "verdict": "PROMISING_BUT_WEAK"
+    },
+    {
+      "session": "New York",
+      "trade_count": 16,
+      "expectancy_r": 0.5000000000000158,
+      "win_rate": 0.5,
+      "profit_factor": 2.0000000000000315,
+      "max_drawdown_r": 4.0,
+      "avg_mfe_r": 1.8380610901753813,
+      "avg_mae_r": 0.9243546268401033,
+      "sample_quality": "INSUFFICIENT_DATA",
+      "verdict": "PROMISING_BUT_WEAK"
+    },
+    {
+      "session": "Overlap",
+      "trade_count": 20,
+      "expectancy_r": 0.4999999999999935,
+      "win_rate": 0.5,
+      "profit_factor": 1.999999999999987,
+      "max_drawdown_r": 6.0,
+      "avg_mfe_r": 1.7323680040399934,
+      "avg_mae_r": 0.8281943827988174,
+      "sample_quality": "WEAK_EVIDENCE",
+      "verdict": "PROMISING_BUT_WEAK"
+    }
+  ],
+  "month": [
+    {
+      "month": "2021-01",
+      "trade_count": 1,
+      "expectancy_r": -1.0,
+      "win_rate": 0.0,
+      "profit_factor": 0.0,
+      "max_drawdown_r": 1.0,
+      "avg_mfe_r": 1.3953204413986966,
+      "avg_mae_r": 1.0000152627482413,
+      "sample_quality": "INSUFFICIENT_DATA",
+      "verdict": "WEAK_OR_NEGATIVE"
+    },
+    {
+      "month": "2021-03",
+      "trade_count": 8,
+      "expectancy_r": -0.2499999999999783,
+      "win_rate": 0.25,
+      "profit_factor": 0.6666666666666957,
+      "max_drawdown_r": 6.0,
+      "avg_mfe_r": 1.1740084106190918,
+      "avg_mae_r": 1.090433123700434,
+      "sample_quality": "INSUFFICIENT_DATA",
+      "verdict": "WEAK_OR_NEGATIVE"
+    },
+    {
+      "month": "2021-04",
+      "trade_count": 4,
+      "expectancy_r": 1.9999999999999236,
+      "win_rate": 1.0,
+      "profit_factor": Infinity,
+      "max_drawdown_r": 0.0,
+      "avg_mfe_r": 2.837436813365602,
+      "avg_mae_r": 0.1953159840388882,
+      "sample_quality": "INSUFFICIENT_DATA",
+      "verdict": "PROMISING_BUT_WEAK"
+    },
+    {
+      "month": "2021-05",
+      "trade_count": 6,
+      "expectancy_r": 1.9999999999999762,
+      "win_rate": 1.0,
+      "profit_factor": Infinity,
+      "max_drawdown_r": 0.0,
+      "avg_mfe_r": 2.315591084905996,
+      "avg_mae_r": 0.28017363834230097,
+      "sample_quality": "INSUFFICIENT_DATA",
+      "verdict": "PROMISING_BUT_WEAK"
+    },
+    {
+      "month": "2021-06",
+      "trade_count": 6,
+      "expectancy_r": 0.499999999999988,
+      "win_rate": 0.5,
+      "profit_factor": 1.999999999999976,
+      "max_drawdown_r": 3.0,
+      "avg_mfe_r": 1.8311058937089577,
+      "avg_mae_r": 0.925423870116547,
+      "sample_quality": "INSUFFICIENT_DATA",
+      "verdict": "PROMISING_BUT_WEAK"
+    },
+    {
+      "month": "2021-07",
+      "trade_count": 3,
+      "expectancy_r": -1.0,
+      "win_rate": 0.0,
+      "profit_factor": 0.0,
+      "max_drawdown_r": 3.0,
+      "avg_mfe_r": 1.1194160554224082,
+      "avg_mae_r": 1.2005094648354762,
+      "sample_quality": "INSUFFICIENT_DATA",
+      "verdict": "WEAK_OR_NEGATIVE"
+    },
+    {
+      "month": "2021-08",
+      "trade_count": 8,
+      "expectancy_r": 0.5000000000000013,
+      "win_rate": 0.5,
+      "profit_factor": 2.0000000000000027,
+      "max_drawdown_r": 2.0,
+      "avg_mfe_r": 12.314316789287934,
+      "avg_mae_r": 1.5495024195974836,
+      "sample_quality": "INSUFFICIENT_DATA",
+      "verdict": "PROMISING_BUT_WEAK"
+    },
+    {
+      "month": "2021-09",
+      "trade_count": 5,
+      "expectancy_r": 0.20000000000001633,
+      "win_rate": 0.4,
+      "profit_factor": 1.3333333333333606,
+      "max_drawdown_r": 3.0,
+      "avg_mfe_r": 1.4026041528041242,
+      "avg_mae_r": 0.8802531951839094,
+      "sample_quality": "INSUFFICIENT_DATA",
+      "verdict": "PROMISING_BUT_WEAK"
+    },
+    {
+      "month": "2021-11",
+      "trade_count": 14,
+      "expectancy_r": 0.9285714285714539,
+      "win_rate": 0.6428571428571429,
+      "profit_factor": 3.600000000000071,
+      "max_drawdown_r": 2.0,
+      "avg_mfe_r": 1.9432862994990205,
+      "avg_mae_r": 1.0943705773923564,
+      "sample_quality": "INSUFFICIENT_DATA",
+      "verdict": "PROMISING_BUT_WEAK"
+    },
+    {
+      "month": "2022-02",
+      "trade_count": 6,
+      "expectancy_r": -1.0,
+      "win_rate": 0.0,
+      "profit_factor": 0.0,
+      "max_drawdown_r": 6.0,
+      "avg_mfe_r": 0.1408356744672253,
+      "avg_mae_r": 1.3283824744175832,
+      "sample_quality": "INSUFFICIENT_DATA",
+      "verdict": "WEAK_OR_NEGATIVE"
+    },
+    {
+      "month": "2022-03",
+      "trade_count": 2,
+      "expectancy_r": -1.0,
+      "win_rate": 0.0,
+      "profit_factor": 0.0,
+      "max_drawdown_r": 2.0,
+      "avg_mfe_r": 1.7475709145897986,
+      "avg_mae_r": 1.1620444366699592,
+      "sample_quality": "INSUFFICIENT_DATA",
+      "verdict": "WEAK_OR_NEGATIVE"
+    }
+  ],
+  "quarter": [
+    {
+      "quarter": "2021-Q1",
+      "trade_count": 9,
+      "expectancy_r": -0.33333333333331405,
+      "win_rate": 0.2222222222222222,
+      "profit_factor": 0.5714285714285963,
+      "max_drawdown_r": 6.0,
+      "avg_mfe_r": 1.2016724144665425,
+      "avg_mae_r": 1.07913089108141,
+      "sample_quality": "INSUFFICIENT_DATA",
+      "verdict": "WEAK_OR_NEGATIVE"
+    },
+    {
+      "quarter": "2021-Q2",
+      "trade_count": 16,
+      "expectancy_r": 1.4374999999999676,
+      "win_rate": 0.8125,
+      "profit_factor": 8.666666666666494,
+      "max_drawdown_r": 3.0,
+      "avg_mfe_r": 2.2932548820962118,
+      "avg_mae_r": 0.50092806168179,
+      "sample_quality": "INSUFFICIENT_DATA",
+      "verdict": "PROMISING_BUT_WEAK"
+    },
+    {
+      "quarter": "2021-Q3",
+      "trade_count": 16,
+      "expectancy_r": 0.12500000000000577,
+      "win_rate": 0.375,
+      "profit_factor": 1.2000000000000093,
+      "max_drawdown_r": 5.0,
+      "avg_mfe_r": 6.797777307321376,
+      "avg_mae_r": 1.23570063485792,
+      "sample_quality": "INSUFFICIENT_DATA",
+      "verdict": "PROMISING_BUT_WEAK"
+    },
+    {
+      "quarter": "2021-Q4",
+      "trade_count": 14,
+      "expectancy_r": 0.9285714285714539,
+      "win_rate": 0.6428571428571429,
+      "profit_factor": 3.600000000000071,
+      "max_drawdown_r": 2.0,
+      "avg_mfe_r": 1.9432862994990205,
+      "avg_mae_r": 1.0943705773923564,
+      "sample_quality": "INSUFFICIENT_DATA",
+      "verdict": "PROMISING_BUT_WEAK"
+    },
+    {
+      "quarter": "2022-Q1",
+      "trade_count": 8,
+      "expectancy_r": -1.0,
+      "win_rate": 0.0,
+      "profit_factor": 0.0,
+      "max_drawdown_r": 8.0,
+      "avg_mfe_r": 0.6764140878414163,
+      "avg_mae_r": 1.2867979649806771,
+      "sample_quality": "INSUFFICIENT_DATA",
+      "verdict": "WEAK_OR_NEGATIVE"
+    }
+  ],
+  "guard_name": [
+    {
+      "guard_name": "backtest_pipeline",
+      "trade_count": 63,
+      "expectancy_r": 0.4285714285714302,
+      "win_rate": 0.47619047619047616,
+      "profit_factor": 1.8181818181818212,
+      "max_drawdown_r": 10.0,
+      "avg_mfe_r": 3.0089694869680454,
+      "avg_mae_r": 0.9892161319331809,
+      "sample_quality": "USABLE",
+      "verdict": "PROMISING"
+    },
+    {
+      "guard_name": "daily_loss_cap",
+      "trade_count": 0,
+      "expectancy_r": null,
+      "win_rate": null,
+      "profit_factor": null,
+      "max_drawdown_r": null,
+      "avg_mfe_r": null,
+      "avg_mae_r": null,
+      "sample_quality": "INSUFFICIENT_DATA",
+      "verdict": "UNSTABLE"
+    },
+    {
+      "guard_name": "equity_drawdown_kill_switch",
+      "trade_count": 0,
+      "expectancy_r": null,
+      "win_rate": null,
+      "profit_factor": null,
+      "max_drawdown_r": null,
+      "avg_mfe_r": null,
+      "avg_mae_r": null,
+      "sample_quality": "INSUFFICIENT_DATA",
+      "verdict": "UNSTABLE"
+    },
+    {
+      "guard_name": "max_trades_per_session",
+      "trade_count": 0,
+      "expectancy_r": null,
+      "win_rate": null,
+      "profit_factor": null,
+      "max_drawdown_r": null,
+      "avg_mfe_r": null,
+      "avg_mae_r": null,
+      "sample_quality": "INSUFFICIENT_DATA",
+      "verdict": "UNSTABLE"
+    }
+  ]
+}

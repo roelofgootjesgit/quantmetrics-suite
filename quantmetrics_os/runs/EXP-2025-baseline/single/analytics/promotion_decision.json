@@ -1,0 +1,98 @@
+{
+  "generated_at_utc": "2026-04-25T05:04:33.029664Z",
+  "run_id": "qb_run_20260425T042136Z_dbd1b0cc",
+  "promotion_decision": "REJECT",
+  "all_rules_passed": false,
+  "metrics": {
+    "total_trades": 11,
+    "expectancy_r": -0.7272727272727273,
+    "profit_factor": 0.2
+  },
+  "input_edge_verdict": "VALIDATION_REQUIRED",
+  "input_confidence": "LOW",
+  "major_warning_count": 1,
+  "failed_rules": [
+    {
+      "rule": "expectancy_R must be > 0",
+      "passed": false,
+      "fail_outcome": "REJECT",
+      "reason": "expectancy_R=-0.7272727272727273"
+    },
+    {
+      "rule": "profit_factor must be >= 1.25",
+      "passed": false,
+      "fail_outcome": "REJECT",
+      "reason": "profit_factor=0.2"
+    },
+    {
+      "rule": "confidence must not be LOW",
+      "passed": false,
+      "fail_outcome": "VALIDATION_REQUIRED",
+      "reason": "confidence=LOW"
+    },
+    {
+      "rule": "total_trades must be >= 100",
+      "passed": false,
+      "fail_outcome": "VALIDATION_REQUIRED",
+      "reason": "total_trades=11"
+    },
+    {
+      "rule": "at least one protective guard required",
+      "passed": false,
+      "fail_outcome": "VALIDATION_REQUIRED",
+      "reason": "protective_guard_detected=False"
+    },
+    {
+      "rule": "major warnings must be absent",
+      "passed": false,
+      "fail_outcome": "VALIDATION_REQUIRED",
+      "reason": "major_warnings=1"
+    }
+  ],
+  "checks": [
+    {
+      "rule": "confidence must not be LOW",
+      "passed": false,
+      "fail_outcome": "VALIDATION_REQUIRED",
+      "reason": "confidence=LOW"
+    },
+    {
+      "rule": "total_trades must be >= 100",
+      "passed": false,
+      "fail_outcome": "VALIDATION_REQUIRED",
+      "reason": "total_trades=11"
+    },
+    {
+      "rule": "expectancy_R must be > 0",
+      "passed": false,
+      "fail_outcome": "REJECT",
+      "reason": "expectancy_R=-0.7272727272727273"
+    },
+    {
+      "rule": "profit_factor must be >= 1.25",
+      "passed": false,
+      "fail_outcome": "REJECT",
+      "reason": "profit_factor=0.2"
+    },
+    {
+      "rule": "at least one protective guard required",
+      "passed": false,
+      "fail_outcome": "VALIDATION_REQUIRED",
+      "reason": "protective_guard_detected=False"
+    },
+    {
+      "rule": "major warnings must be absent",
+      "passed": false,
+      "fail_outcome": "VALIDATION_REQUIRED",
+      "reason": "major_warnings=1"
+    }
+  ],
+  "reasons": [
+    "expectancy_R must be > 0: expectancy_R=-0.7272727272727273",
+    "profit_factor must be >= 1.25: profit_factor=0.2",
+    "confidence must not be LOW: confidence=LOW",
+    "total_trades must be >= 100: total_trades=11",
+    "at least one protective guard required: protective_guard_detected=False",
+    "major warnings must be absent: major_warnings=1"
+  ]
+}

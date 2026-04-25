@@ -1,0 +1,11 @@
+{
+  "run_id": "qb_run_20260425T042136Z_dbd1b0cc",
+  "experiment_id": "EXP-2025-baseline",
+  "role": "single",
+  "collected_at_utc": "2026-04-25T04:21:40.220493Z",
+  "quantbuild_root": "C:\\Users\\Gebruiker\\quantmetrics-suite\\quantbuild",
+  "quantlog_source": "C:\\Users\\Gebruiker\\quantmetrics-suite\\quantbuild\\data\\quantlog_events\\runs\\qb_run_20260425T042136Z_dbd1b0cc.jsonl",
+  "config_snapshot": "config_snapshot.yaml",
+  "config_source_path": "C:\\Users\\Gebruiker\\quantmetrics-suite\\quantbuild\\configs\\backtest_2025_full_strict_prod.yaml",
+  "analytics_files_copied": 2
+}

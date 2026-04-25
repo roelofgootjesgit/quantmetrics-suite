@@ -1,0 +1,218 @@
+{
+  "generated_at_utc": "2026-04-25T06:06:08.948673Z",
+  "experiment_id": "EXP-2021-2025-throughput-discovery-v1",
+  "experiment_root": "C:\\Users\\Gebruiker\\quantmetrics-suite\\quantmetrics_os\\runs\\EXP-2021-2025-throughput-discovery-v1",
+  "baseline_variant_folder": "a0_baseline",
+  "variants": [
+    {
+      "variant": "a0_baseline",
+      "variant_folder": "a0_baseline",
+      "total_trades": 58,
+      "raw_signals_detected": 167,
+      "signals_after_filters": 58,
+      "signals_executed": 58,
+      "filter_kill_ratio": 0.652694610778443,
+      "expectancy_r": 0.2931034482758685,
+      "profit_factor": 1.5151515151515265,
+      "max_drawdown_r": 10.99999999999983,
+      "protective_guard_detected": true,
+      "confidence": "LOW",
+      "promotion_decision": "VALIDATION_REQUIRED",
+      "run_id": "qb_run_20260425T053826Z_7c56e609",
+      "delta_trades_vs_baseline": 0.0,
+      "delta_expectancy_vs_baseline": 0.0,
+      "delta_pf_vs_baseline": 0.0,
+      "dd_worsen_ratio_vs_baseline": 1.0
+    },
+    {
+      "variant": "a1_session_relaxed",
+      "variant_folder": "a1_session_relaxed",
+      "total_trades": 63,
+      "raw_signals_detected": 122,
+      "signals_after_filters": 63,
+      "signals_executed": 63,
+      "filter_kill_ratio": 0.48360655737704916,
+      "expectancy_r": 0.4285714285714302,
+      "profit_factor": 1.8181818181818212,
+      "max_drawdown_r": 10.0,
+      "protective_guard_detected": true,
+      "confidence": "LOW",
+      "promotion_decision": "VALIDATION_REQUIRED",
+      "run_id": "qb_run_20260425T053850Z_4e551417",
+      "delta_trades_vs_baseline": 5.0,
+      "delta_expectancy_vs_baseline": 0.13546798029556173,
+      "delta_pf_vs_baseline": 0.30303030303029477,
+      "dd_worsen_ratio_vs_baseline": 0.9090909090909232
+    },
+    {
+      "variant": "a2_regime_relaxed",
+      "variant_folder": "a2_regime_relaxed",
+      "total_trades": 58,
+      "raw_signals_detected": 167,
+      "signals_after_filters": 58,
+      "signals_executed": 58,
+      "filter_kill_ratio": 0.652694610778443,
+      "expectancy_r": 0.2931034482758685,
+      "profit_factor": 1.5151515151515265,
+      "max_drawdown_r": 10.99999999999983,
+      "protective_guard_detected": true,
+      "confidence": "LOW",
+      "promotion_decision": "VALIDATION_REQUIRED",
+      "run_id": "qb_run_20260425T053907Z_61305cdc",
+      "delta_trades_vs_baseline": 0.0,
+      "delta_expectancy_vs_baseline": 0.0,
+      "delta_pf_vs_baseline": 0.0,
+      "dd_worsen_ratio_vs_baseline": 1.0
+    },
+    {
+      "variant": "a3_cooldown_relaxed",
+      "variant_folder": "a3_cooldown_relaxed",
+      "total_trades": 58,
+      "raw_signals_detected": 167,
+      "signals_after_filters": 58,
+      "signals_executed": 58,
+      "filter_kill_ratio": 0.652694610778443,
+      "expectancy_r": 0.2931034482758685,
+      "profit_factor": 1.5151515151515265,
+      "max_drawdown_r": 10.99999999999983,
+      "protective_guard_detected": true,
+      "confidence": "LOW",
+      "promotion_decision": "VALIDATION_REQUIRED",
+      "run_id": "qb_run_20260425T053925Z_5fe05f75",
+      "delta_trades_vs_baseline": 0.0,
+      "delta_expectancy_vs_baseline": 0.0,
+      "delta_pf_vs_baseline": 0.0,
+      "dd_worsen_ratio_vs_baseline": 1.0
+    },
+    {
+      "variant": "a4_session_regime_relaxed",
+      "variant_folder": "a4_session_regime_relaxed",
+      "total_trades": 63,
+      "raw_signals_detected": 122,
+      "signals_after_filters": 63,
+      "signals_executed": 63,
+      "filter_kill_ratio": 0.48360655737704916,
+      "expectancy_r": 0.4285714285714302,
+      "profit_factor": 1.8181818181818212,
+      "max_drawdown_r": 10.0,
+      "protective_guard_detected": true,
+      "confidence": "LOW",
+      "promotion_decision": "VALIDATION_REQUIRED",
+      "run_id": "qb_run_20260425T053950Z_656da8a9",
+      "delta_trades_vs_baseline": 5.0,
+      "delta_expectancy_vs_baseline": 0.13546798029556173,
+      "delta_pf_vs_baseline": 0.30303030303029477,
+      "dd_worsen_ratio_vs_baseline": 0.9090909090909232
+    },
+    {
+      "variant": "a5_throughput_discovery",
+      "variant_folder": "a5_throughput_discovery",
+      "total_trades": 63,
+      "raw_signals_detected": 122,
+      "signals_after_filters": 63,
+      "signals_executed": 63,
+      "filter_kill_ratio": 0.48360655737704916,
+      "expectancy_r": 0.4285714285714302,
+      "profit_factor": 1.8181818181818212,
+      "max_drawdown_r": 10.0,
+      "protective_guard_detected": true,
+      "confidence": "LOW",
+      "promotion_decision": "VALIDATION_REQUIRED",
+      "run_id": "qb_run_20260425T054010Z_1a326ba3",
+      "delta_trades_vs_baseline": 5.0,
+      "delta_expectancy_vs_baseline": 0.13546798029556173,
+      "delta_pf_vs_baseline": 0.30303030303029477,
+      "dd_worsen_ratio_vs_baseline": 0.9090909090909232
+    }
+  ],
+  "conclusions": {
+    "best_throughput_variant": "a1_session_relaxed",
+    "best_quality_variant": "a1_session_relaxed",
+    "best_balanced_variant": "a1_session_relaxed",
+    "guards_to_keep": [],
+    "guards_to_relax_candidate": [],
+    "guards_to_watchlist": [
+      "session + regime (A4): discovery watchlist vs `a0_baseline` (~8.6% trade lift, exp>0, PF\u22651.25; does not meet full relax gates \u2014 not promotion)",
+      "session_filter (A1): discovery watchlist vs `a0_baseline` (~8.6% trade lift, exp>0, PF\u22651.25; does not meet full relax gates \u2014 not promotion)",
+      "throughput discovery (A5): discovery watchlist vs `a0_baseline` (~8.6% trade lift, exp>0, PF\u22651.25; does not meet full relax gates \u2014 not promotion)"
+    ],
+    "guards_to_investigate": [
+      "daily_loss_cap",
+      "equity_drawdown_kill_switch",
+      "max_trades_per_session",
+      "regime_allowed_sessions",
+      "regime_profile"
+    ],
+    "guards_to_remove_candidate": [],
+    "discovery_rule_summary": {
+      "version": "1.0",
+      "scope": "All throughput discovery compare runs vs the selected baseline folder (A0\u2013A5, B0\u2013B4, future matrices).",
+      "relax_candidate": {
+        "trades": "strictly greater than baseline \u00d7 1.10 (>10% trade count)",
+        "expectancy_r": "greater than or equal to baseline expectancy R minus 0.08 (material slack)",
+        "profit_factor": "greater than or equal to 1.25",
+        "max_drawdown_r": "variant / baseline ratio must be less than or equal to 1.20 (same order of magnitude as QuantOS promotion gate default)",
+        "confidence": "ordinal must be greater than or equal to baseline (LOW < MEDIUM < HIGH); unknown fails"
+      },
+      "watchlist": {
+        "trades": "greater than or equal to baseline \u00d7 1.05 (\u22655% trade count)",
+        "expectancy_r": "strictly greater than 0",
+        "profit_factor": "greater than or equal to 1.25",
+        "notes": "No DD or confidence requirement; not promotion; use only for next experiment design."
+      }
+    },
+    "discovery_clusters": [
+      {
+        "tier": "watchlist",
+        "variants": [
+          "a1_session_relaxed",
+          "a4_session_regime_relaxed",
+          "a5_throughput_discovery"
+        ],
+        "representative_metrics": {
+          "total_trades": 63.0,
+          "expectancy_r": 0.4285714285714302,
+          "profit_factor": 1.8181818181818212,
+          "max_drawdown_r": 10.0
+        },
+        "preferred_next_test": "a1_session_relaxed",
+        "rationale": "`a1_session_relaxed` is the preferred next single-variable test among this cluster (lowest heuristic config-delta rank vs baseline; see VARIANT_CONFIG_DELTA_RANK in quantmetrics_os/scripts/discovery_clusters.py)."
+      }
+    ],
+    "relax_candidate_by_variant": {},
+    "watchlist_by_variant": {
+      "a1_session_relaxed": "session_filter (A1): discovery watchlist vs `a0_baseline` (~8.6% trade lift, exp>0, PF\u22651.25; does not meet full relax gates \u2014 not promotion)",
+      "a4_session_regime_relaxed": "session + regime (A4): discovery watchlist vs `a0_baseline` (~8.6% trade lift, exp>0, PF\u22651.25; does not meet full relax gates \u2014 not promotion)",
+      "a5_throughput_discovery": "throughput discovery (A5): discovery watchlist vs `a0_baseline` (~8.6% trade lift, exp>0, PF\u22651.25; does not meet full relax gates \u2014 not promotion)"
+    },
+    "notes": [
+      "Rankings are heuristics for research triage; promotion still requires the hard gate.",
+      "Do not promote on throughput alone; validate expectancy/PF/confidence and sample size.",
+      "guards_to_relax_candidate and guards_to_watchlist are NOT promotion; see discovery_rule_summary.",
+      "discovery_clusters is interpretive reading aid only; it does not change tier labels or promotion_decision.",
+      "Avoid session curve fitting: interpret matrices as throughput vs quality trade-offs vs baseline, not best PF hunting."
+    ],
+    "block_deltas_a1_vs_a0": [
+      [
+        "regime_allowed_sessions",
+        55
+      ],
+      [
+        "regime_profile",
+        7
+      ],
+      [
+        "equity_drawdown_kill_switch",
+        0
+      ],
+      [
+        "daily_loss_cap",
+        -2
+      ],
+      [
+        "max_trades_per_session",
+        -10
+      ]
+    ]
+  }
+}

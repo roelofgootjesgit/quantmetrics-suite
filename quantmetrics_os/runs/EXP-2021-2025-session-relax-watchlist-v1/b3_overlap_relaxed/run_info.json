@@ -1,0 +1,12 @@
+{
+  "run_id": "qb_run_20260425T055536Z_36979f52",
+  "experiment_id": "EXP-2021-2025-session-relax-watchlist-v1",
+  "role": "b3_overlap_relaxed",
+  "collected_at_utc": "2026-04-25T05:55:49.102515Z",
+  "quantbuild_root": "C:\\Users\\Gebruiker\\quantmetrics-suite\\quantbuild",
+  "quantlog_source": "C:\\Users\\Gebruiker\\quantmetrics-suite\\quantbuild\\data\\quantlog_events\\runs\\qb_run_20260425T055536Z_36979f52.jsonl",
+  "config_snapshot": "config_snapshot.yaml",
+  "config_source_path": "C:\\Users\\Gebruiker\\quantmetrics-suite\\quantbuild\\configs\\_throughput_discovery\\EXP-2021-2025-session-relax-watchlist-v1\\B3_OVERLAP_RELAXED.yaml",
+  "resolved_config": "",
+  "resolved_config_source_path": null
+}

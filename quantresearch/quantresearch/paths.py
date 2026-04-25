@@ -32,3 +32,8 @@ def templates_dir() -> Path:
 
 def schemas_dir() -> Path:
     return repo_root() / "schemas"
+
+
+def experiments_dir() -> Path:
+    """Per-experiment human artifacts: hypothesis, plan, decision (see ``schemas/experiment_bundle.schema.json``)."""
+    return repo_root() / "experiments"

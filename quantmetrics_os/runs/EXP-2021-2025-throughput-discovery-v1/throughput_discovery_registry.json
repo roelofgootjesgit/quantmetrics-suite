@@ -1,0 +1,963 @@
+{
+  "generated_at_utc": "2026-04-25T05:40:25.915438Z",
+  "rows": [
+    {
+      "experiment": "A0_BASELINE",
+      "title": "Baseline (control)",
+      "run_id": "qb_run_20260425T053826Z_7c56e609",
+      "role_dir": "C:\\Users\\Gebruiker\\quantmetrics-suite\\quantmetrics_os\\runs\\EXP-2021-2025-throughput-discovery-v1\\a0_baseline",
+      "throughput": {
+        "raw_signals_detected": 167,
+        "signals_after_filters": 58,
+        "signals_executed": 58,
+        "filter_kill_ratio": 0.652694610778443,
+        "execution_ratio": 0.3473053892215569,
+        "cycle_counts": {
+          "total_cycles": 167,
+          "risk_allow_cycles": 58,
+          "risk_block_cycles": 109,
+          "no_action_cycles": 109,
+          "entered_cycles": 58,
+          "executed_cycles": 58
+        },
+        "event_counts": {
+          "risk_guard_decision_events": 167,
+          "signal_filtered_events": 109,
+          "trade_action_events": 167
+        },
+        "throughput_rates": {
+          "trades_per_month": 3.0526315789473686,
+          "months_span_inclusive": 19
+        },
+        "breakdowns": {
+          "guard_decisions": {
+            "backtest_pipeline:ALLOW": 58,
+            "max_trades_per_session:BLOCK": 24,
+            "regime_allowed_sessions:BLOCK": 55,
+            "regime_profile:BLOCK": 15,
+            "daily_loss_cap:BLOCK": 14,
+            "equity_drawdown_kill_switch:BLOCK": 1
+          },
+          "guard_blocks": {
+            "max_trades_per_session": 24,
+            "regime_allowed_sessions": 55,
+            "regime_profile": 15,
+            "daily_loss_cap": 14,
+            "equity_drawdown_kill_switch": 1
+          },
+          "guard_allows": {
+            "backtest_pipeline": 58
+          },
+          "regime_guard_blocks": {
+            "trend:max_trades_per_session": 20,
+            "expansion:max_trades_per_session": 4,
+            "trend:regime_allowed_sessions": 46,
+            "compression:regime_profile": 15,
+            "expansion:regime_allowed_sessions": 9,
+            "trend:daily_loss_cap": 14,
+            "trend:equity_drawdown_kill_switch": 1
+          },
+          "session_guard_blocks": {
+            "London:max_trades_per_session": 6,
+            "Overlap:max_trades_per_session": 10,
+            "New York:max_trades_per_session": 8,
+            "Asia:regime_allowed_sessions": 55,
+            "Asia:regime_profile": 15,
+            "Overlap:daily_loss_cap": 4,
+            "New York:daily_loss_cap": 10,
+            "New York:equity_drawdown_kill_switch": 1
+          },
+          "filter_reasons": {
+            "position_limit_reached": 24,
+            "session_blocked": 55,
+            "regime_blocked": 15,
+            "risk_blocked": 15
+          }
+        }
+      },
+      "promotion": {
+        "generated_at_utc": "2026-04-25T05:38:41.949174Z",
+        "run_id": "qb_run_20260425T053826Z_7c56e609",
+        "promotion_decision": "VALIDATION_REQUIRED",
+        "all_rules_passed": false,
+        "metrics": {
+          "total_trades": 58,
+          "expectancy_r": 0.2931034482758685,
+          "profit_factor": 1.5151515151515265
+        },
+        "risk_shape": {
+          "max_drawdown_r": 10.99999999999983,
+          "baseline_max_drawdown_r": null,
+          "max_dd_worsen_ratio": null
+        },
+        "input_edge_verdict": "VALIDATION_REQUIRED",
+        "input_confidence": "LOW",
+        "major_warning_count": 1,
+        "failed_rules": [
+          {
+            "rule": "confidence must not be LOW",
+            "passed": false,
+            "fail_outcome": "VALIDATION_REQUIRED",
+            "reason": "confidence=LOW"
+          },
+          {
+            "rule": "total_trades must be >= 100",
+            "passed": false,
+            "fail_outcome": "VALIDATION_REQUIRED",
+            "reason": "total_trades=58"
+          },
+          {
+            "rule": "major warnings must be absent",
+            "passed": false,
+            "fail_outcome": "VALIDATION_REQUIRED",
+            "reason": "major_warnings=1"
+          }
+        ],
+        "checks": [
+          {
+            "rule": "confidence must not be LOW",
+            "passed": false,
+            "fail_outcome": "VALIDATION_REQUIRED",
+            "reason": "confidence=LOW"
+          },
+          {
+            "rule": "total_trades must be >= 100",
+            "passed": false,
+            "fail_outcome": "VALIDATION_REQUIRED",
+            "reason": "total_trades=58"
+          },
+          {
+            "rule": "expectancy_R must be > 0",
+            "passed": true,
+            "fail_outcome": "REJECT",
+            "reason": "expectancy_R=0.2931034482758685"
+          },
+          {
+            "rule": "profit_factor must be >= 1.25",
+            "passed": true,
+            "fail_outcome": "REJECT",
+            "reason": "profit_factor=1.5151515151515265"
+          },
+          {
+            "rule": "at least one protective guard required",
+            "passed": true,
+            "fail_outcome": "VALIDATION_REQUIRED",
+            "reason": "protective_guard_detected=True"
+          },
+          {
+            "rule": "major warnings must be absent",
+            "passed": false,
+            "fail_outcome": "VALIDATION_REQUIRED",
+            "reason": "major_warnings=1"
+          }
+        ],
+        "reasons": [
+          "confidence must not be LOW: confidence=LOW",
+          "total_trades must be >= 100: total_trades=58",
+          "major warnings must be absent: major_warnings=1"
+        ]
+      },
+      "max_drawdown_r": 10.99999999999983
+    },
+    {
+      "experiment": "A1_SESSION_RELAXED",
+      "title": "Relax session filter only",
+      "run_id": "qb_run_20260425T053850Z_4e551417",
+      "role_dir": "C:\\Users\\Gebruiker\\quantmetrics-suite\\quantmetrics_os\\runs\\EXP-2021-2025-throughput-discovery-v1\\a1_session_relaxed",
+      "throughput": {
+        "raw_signals_detected": 122,
+        "signals_after_filters": 63,
+        "signals_executed": 63,
+        "filter_kill_ratio": 0.48360655737704916,
+        "execution_ratio": 0.5163934426229508,
+        "cycle_counts": {
+          "total_cycles": 122,
+          "risk_allow_cycles": 63,
+          "risk_block_cycles": 59,
+          "no_action_cycles": 59,
+          "entered_cycles": 63,
+          "executed_cycles": 63
+        },
+        "event_counts": {
+          "risk_guard_decision_events": 122,
+          "signal_filtered_events": 59,
+          "trade_action_events": 122
+        },
+        "throughput_rates": {
+          "trades_per_month": 4.2,
+          "months_span_inclusive": 15
+        },
+        "breakdowns": {
+          "guard_decisions": {
+            "backtest_pipeline:ALLOW": 63,
+            "max_trades_per_session:BLOCK": 34,
+            "regime_profile:BLOCK": 8,
+            "daily_loss_cap:BLOCK": 16,
+            "equity_drawdown_kill_switch:BLOCK": 1
+          },
+          "guard_blocks": {
+            "max_trades_per_session": 34,
+            "regime_profile": 8,
+            "daily_loss_cap": 16,
+            "equity_drawdown_kill_switch": 1
+          },
+          "guard_allows": {
+            "backtest_pipeline": 63
+          },
+          "regime_guard_blocks": {
+            "trend:max_trades_per_session": 28,
+            "expansion:max_trades_per_session": 6,
+            "compression:regime_profile": 8,
+            "expansion:daily_loss_cap": 3,
+            "trend:daily_loss_cap": 13,
+            "trend:equity_drawdown_kill_switch": 1
+          },
+          "session_guard_blocks": {
+            "London:max_trades_per_session": 6,
+            "Overlap:max_trades_per_session": 9,
+            "New York:max_trades_per_session": 6,
+            "Asia:max_trades_per_session": 13,
+            "Asia:regime_profile": 8,
+            "Asia:daily_loss_cap": 2,
+            "New York:daily_loss_cap": 10,
+            "Overlap:daily_loss_cap": 4,
+            "Asia:equity_drawdown_kill_switch": 1
+          },
+          "filter_reasons": {
+            "position_limit_reached": 34,
+            "regime_blocked": 8,
+            "risk_blocked": 17
+          }
+        }
+      },
+      "promotion": {
+        "generated_at_utc": "2026-04-25T05:39:00.845922Z",
+        "run_id": "qb_run_20260425T053850Z_4e551417",
+        "promotion_decision": "VALIDATION_REQUIRED",
+        "all_rules_passed": false,
+        "metrics": {
+          "total_trades": 63,
+          "expectancy_r": 0.4285714285714302,
+          "profit_factor": 1.8181818181818212
+        },
+        "risk_shape": {
+          "max_drawdown_r": 10.0,
+          "baseline_max_drawdown_r": 10.99999999999983,
+          "max_dd_worsen_ratio": 1.2
+        },
+        "input_edge_verdict": "VALIDATION_REQUIRED",
+        "input_confidence": "LOW",
+        "major_warning_count": 1,
+        "failed_rules": [
+          {
+            "rule": "confidence must not be LOW",
+            "passed": false,
+            "fail_outcome": "VALIDATION_REQUIRED",
+            "reason": "confidence=LOW"
+          },
+          {
+            "rule": "total_trades must be >= 100",
+            "passed": false,
+            "fail_outcome": "VALIDATION_REQUIRED",
+            "reason": "total_trades=63"
+          },
+          {
+            "rule": "major warnings must be absent",
+            "passed": false,
+            "fail_outcome": "VALIDATION_REQUIRED",
+            "reason": "major_warnings=1"
+          }
+        ],
+        "checks": [
+          {
+            "rule": "confidence must not be LOW",
+            "passed": false,
+            "fail_outcome": "VALIDATION_REQUIRED",
+            "reason": "confidence=LOW"
+          },
+          {
+            "rule": "total_trades must be >= 100",
+            "passed": false,
+            "fail_outcome": "VALIDATION_REQUIRED",
+            "reason": "total_trades=63"
+          },
+          {
+            "rule": "expectancy_R must be > 0",
+            "passed": true,
+            "fail_outcome": "REJECT",
+            "reason": "expectancy_R=0.4285714285714302"
+          },
+          {
+            "rule": "profit_factor must be >= 1.25",
+            "passed": true,
+            "fail_outcome": "REJECT",
+            "reason": "profit_factor=1.8181818181818212"
+          },
+          {
+            "rule": "at least one protective guard required",
+            "passed": true,
+            "fail_outcome": "VALIDATION_REQUIRED",
+            "reason": "protective_guard_detected=True"
+          },
+          {
+            "rule": "major warnings must be absent",
+            "passed": false,
+            "fail_outcome": "VALIDATION_REQUIRED",
+            "reason": "major_warnings=1"
+          },
+          {
+            "rule": "max_drawdown_R must not worsen materially vs baseline",
+            "passed": true,
+            "fail_outcome": "VALIDATION_REQUIRED",
+            "reason": "max_dd_r=10.0, baseline_max_dd_r=10.99999999999983, threshold=13.200000 (ratio=1.2)"
+          }
+        ],
+        "reasons": [
+          "confidence must not be LOW: confidence=LOW",
+          "total_trades must be >= 100: total_trades=63",
+          "major warnings must be absent: major_warnings=1"
+        ]
+      },
+      "max_drawdown_r": 10.0
+    },
+    {
+      "experiment": "A2_REGIME_RELAXED",
+      "title": "Relax regime filter only",
+      "run_id": "qb_run_20260425T053907Z_61305cdc",
+      "role_dir": "C:\\Users\\Gebruiker\\quantmetrics-suite\\quantmetrics_os\\runs\\EXP-2021-2025-throughput-discovery-v1\\a2_regime_relaxed",
+      "throughput": {
+        "raw_signals_detected": 167,
+        "signals_after_filters": 58,
+        "signals_executed": 58,
+        "filter_kill_ratio": 0.652694610778443,
+        "execution_ratio": 0.3473053892215569,
+        "cycle_counts": {
+          "total_cycles": 167,
+          "risk_allow_cycles": 58,
+          "risk_block_cycles": 109,
+          "no_action_cycles": 109,
+          "entered_cycles": 58,
+          "executed_cycles": 58
+        },
+        "event_counts": {
+          "risk_guard_decision_events": 167,
+          "signal_filtered_events": 109,
+          "trade_action_events": 167
+        },
+        "throughput_rates": {
+          "trades_per_month": 3.0526315789473686,
+          "months_span_inclusive": 19
+        },
+        "breakdowns": {
+          "guard_decisions": {
+            "backtest_pipeline:ALLOW": 58,
+            "max_trades_per_session:BLOCK": 39,
+            "regime_allowed_sessions:BLOCK": 55,
+            "daily_loss_cap:BLOCK": 14,
+            "equity_drawdown_kill_switch:BLOCK": 1
+          },
+          "guard_blocks": {
+            "max_trades_per_session": 39,
+            "regime_allowed_sessions": 55,
+            "daily_loss_cap": 14,
+            "equity_drawdown_kill_switch": 1
+          },
+          "guard_allows": {
+            "backtest_pipeline": 58
+          },
+          "regime_guard_blocks": {
+            "trend:max_trades_per_session": 20,
+            "expansion:max_trades_per_session": 4,
+            "trend:regime_allowed_sessions": 46,
+            "compression:max_trades_per_session": 15,
+            "expansion:regime_allowed_sessions": 9,
+            "trend:daily_loss_cap": 14,
+            "trend:equity_drawdown_kill_switch": 1
+          },
+          "session_guard_blocks": {
+            "London:max_trades_per_session": 6,
+            "Overlap:max_trades_per_session": 10,
+            "New York:max_trades_per_session": 8,
+            "Asia:regime_allowed_sessions": 55,
+            "Asia:max_trades_per_session": 15,
+            "Overlap:daily_loss_cap": 4,
+            "New York:daily_loss_cap": 10,
+            "New York:equity_drawdown_kill_switch": 1
+          },
+          "filter_reasons": {
+            "position_limit_reached": 39,
+            "session_blocked": 55,
+            "risk_blocked": 15
+          }
+        }
+      },
+      "promotion": {
+        "generated_at_utc": "2026-04-25T05:39:18.527831Z",
+        "run_id": "qb_run_20260425T053907Z_61305cdc",
+        "promotion_decision": "VALIDATION_REQUIRED",
+        "all_rules_passed": false,
+        "metrics": {
+          "total_trades": 58,
+          "expectancy_r": 0.2931034482758685,
+          "profit_factor": 1.5151515151515265
+        },
+        "risk_shape": {
+          "max_drawdown_r": 10.99999999999983,
+          "baseline_max_drawdown_r": 10.99999999999983,
+          "max_dd_worsen_ratio": 1.2
+        },
+        "input_edge_verdict": "VALIDATION_REQUIRED",
+        "input_confidence": "LOW",
+        "major_warning_count": 1,
+        "failed_rules": [
+          {
+            "rule": "confidence must not be LOW",
+            "passed": false,
+            "fail_outcome": "VALIDATION_REQUIRED",
+            "reason": "confidence=LOW"
+          },
+          {
+            "rule": "total_trades must be >= 100",
+            "passed": false,
+            "fail_outcome": "VALIDATION_REQUIRED",
+            "reason": "total_trades=58"
+          },
+          {
+            "rule": "major warnings must be absent",
+            "passed": false,
+            "fail_outcome": "VALIDATION_REQUIRED",
+            "reason": "major_warnings=1"
+          }
+        ],
+        "checks": [
+          {
+            "rule": "confidence must not be LOW",
+            "passed": false,
+            "fail_outcome": "VALIDATION_REQUIRED",
+            "reason": "confidence=LOW"
+          },
+          {
+            "rule": "total_trades must be >= 100",
+            "passed": false,
+            "fail_outcome": "VALIDATION_REQUIRED",
+            "reason": "total_trades=58"
+          },
+          {
+            "rule": "expectancy_R must be > 0",
+            "passed": true,
+            "fail_outcome": "REJECT",
+            "reason": "expectancy_R=0.2931034482758685"
+          },
+          {
+            "rule": "profit_factor must be >= 1.25",
+            "passed": true,
+            "fail_outcome": "REJECT",
+            "reason": "profit_factor=1.5151515151515265"
+          },
+          {
+            "rule": "at least one protective guard required",
+            "passed": true,
+            "fail_outcome": "VALIDATION_REQUIRED",
+            "reason": "protective_guard_detected=True"
+          },
+          {
+            "rule": "major warnings must be absent",
+            "passed": false,
+            "fail_outcome": "VALIDATION_REQUIRED",
+            "reason": "major_warnings=1"
+          },
+          {
+            "rule": "max_drawdown_R must not worsen materially vs baseline",
+            "passed": true,
+            "fail_outcome": "VALIDATION_REQUIRED",
+            "reason": "max_dd_r=10.99999999999983, baseline_max_dd_r=10.99999999999983, threshold=13.200000 (ratio=1.2)"
+          }
+        ],
+        "reasons": [
+          "confidence must not be LOW: confidence=LOW",
+          "total_trades must be >= 100: total_trades=58",
+          "major warnings must be absent: major_warnings=1"
+        ]
+      },
+      "max_drawdown_r": 10.99999999999983
+    },
+    {
+      "experiment": "A3_COOLDOWN_RELAXED",
+      "title": "Relax cooldown only",
+      "run_id": "qb_run_20260425T053925Z_5fe05f75",
+      "role_dir": "C:\\Users\\Gebruiker\\quantmetrics-suite\\quantmetrics_os\\runs\\EXP-2021-2025-throughput-discovery-v1\\a3_cooldown_relaxed",
+      "throughput": {
+        "raw_signals_detected": 167,
+        "signals_after_filters": 58,
+        "signals_executed": 58,
+        "filter_kill_ratio": 0.652694610778443,
+        "execution_ratio": 0.3473053892215569,
+        "cycle_counts": {
+          "total_cycles": 167,
+          "risk_allow_cycles": 58,
+          "risk_block_cycles": 109,
+          "no_action_cycles": 109,
+          "entered_cycles": 58,
+          "executed_cycles": 58
+        },
+        "event_counts": {
+          "risk_guard_decision_events": 167,
+          "signal_filtered_events": 109,
+          "trade_action_events": 167
+        },
+        "throughput_rates": {
+          "trades_per_month": 3.0526315789473686,
+          "months_span_inclusive": 19
+        },
+        "breakdowns": {
+          "guard_decisions": {
+            "backtest_pipeline:ALLOW": 58,
+            "max_trades_per_session:BLOCK": 24,
+            "regime_allowed_sessions:BLOCK": 55,
+            "regime_profile:BLOCK": 15,
+            "daily_loss_cap:BLOCK": 14,
+            "equity_drawdown_kill_switch:BLOCK": 1
+          },
+          "guard_blocks": {
+            "max_trades_per_session": 24,
+            "regime_allowed_sessions": 55,
+            "regime_profile": 15,
+            "daily_loss_cap": 14,
+            "equity_drawdown_kill_switch": 1
+          },
+          "guard_allows": {
+            "backtest_pipeline": 58
+          },
+          "regime_guard_blocks": {
+            "trend:max_trades_per_session": 20,
+            "expansion:max_trades_per_session": 4,
+            "trend:regime_allowed_sessions": 46,
+            "compression:regime_profile": 15,
+            "expansion:regime_allowed_sessions": 9,
+            "trend:daily_loss_cap": 14,
+            "trend:equity_drawdown_kill_switch": 1
+          },
+          "session_guard_blocks": {
+            "London:max_trades_per_session": 6,
+            "Overlap:max_trades_per_session": 10,
+            "New York:max_trades_per_session": 8,
+            "Asia:regime_allowed_sessions": 55,
+            "Asia:regime_profile": 15,
+            "Overlap:daily_loss_cap": 4,
+            "New York:daily_loss_cap": 10,
+            "New York:equity_drawdown_kill_switch": 1
+          },
+          "filter_reasons": {
+            "position_limit_reached": 24,
+            "session_blocked": 55,
+            "regime_blocked": 15,
+            "risk_blocked": 15
+          }
+        }
+      },
+      "promotion": {
+        "generated_at_utc": "2026-04-25T05:39:41.223788Z",
+        "run_id": "qb_run_20260425T053925Z_5fe05f75",
+        "promotion_decision": "VALIDATION_REQUIRED",
+        "all_rules_passed": false,
+        "metrics": {
+          "total_trades": 58,
+          "expectancy_r": 0.2931034482758685,
+          "profit_factor": 1.5151515151515265
+        },
+        "risk_shape": {
+          "max_drawdown_r": 10.99999999999983,
+          "baseline_max_drawdown_r": 10.99999999999983,
+          "max_dd_worsen_ratio": 1.2
+        },
+        "input_edge_verdict": "VALIDATION_REQUIRED",
+        "input_confidence": "LOW",
+        "major_warning_count": 1,
+        "failed_rules": [
+          {
+            "rule": "confidence must not be LOW",
+            "passed": false,
+            "fail_outcome": "VALIDATION_REQUIRED",
+            "reason": "confidence=LOW"
+          },
+          {
+            "rule": "total_trades must be >= 100",
+            "passed": false,
+            "fail_outcome": "VALIDATION_REQUIRED",
+            "reason": "total_trades=58"
+          },
+          {
+            "rule": "major warnings must be absent",
+            "passed": false,
+            "fail_outcome": "VALIDATION_REQUIRED",
+            "reason": "major_warnings=1"
+          }
+        ],
+        "checks": [
+          {
+            "rule": "confidence must not be LOW",
+            "passed": false,
+            "fail_outcome": "VALIDATION_REQUIRED",
+            "reason": "confidence=LOW"
+          },
+          {
+            "rule": "total_trades must be >= 100",
+            "passed": false,
+            "fail_outcome": "VALIDATION_REQUIRED",
+            "reason": "total_trades=58"
+          },
+          {
+            "rule": "expectancy_R must be > 0",
+            "passed": true,
+            "fail_outcome": "REJECT",
+            "reason": "expectancy_R=0.2931034482758685"
+          },
+          {
+            "rule": "profit_factor must be >= 1.25",
+            "passed": true,
+            "fail_outcome": "REJECT",
+            "reason": "profit_factor=1.5151515151515265"
+          },
+          {
+            "rule": "at least one protective guard required",
+            "passed": true,
+            "fail_outcome": "VALIDATION_REQUIRED",
+            "reason": "protective_guard_detected=True"
+          },
+          {
+            "rule": "major warnings must be absent",
+            "passed": false,
+            "fail_outcome": "VALIDATION_REQUIRED",
+            "reason": "major_warnings=1"
+          },
+          {
+            "rule": "max_drawdown_R must not worsen materially vs baseline",
+            "passed": true,
+            "fail_outcome": "VALIDATION_REQUIRED",
+            "reason": "max_dd_r=10.99999999999983, baseline_max_dd_r=10.99999999999983, threshold=13.200000 (ratio=1.2)"
+          }
+        ],
+        "reasons": [
+          "confidence must not be LOW: confidence=LOW",
+          "total_trades must be >= 100: total_trades=58",
+          "major warnings must be absent: major_warnings=1"
+        ]
+      },
+      "max_drawdown_r": 10.99999999999983
+    },
+    {
+      "experiment": "A4_SESSION_REGIME_RELAXED",
+      "title": "Relax session + regime",
+      "run_id": "qb_run_20260425T053950Z_656da8a9",
+      "role_dir": "C:\\Users\\Gebruiker\\quantmetrics-suite\\quantmetrics_os\\runs\\EXP-2021-2025-throughput-discovery-v1\\a4_session_regime_relaxed",
+      "throughput": {
+        "raw_signals_detected": 122,
+        "signals_after_filters": 63,
+        "signals_executed": 63,
+        "filter_kill_ratio": 0.48360655737704916,
+        "execution_ratio": 0.5163934426229508,
+        "cycle_counts": {
+          "total_cycles": 122,
+          "risk_allow_cycles": 63,
+          "risk_block_cycles": 59,
+          "no_action_cycles": 59,
+          "entered_cycles": 63,
+          "executed_cycles": 63
+        },
+        "event_counts": {
+          "risk_guard_decision_events": 122,
+          "signal_filtered_events": 59,
+          "trade_action_events": 122
+        },
+        "throughput_rates": {
+          "trades_per_month": 4.2,
+          "months_span_inclusive": 15
+        },
+        "breakdowns": {
+          "guard_decisions": {
+            "backtest_pipeline:ALLOW": 63,
+            "max_trades_per_session:BLOCK": 42,
+            "daily_loss_cap:BLOCK": 16,
+            "equity_drawdown_kill_switch:BLOCK": 1
+          },
+          "guard_blocks": {
+            "max_trades_per_session": 42,
+            "daily_loss_cap": 16,
+            "equity_drawdown_kill_switch": 1
+          },
+          "guard_allows": {
+            "backtest_pipeline": 63
+          },
+          "regime_guard_blocks": {
+            "trend:max_trades_per_session": 28,
+            "expansion:max_trades_per_session": 6,
+            "compression:max_trades_per_session": 8,
+            "expansion:daily_loss_cap": 3,
+            "trend:daily_loss_cap": 13,
+            "trend:equity_drawdown_kill_switch": 1
+          },
+          "session_guard_blocks": {
+            "London:max_trades_per_session": 6,
+            "Overlap:max_trades_per_session": 9,
+            "New York:max_trades_per_session": 6,
+            "Asia:max_trades_per_session": 21,
+            "Asia:daily_loss_cap": 2,
+            "New York:daily_loss_cap": 10,
+            "Overlap:daily_loss_cap": 4,
+            "Asia:equity_drawdown_kill_switch": 1
+          },
+          "filter_reasons": {
+            "position_limit_reached": 42,
+            "risk_blocked": 17
+          }
+        }
+      },
+      "promotion": {
+        "generated_at_utc": "2026-04-25T05:40:02.020919Z",
+        "run_id": "qb_run_20260425T053950Z_656da8a9",
+        "promotion_decision": "VALIDATION_REQUIRED",
+        "all_rules_passed": false,
+        "metrics": {
+          "total_trades": 63,
+          "expectancy_r": 0.4285714285714302,
+          "profit_factor": 1.8181818181818212
+        },
+        "risk_shape": {
+          "max_drawdown_r": 10.0,
+          "baseline_max_drawdown_r": 10.99999999999983,
+          "max_dd_worsen_ratio": 1.2
+        },
+        "input_edge_verdict": "VALIDATION_REQUIRED",
+        "input_confidence": "LOW",
+        "major_warning_count": 1,
+        "failed_rules": [
+          {
+            "rule": "confidence must not be LOW",
+            "passed": false,
+            "fail_outcome": "VALIDATION_REQUIRED",
+            "reason": "confidence=LOW"
+          },
+          {
+            "rule": "total_trades must be >= 100",
+            "passed": false,
+            "fail_outcome": "VALIDATION_REQUIRED",
+            "reason": "total_trades=63"
+          },
+          {
+            "rule": "major warnings must be absent",
+            "passed": false,
+            "fail_outcome": "VALIDATION_REQUIRED",
+            "reason": "major_warnings=1"
+          }
+        ],
+        "checks": [
+          {
+            "rule": "confidence must not be LOW",
+            "passed": false,
+            "fail_outcome": "VALIDATION_REQUIRED",
+            "reason": "confidence=LOW"
+          },
+          {
+            "rule": "total_trades must be >= 100",
+            "passed": false,
+            "fail_outcome": "VALIDATION_REQUIRED",
+            "reason": "total_trades=63"
+          },
+          {
+            "rule": "expectancy_R must be > 0",
+            "passed": true,
+            "fail_outcome": "REJECT",
+            "reason": "expectancy_R=0.4285714285714302"
+          },
+          {
+            "rule": "profit_factor must be >= 1.25",
+            "passed": true,
+            "fail_outcome": "REJECT",
+            "reason": "profit_factor=1.8181818181818212"
+          },
+          {
+            "rule": "at least one protective guard required",
+            "passed": true,
+            "fail_outcome": "VALIDATION_REQUIRED",
+            "reason": "protective_guard_detected=True"
+          },
+          {
+            "rule": "major warnings must be absent",
+            "passed": false,
+            "fail_outcome": "VALIDATION_REQUIRED",
+            "reason": "major_warnings=1"
+          },
+          {
+            "rule": "max_drawdown_R must not worsen materially vs baseline",
+            "passed": true,
+            "fail_outcome": "VALIDATION_REQUIRED",
+            "reason": "max_dd_r=10.0, baseline_max_dd_r=10.99999999999983, threshold=13.200000 (ratio=1.2)"
+          }
+        ],
+        "reasons": [
+          "confidence must not be LOW: confidence=LOW",
+          "total_trades must be >= 100: total_trades=63",
+          "major warnings must be absent: major_warnings=1"
+        ]
+      },
+      "max_drawdown_r": 10.0
+    },
+    {
+      "experiment": "A5_THROUGHPUT_DISCOVERY",
+      "title": "Throughput discovery (non-risk filters relaxed)",
+      "run_id": "qb_run_20260425T054010Z_1a326ba3",
+      "role_dir": "C:\\Users\\Gebruiker\\quantmetrics-suite\\quantmetrics_os\\runs\\EXP-2021-2025-throughput-discovery-v1\\a5_throughput_discovery",
+      "throughput": {
+        "raw_signals_detected": 122,
+        "signals_after_filters": 63,
+        "signals_executed": 63,
+        "filter_kill_ratio": 0.48360655737704916,
+        "execution_ratio": 0.5163934426229508,
+        "cycle_counts": {
+          "total_cycles": 122,
+          "risk_allow_cycles": 63,
+          "risk_block_cycles": 59,
+          "no_action_cycles": 59,
+          "entered_cycles": 63,
+          "executed_cycles": 63
+        },
+        "event_counts": {
+          "risk_guard_decision_events": 122,
+          "signal_filtered_events": 59,
+          "trade_action_events": 122
+        },
+        "throughput_rates": {
+          "trades_per_month": 4.2,
+          "months_span_inclusive": 15
+        },
+        "breakdowns": {
+          "guard_decisions": {
+            "backtest_pipeline:ALLOW": 63,
+            "max_trades_per_session:BLOCK": 42,
+            "daily_loss_cap:BLOCK": 16,
+            "equity_drawdown_kill_switch:BLOCK": 1
+          },
+          "guard_blocks": {
+            "max_trades_per_session": 42,
+            "daily_loss_cap": 16,
+            "equity_drawdown_kill_switch": 1
+          },
+          "guard_allows": {
+            "backtest_pipeline": 63
+          },
+          "regime_guard_blocks": {
+            "trend:max_trades_per_session": 28,
+            "expansion:max_trades_per_session": 6,
+            "compression:max_trades_per_session": 8,
+            "expansion:daily_loss_cap": 3,
+            "trend:daily_loss_cap": 13,
+            "trend:equity_drawdown_kill_switch": 1
+          },
+          "session_guard_blocks": {
+            "London:max_trades_per_session": 6,
+            "Overlap:max_trades_per_session": 9,
+            "New York:max_trades_per_session": 6,
+            "Asia:max_trades_per_session": 21,
+            "Asia:daily_loss_cap": 2,
+            "New York:daily_loss_cap": 10,
+            "Overlap:daily_loss_cap": 4,
+            "Asia:equity_drawdown_kill_switch": 1
+          },
+          "filter_reasons": {
+            "position_limit_reached": 42,
+            "risk_blocked": 17
+          }
+        }
+      },
+      "promotion": {
+        "generated_at_utc": "2026-04-25T05:40:25.876061Z",
+        "run_id": "qb_run_20260425T054010Z_1a326ba3",
+        "promotion_decision": "VALIDATION_REQUIRED",
+        "all_rules_passed": false,
+        "metrics": {
+          "total_trades": 63,
+          "expectancy_r": 0.4285714285714302,
+          "profit_factor": 1.8181818181818212
+        },
+        "risk_shape": {
+          "max_drawdown_r": 10.0,
+          "baseline_max_drawdown_r": 10.99999999999983,
+          "max_dd_worsen_ratio": 1.2
+        },
+        "input_edge_verdict": "VALIDATION_REQUIRED",
+        "input_confidence": "LOW",
+        "major_warning_count": 1,
+        "failed_rules": [
+          {
+            "rule": "confidence must not be LOW",
+            "passed": false,
+            "fail_outcome": "VALIDATION_REQUIRED",
+            "reason": "confidence=LOW"
+          },
+          {
+            "rule": "total_trades must be >= 100",
+            "passed": false,
+            "fail_outcome": "VALIDATION_REQUIRED",
+            "reason": "total_trades=63"
+          },
+          {
+            "rule": "major warnings must be absent",
+            "passed": false,
+            "fail_outcome": "VALIDATION_REQUIRED",
+            "reason": "major_warnings=1"
+          }
+        ],
+        "checks": [
+          {
+            "rule": "confidence must not be LOW",
+            "passed": false,
+            "fail_outcome": "VALIDATION_REQUIRED",
+            "reason": "confidence=LOW"
+          },
+          {
+            "rule": "total_trades must be >= 100",
+            "passed": false,
+            "fail_outcome": "VALIDATION_REQUIRED",
+            "reason": "total_trades=63"
+          },
+          {
+            "rule": "expectancy_R must be > 0",
+            "passed": true,
+            "fail_outcome": "REJECT",
+            "reason": "expectancy_R=0.4285714285714302"
+          },
+          {
+            "rule": "profit_factor must be >= 1.25",
+            "passed": true,
+            "fail_outcome": "REJECT",
+            "reason": "profit_factor=1.8181818181818212"
+          },
+          {
+            "rule": "at least one protective guard required",
+            "passed": true,
+            "fail_outcome": "VALIDATION_REQUIRED",
+            "reason": "protective_guard_detected=True"
+          },
+          {
+            "rule": "major warnings must be absent",
+            "passed": false,
+            "fail_outcome": "VALIDATION_REQUIRED",
+            "reason": "major_warnings=1"
+          },
+          {
+            "rule": "max_drawdown_R must not worsen materially vs baseline",
+            "passed": true,
+            "fail_outcome": "VALIDATION_REQUIRED",
+            "reason": "max_dd_r=10.0, baseline_max_dd_r=10.99999999999983, threshold=13.200000 (ratio=1.2)"
+          }
+        ],
+        "reasons": [
+          "confidence must not be LOW: confidence=LOW",
+          "total_trades must be >= 100: total_trades=63",
+          "major warnings must be absent: major_warnings=1"
+        ]
+      },
+      "max_drawdown_r": 10.0
+    }
+  ]
+}

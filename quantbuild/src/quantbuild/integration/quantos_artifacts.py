@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from src.quantbuild.config_runtime_snapshot import write_runtime_config_yaml
 from src.quantbuild.execution.quantlog_emitter import QuantLogEmitter
 from src.quantbuild.integration.quantanalytics_post_run import discover_quantanalytics_output_rapport
 from src.quantbuild.quantlog_repo import quantbuild_project_root
@@ -71,6 +72,14 @@ def invoke_collect_run_artifacts(cfg: dict[str, Any], ql_emitter: QuantLogEmitte
     cfg_path = cfg.get("_quantbuild_config_path")
     config_yaml = Path(str(cfg_path)).resolve() if cfg_path else None
 
+    runs_dir = qb_root / "data" / "quantlog_events" / "runs"
+    resolved_sidecar: Path | None = runs_dir / f"{ql_emitter.run_id}_resolved.yaml"
+    try:
+        write_runtime_config_yaml(cfg, resolved_sidecar)
+    except Exception:
+        logger.debug("Resolved config snapshot not written", exc_info=True)
+        resolved_sidecar = None
+
     bundle = bool(art.get("bundle_analytics", True))
     recent_sec = int(art.get("analytics_recent_seconds", 900))
     analytics_out = None
@@ -95,6 +104,8 @@ def invoke_collect_run_artifacts(cfg: dict[str, Any], ql_emitter: QuantLogEmitte
     ]
     if config_yaml is not None and config_yaml.is_file():
         cmd.extend(["--config-yaml", str(config_yaml)])
+    if resolved_sidecar is not None and resolved_sidecar.is_file():
+        cmd.extend(["--resolved-config-yaml", str(resolved_sidecar)])
     if bundle and analytics_out is not None:
         cmd.append("--bundle-analytics")
         cmd.extend(["--analytics-output-dir", str(analytics_out)])

@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://quantresearch.local/schemas/experiment_ledger_v1.schema.json",
+  "title": "QuantResearch experiment ledger (v1)",
+  "description": "Human research ledger fields on top of experiment_bundle. QuantResearch does not compute trading metrics.",
+  "type": "object",
+  "required": [
+    "experiment_id",
+    "title",
+    "status",
+    "created_at_utc",
+    "matrix_type",
+    "hypothesis_summary",
+    "primary_metric",
+    "secondary_metrics",
+    "promotion_decision",
+    "discovery_tier",
+    "next_action",
+    "quantresearch_files",
+    "matrix_definition"
+  ],
+  "properties": {
+    "$schema": { "type": "string" },
+    "experiment_id": {
+      "type": "string",
+      "pattern": "^EXP-[A-Za-z0-9._-]+$"
+    },
+    "title": { "type": "string", "minLength": 1 },
+    "status": {
+      "type": "string",
+      "enum": ["draft", "planned", "running", "completed", "rejected", "archived"]
+    },
+    "created_at_utc": { "type": "string" },
+    "completed_at_utc": { "type": ["string", "null"] },
+    "matrix_type": {
+      "type": "string",
+      "enum": ["throughput-discovery", "session-relax-watchlist", "custom"]
+    },
+    "baseline_run_id": { "type": ["string", "null"] },
+    "canonical_artifact_path": {
+      "type": ["string", "null"],
+      "description": "Path relative to suite root, e.g. quantmetrics_os/runs/EXP-..."
+    },
+    "hypothesis_summary": { "type": "string", "minLength": 1 },
+    "primary_metric": { "type": "string", "minLength": 1 },
+    "secondary_metrics": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" }
+    },
+    "promotion_decision": {
+      "type": "string",
+      "enum": ["PROMOTE", "REJECT", "VALIDATION_REQUIRED", "UNKNOWN"]
+    },
+    "discovery_tier": {
+      "type": "string",
+      "enum": ["relax_candidate", "watchlist", "none", "mixed"]
+    },
+    "next_action": {
+      "type": "string",
+      "enum": ["none", "rerun", "expand_sample", "isolate_guard", "multi_asset", "archive"]
+    },
+    "next_experiment_id": { "type": ["string", "null"] },
+    "parent_experiment_id": {
+      "type": "string",
+      "description": "Completed parent ledger when this experiment is a governed rerun (e.g. EXP-...-v2 → EXP-...-v1). Must not equal experiment_id."
+    },
+    "rerun_reason": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Non-empty justification required when parent_experiment_id is set (QuantOS preflight / audit)."
+    },
+    "rerun_index": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Ordinal rerun counter for lineage (1 = first rerun after parent completion)."
+    },
+    "previous_completed_at_utc": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Snapshot of parent's completed_at_utc when this rerun was opened; must match parent for validation."
+    },
+    "suite": { "type": "object", "additionalProperties": true },
+    "quantmetrics_os": { "type": "object", "additionalProperties": true },
+    "quantresearch_files": {
+      "type": "object",
+      "required": ["hypothesis_md", "experiment_plan_md", "results_summary_md", "decision_md", "links_json"],
+      "properties": {
+        "hypothesis_md": { "type": "string" },
+        "experiment_plan_md": { "type": "string" },
+        "results_summary_md": { "type": "string" },
+        "decision_md": { "type": "string" },
+        "links_json": { "type": "string", "const": "links.json" }
+      },
+      "additionalProperties": false
+    },
+    "matrix_definition": { "type": "object" },
+    "notes": { "type": "string" }
+  },
+  "additionalProperties": true
+}

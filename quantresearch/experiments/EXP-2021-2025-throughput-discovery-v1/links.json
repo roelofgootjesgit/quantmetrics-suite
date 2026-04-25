@@ -1,0 +1,8 @@
+{
+  "quantos_run_dir": "quantmetrics_os/runs/EXP-2021-2025-throughput-discovery-v1",
+  "paths_are_absolute": false,
+  "throughput_compare_json": "quantmetrics_os/runs/EXP-2021-2025-throughput-discovery-v1/THROUGHPUT_COMPARE.json",
+  "throughput_compare_md": "quantmetrics_os/runs/EXP-2021-2025-throughput-discovery-v1/THROUGHPUT_COMPARE.md",
+  "throughput_discovery_registry": "quantmetrics_os/runs/EXP-2021-2025-throughput-discovery-v1/throughput_discovery_registry.json",
+  "throughput_discovery_summary": "quantmetrics_os/runs/EXP-2021-2025-throughput-discovery-v1/THROUGHPUT_DISCOVERY_SUMMARY.md"
+}

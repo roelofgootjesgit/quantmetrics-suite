@@ -1,0 +1,58 @@
+{
+  "$schema": "../../schemas/experiment_ledger_v1.schema.json",
+  "experiment_id": "EXP-2021-2025-throughput-discovery-v1",
+  "title": "Throughput discovery matrix (session / regime / cooldown isolation)",
+  "status": "completed",
+  "created_at_utc": "2026-04-25T05:36:00Z",
+  "completed_at_utc": "2026-04-25T05:41:20Z",
+  "matrix_type": "throughput-discovery",
+  "baseline_run_id": "qb_run_20260425T053826Z_7c56e609",
+  "canonical_artifact_path": "quantmetrics_os/runs/EXP-2021-2025-throughput-discovery-v1",
+  "hypothesis_summary": "Isolate which non-risk filters (session, regime, cooldown) drive throughput vs strict_prod_v2 baseline without weakening hard risk guards.",
+  "primary_metric": "expectancy_R",
+  "secondary_metrics": [
+    "profit_factor",
+    "total_trades",
+    "filter_kill_ratio",
+    "max_drawdown_R"
+  ],
+  "promotion_decision": "VALIDATION_REQUIRED",
+  "discovery_tier": "watchlist",
+  "next_action": "isolate_guard",
+  "next_experiment_id": "EXP-2021-2025-session-relax-watchlist-v1",
+  "suite": {
+    "suite_root": "C:/Users/Gebruiker/quantmetrics-suite",
+    "quantbuild_root": "C:/Users/Gebruiker/quantmetrics-suite/quantbuild",
+    "quantmetrics_os_root": "C:/Users/Gebruiker/quantmetrics-suite/quantmetrics_os",
+    "quantanalytics_root": "C:/Users/Gebruiker/quantmetrics-suite/quantanalytics"
+  },
+  "quantmetrics_os": {
+    "experiment_folder_name": "EXP-2021-2025-throughput-discovery-v1",
+    "runs_relative_path": "runs/EXP-2021-2025-throughput-discovery-v1",
+    "throughput_discovery_summary": "runs/EXP-2021-2025-throughput-discovery-v1/THROUGHPUT_DISCOVERY_SUMMARY.md",
+    "throughput_discovery_registry": "runs/EXP-2021-2025-throughput-discovery-v1/throughput_discovery_registry.json",
+    "throughput_compare_json": "runs/EXP-2021-2025-throughput-discovery-v1/THROUGHPUT_COMPARE.json",
+    "throughput_compare_md": "runs/EXP-2021-2025-throughput-discovery-v1/THROUGHPUT_COMPARE.md"
+  },
+  "quantresearch_files": {
+    "hypothesis_md": "hypothesis.md",
+    "experiment_plan_md": "experiment_plan.md",
+    "results_summary_md": "results_summary.md",
+    "decision_md": "decision.md",
+    "links_json": "links.json"
+  },
+  "matrix_definition": {
+    "base_config": "configs/strict_prod_v2.yaml",
+    "start_date": "2021-01-01",
+    "end_date": "2025-12-31",
+    "variants": [
+      { "key": "A0_BASELINE", "description": "Control — production filter defaults" },
+      { "key": "A1_SESSION_RELAXED", "description": "Relax session filter only" },
+      { "key": "A2_REGIME_RELAXED", "description": "Relax regime filter only" },
+      { "key": "A3_COOLDOWN_RELAXED", "description": "Relax cooldown only" },
+      { "key": "A4_SESSION_REGIME_RELAXED", "description": "Relax session + regime" },
+      { "key": "A5_THROUGHPUT_DISCOVERY", "description": "Relax non-risk filters; keep daily_loss, position_limit, spread, structure_h1_gate" }
+    ]
+  },
+  "notes": "Ledger v1: evidence in links.json; human decision in decision.md."
+}

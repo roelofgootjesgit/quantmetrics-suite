@@ -1,0 +1,2 @@
+"""QuantAnalytics package namespace."""
+

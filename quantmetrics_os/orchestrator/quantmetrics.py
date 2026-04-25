@@ -168,6 +168,41 @@ def _run_research_digest(quantmetrics_os_root: Path) -> int:
     return int(subprocess.call(cmd, cwd=str(quantmetrics_os_root), env=os.environ.copy()))
 
 
+def cmd_experiments_throughput_discovery(args: argparse.Namespace) -> int:
+    """Run the Throughput Discovery Experiment Matrix (QuantOS script)."""
+    qmos = _QUANTMETRICS_OS_ROOT
+    script = qmos / "scripts" / "throughput_discovery_matrix.py"
+    if not script.is_file():
+        print(f"[quantmetrics] missing script: {script}", file=sys.stderr)
+        return 2
+
+    cmd = [
+        sys.executable,
+        str(script),
+        "--experiment-id",
+        args.experiment_id,
+        "--matrix",
+        getattr(args, "matrix", "throughput-discovery"),
+        "--base-config",
+        args.base_config,
+        "--start-date",
+        args.start_date,
+        "--end-date",
+        args.end_date,
+        "--max-dd-worsen-ratio",
+        str(args.max_dd_worsen_ratio),
+    ]
+    if getattr(args, "baseline_folder", None):
+        cmd.extend(["--baseline-folder", args.baseline_folder])
+    if getattr(args, "quantresearch_root", None):
+        cmd.extend(["--quantresearch-root", str(Path(args.quantresearch_root).expanduser().resolve())])
+    if getattr(args, "update_research_ledger", False):
+        cmd.append("--update-research-ledger")
+    print(f"+ {' '.join(cmd)}")
+    print(f"(cwd) {qmos}")
+    return int(subprocess.call(cmd, cwd=str(qmos), env=os.environ.copy()))
+
+
 def _run_quantanalytics(
     qb_root: Path,
     analytics_root: Path,
@@ -354,6 +389,53 @@ def main() -> int:
     p_an.add_argument("--output", "-o", type=Path, default=None, metavar="PATH")
     p_an.add_argument("--stdout", action="store_true")
     p_an.set_defaults(func=cmd_analyze)
+
+    p_exp = sub.add_parser("experiments", help="QuantOS experiment runners")
+    exp_sub = p_exp.add_subparsers(dest="experiments_cmd", required=True)
+
+    p_td = exp_sub.add_parser(
+        "throughput-discovery",
+        help="Run baseline + throughput discovery variants and write THROUGHPUT_DISCOVERY_SUMMARY.md",
+    )
+    p_td.add_argument("--experiment-id", default="EXP-2025-throughput-discovery")
+    p_td.add_argument(
+        "--matrix",
+        choices=("throughput-discovery", "session-relax-watchlist"),
+        default="throughput-discovery",
+        help="throughput-discovery = A0–A5; session-relax-watchlist = B0–B4 session/expansion splits",
+    )
+    p_td.add_argument(
+        "--baseline-folder",
+        default="",
+        help="Optional compare baseline role folder (default set by matrix preset)",
+    )
+    p_td.add_argument(
+        "-c",
+        "--base-config",
+        required=True,
+        help="YAML path relative to QUANTBUILD_ROOT (e.g. configs/strict_prod_v2.yaml)",
+    )
+    p_td.add_argument("--start-date", required=True)
+    p_td.add_argument("--end-date", required=True)
+    p_td.add_argument(
+        "--max-dd-worsen-ratio",
+        type=float,
+        default=1.2,
+        help="Promotion gate: reject material drawdown worsening vs baseline (default: 1.2)",
+    )
+    p_td.add_argument(
+        "--quantresearch-root",
+        type=Path,
+        default=None,
+        metavar="DIR",
+        help="QuantResearch repo root for preflight (default: sibling quantresearch/)",
+    )
+    p_td.add_argument(
+        "--update-research-ledger",
+        action="store_true",
+        help="After success: link QuantOS run dir, mark experiment completed, refresh RESEARCH_LEDGER.md",
+    )
+    p_td.set_defaults(func=cmd_experiments_throughput_discovery)
 
     p_bridge = sub.add_parser("bridge", help="QuantBridge helpers")
     bsub = p_bridge.add_subparsers(dest="bridge_cmd", required=True)

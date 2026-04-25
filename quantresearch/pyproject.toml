@@ -16,3 +16,6 @@ dev = ["pytest>=7"]
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["quantresearch*"]
+
+[project.scripts]
+quantresearch-cli = "quantresearch.cli:main"

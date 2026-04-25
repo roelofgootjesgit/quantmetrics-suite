@@ -245,6 +245,12 @@ When **`quantlog.enabled`** is on (default) and **`quantlog.auto_analytics`** is
 
 ---
 
+## QuantOS run artifacts (optional)
+
+With **`artifacts.enabled: true`** in config, post-backtest collection copies QuantLog and config material into **`quantmetrics_os/runs/<experiment>/<role>/`**. There are two YAML snapshots: **`config_snapshot.yaml`** (copy of your **`--config`** file, often an `extends` wrapper) and **`resolved_config.yaml`** (full merged runtime config used by the engine, secrets redacted). See **`../quantmetrics_os/docs/RUN_ARTIFACT_STRATEGY.md`**.
+
+---
+
 ## Suite
 
 | Repo | GitHub |

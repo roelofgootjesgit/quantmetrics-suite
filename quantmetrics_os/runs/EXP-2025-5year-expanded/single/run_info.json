@@ -1,0 +1,10 @@
+{
+  "run_id": "qb_run_20260425T051333Z_7e01f5fe",
+  "experiment_id": "EXP-2025-5year-expanded",
+  "role": "single",
+  "collected_at_utc": "2026-04-25T05:14:36.531123Z",
+  "quantbuild_root": "C:\\Users\\Gebruiker\\quantmetrics-suite\\quantbuild",
+  "quantlog_source": "C:\\Users\\Gebruiker\\quantmetrics-suite\\quantbuild\\data\\quantlog_events\\runs\\qb_run_20260425T051333Z_7e01f5fe.jsonl",
+  "config_snapshot": "config_snapshot.yaml",
+  "config_source_path": "C:\\Users\\Gebruiker\\quantmetrics-suite\\quantbuild\\configs\\strict_prod_v2.yaml"
+}

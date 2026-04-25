@@ -1,0 +1,69 @@
+{
+  "raw_signals_detected": 167,
+  "signals_after_filters": 58,
+  "signals_executed": 58,
+  "filter_kill_ratio": 0.652694610778443,
+  "execution_ratio": 0.3473053892215569,
+  "cycle_counts": {
+    "total_cycles": 167,
+    "risk_allow_cycles": 58,
+    "risk_block_cycles": 109,
+    "no_action_cycles": 109,
+    "entered_cycles": 58,
+    "executed_cycles": 58
+  },
+  "event_counts": {
+    "risk_guard_decision_events": 167,
+    "signal_filtered_events": 109,
+    "trade_action_events": 167
+  },
+  "throughput_rates": {
+    "trades_per_month": 3.0526315789473686,
+    "months_span_inclusive": 19
+  },
+  "breakdowns": {
+    "guard_decisions": {
+      "backtest_pipeline:ALLOW": 58,
+      "max_trades_per_session:BLOCK": 24,
+      "regime_allowed_sessions:BLOCK": 55,
+      "regime_profile:BLOCK": 15,
+      "daily_loss_cap:BLOCK": 14,
+      "equity_drawdown_kill_switch:BLOCK": 1
+    },
+    "guard_blocks": {
+      "max_trades_per_session": 24,
+      "regime_allowed_sessions": 55,
+      "regime_profile": 15,
+      "daily_loss_cap": 14,
+      "equity_drawdown_kill_switch": 1
+    },
+    "guard_allows": {
+      "backtest_pipeline": 58
+    },
+    "regime_guard_blocks": {
+      "trend:max_trades_per_session": 20,
+      "expansion:max_trades_per_session": 4,
+      "trend:regime_allowed_sessions": 46,
+      "compression:regime_profile": 15,
+      "expansion:regime_allowed_sessions": 9,
+      "trend:daily_loss_cap": 14,
+      "trend:equity_drawdown_kill_switch": 1
+    },
+    "session_guard_blocks": {
+      "London:max_trades_per_session": 6,
+      "Overlap:max_trades_per_session": 10,
+      "New York:max_trades_per_session": 8,
+      "Asia:regime_allowed_sessions": 55,
+      "Asia:regime_profile": 15,
+      "Overlap:daily_loss_cap": 4,
+      "New York:daily_loss_cap": 10,
+      "New York:equity_drawdown_kill_switch": 1
+    },
+    "filter_reasons": {
+      "position_limit_reached": 24,
+      "session_blocked": 55,
+      "regime_blocked": 15,
+      "risk_blocked": 15
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "run_id": "qb_run_20260425T053907Z_61305cdc",
+  "experiment_id": "EXP-2021-2025-throughput-discovery-v1",
+  "role": "a2_regime_relaxed",
+  "collected_at_utc": "2026-04-25T05:39:18.099211Z",
+  "quantbuild_root": "C:\\Users\\Gebruiker\\quantmetrics-suite\\quantbuild",
+  "quantlog_source": "C:\\Users\\Gebruiker\\quantmetrics-suite\\quantbuild\\data\\quantlog_events\\runs\\qb_run_20260425T053907Z_61305cdc.jsonl",
+  "config_snapshot": "config_snapshot.yaml",
+  "config_source_path": "C:\\Users\\Gebruiker\\quantmetrics-suite\\quantbuild\\configs\\_throughput_discovery\\EXP-2021-2025-throughput-discovery-v1\\A2_REGIME_RELAXED.yaml",
+  "resolved_config": "",
+  "resolved_config_source_path": null
+}

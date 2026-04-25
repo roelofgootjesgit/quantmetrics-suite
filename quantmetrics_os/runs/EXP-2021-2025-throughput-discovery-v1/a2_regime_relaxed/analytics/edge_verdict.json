@@ -1,0 +1,9 @@
+{
+  "run_id": "qb_run_20260425T053907Z_61305cdc",
+  "edge_verdict": "VALIDATION_REQUIRED",
+  "confidence": "LOW",
+  "main_strength": "1 guard(s) show protective behavior",
+  "main_risk": "Sample size too small to justify promotion",
+  "recommended_next_action": "Increase representative sample size before production changes",
+  "warning_count": 1
+}

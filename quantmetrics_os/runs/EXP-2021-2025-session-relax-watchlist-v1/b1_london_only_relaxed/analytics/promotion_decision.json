@@ -1,0 +1,88 @@
+{
+  "generated_at_utc": "2026-04-25T05:55:08.418289Z",
+  "run_id": "qb_run_20260425T055454Z_3f78ff9c",
+  "promotion_decision": "VALIDATION_REQUIRED",
+  "all_rules_passed": false,
+  "metrics": {
+    "total_trades": 58,
+    "expectancy_r": 0.2931034482758685,
+    "profit_factor": 1.5151515151515265
+  },
+  "risk_shape": {
+    "max_drawdown_r": 10.99999999999983,
+    "baseline_max_drawdown_r": 10.99999999999983,
+    "max_dd_worsen_ratio": 1.2
+  },
+  "input_edge_verdict": "VALIDATION_REQUIRED",
+  "input_confidence": "LOW",
+  "major_warning_count": 1,
+  "failed_rules": [
+    {
+      "rule": "confidence must not be LOW",
+      "passed": false,
+      "fail_outcome": "VALIDATION_REQUIRED",
+      "reason": "confidence=LOW"
+    },
+    {
+      "rule": "total_trades must be >= 100",
+      "passed": false,
+      "fail_outcome": "VALIDATION_REQUIRED",
+      "reason": "total_trades=58"
+    },
+    {
+      "rule": "major warnings must be absent",
+      "passed": false,
+      "fail_outcome": "VALIDATION_REQUIRED",
+      "reason": "major_warnings=1"
+    }
+  ],
+  "checks": [
+    {
+      "rule": "confidence must not be LOW",
+      "passed": false,
+      "fail_outcome": "VALIDATION_REQUIRED",
+      "reason": "confidence=LOW"
+    },
+    {
+      "rule": "total_trades must be >= 100",
+      "passed": false,
+      "fail_outcome": "VALIDATION_REQUIRED",
+      "reason": "total_trades=58"
+    },
+    {
+      "rule": "expectancy_R must be > 0",
+      "passed": true,
+      "fail_outcome": "REJECT",
+      "reason": "expectancy_R=0.2931034482758685"
+    },
+    {
+      "rule": "profit_factor must be >= 1.25",
+      "passed": true,
+      "fail_outcome": "REJECT",
+      "reason": "profit_factor=1.5151515151515265"
+    },
+    {
+      "rule": "at least one protective guard required",
+      "passed": true,
+      "fail_outcome": "VALIDATION_REQUIRED",
+      "reason": "protective_guard_detected=True"
+    },
+    {
+      "rule": "major warnings must be absent",
+      "passed": false,
+      "fail_outcome": "VALIDATION_REQUIRED",
+      "reason": "major_warnings=1"
+    },
+    {
+      "rule": "max_drawdown_R must not worsen materially vs baseline",
+      "passed": true,
+      "fail_outcome": "VALIDATION_REQUIRED",
+      "reason": "max_dd_r=10.99999999999983, baseline_max_dd_r=10.99999999999983, threshold=13.200000 (ratio=1.2)"
+    }
+  ],
+  "reasons": [
+    "confidence must not be LOW: confidence=LOW",
+    "total_trades must be >= 100: total_trades=58",
+    "major warnings must be absent: major_warnings=1"
+  ]
+}

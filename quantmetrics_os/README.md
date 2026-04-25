@@ -86,8 +86,19 @@ This repository is the **front door**: one place to resolve paths, environment, 
 | `vscode/quant-suite.code-workspace` | Multi-root workspace (OS + Build + Bridge + Log); add `quantanalytics` locally if you use the analytics repo in the same tree. |
 | `scripts/clone_quant_suite.sh` | Optional clone/update helper and baseline `.env`. |
 | `docs/` | Roadmap, sprint plan, suite handouts. |
+| `runs/` | Gebundelde experiment-artifacts (QuantLog JSONL, config snapshots, analytics) — zie hieronder. |
 
 Strategy, broker adapters, and event schemas live in the **sibling repositories**, not here.
+
+### Run artifacts (`runs/`)
+
+When QuantBuild **`artifacts.enabled: true`**, post-backtest collection writes under **`runs/<experiment_id>/<role>/`** (via `scripts/collect_run_artifact.py`):
+
+- **`config_snapshot.yaml`** — copy of the **`--config`** entry file (often thin `extends:` wrappers).
+- **`resolved_config.yaml`** — **merged effective** strategy parameters (default YAML + `extends` chain + env + CLI overrides), with sensitive keys redacted. Use this to **diff runs** and track what actually changed between experiments.
+- **`quantlog_events.jsonl`**, **`run_info.json`**, optional **`analytics/`**.
+
+Full convention and workflow: [Run artifact strategy](docs/RUN_ARTIFACT_STRATEGY.md).
 
 ---
 
@@ -141,6 +152,7 @@ Use `python quantmetrics.py --help` and per-subcommand `--help` for full options
 
 ## Documentation
 
+- [Run artifact strategy](docs/RUN_ARTIFACT_STRATEGY.md) — `runs/` layout, **`config_snapshot.yaml` vs `resolved_config.yaml`**, automatic collect after backtest.
 - [GitHub profile README (template to paste)](docs/GITHUB_PROFILE_README.md) — landing page for `github.com/<you>/<you>`.
 - [Suite showcase (technical CV)](docs/SHOWCASE.md) — problem, architecture rationale, validation, deployment roadmap.
 - [Suite start (handout)](docs/SUITE_START_HANDOUT.md) — `.env`, common commands, workspace, `QUANTBRIDGE_SRC_PATH`.

@@ -1,0 +1,58 @@
+{
+  "$schema": "../../schemas/experiment_ledger_v1.schema.json",
+  "experiment_id": "EXP-2021-2025-session-relax-watchlist-v1",
+  "title": "Session / expansion relax watchlist follow-up (B0–B4)",
+  "status": "completed",
+  "created_at_utc": "2026-04-25T06:00:00Z",
+  "completed_at_utc": "2026-04-25T05:56:08Z",
+  "matrix_type": "session-relax-watchlist",
+  "baseline_run_id": "qb_run_20260425T055434Z_78f6ef7c",
+  "canonical_artifact_path": "quantmetrics_os/runs/EXP-2021-2025-session-relax-watchlist-v1",
+  "hypothesis_summary": "Split session/expansion relaxations (London expansion, NY-only, overlap timing, full session filter) after throughput discovery watchlisted session direction.",
+  "primary_metric": "expectancy_R",
+  "secondary_metrics": [
+    "profit_factor",
+    "total_trades",
+    "filter_kill_ratio",
+    "max_drawdown_R"
+  ],
+  "promotion_decision": "VALIDATION_REQUIRED",
+  "discovery_tier": "watchlist",
+  "next_action": "expand_sample",
+  "next_experiment_id": null,
+  "suite": {
+    "suite_root": "C:/Users/Gebruiker/quantmetrics-suite",
+    "quantbuild_root": "C:/Users/Gebruiker/quantmetrics-suite/quantbuild",
+    "quantmetrics_os_root": "C:/Users/Gebruiker/quantmetrics-suite/quantmetrics_os",
+    "quantanalytics_root": "C:/Users/Gebruiker/quantmetrics-suite/quantanalytics"
+  },
+  "quantmetrics_os": {
+    "experiment_folder_name": "EXP-2021-2025-session-relax-watchlist-v1",
+    "runs_relative_path": "runs/EXP-2021-2025-session-relax-watchlist-v1",
+    "matrix_preset": "session-relax-watchlist",
+    "throughput_discovery_summary": "runs/EXP-2021-2025-session-relax-watchlist-v1/THROUGHPUT_DISCOVERY_SUMMARY.md",
+    "throughput_discovery_registry": "runs/EXP-2021-2025-session-relax-watchlist-v1/throughput_discovery_registry.json",
+    "throughput_compare_json": "runs/EXP-2021-2025-session-relax-watchlist-v1/THROUGHPUT_COMPARE.json",
+    "throughput_compare_md": "runs/EXP-2021-2025-session-relax-watchlist-v1/THROUGHPUT_COMPARE.md"
+  },
+  "quantresearch_files": {
+    "hypothesis_md": "hypothesis.md",
+    "experiment_plan_md": "experiment_plan.md",
+    "results_summary_md": "results_summary.md",
+    "decision_md": "decision.md",
+    "links_json": "links.json"
+  },
+  "matrix_definition": {
+    "base_config": "configs/strict_prod_v2.yaml",
+    "start_date": "2021-01-01",
+    "end_date": "2025-12-31",
+    "variants": [
+      { "key": "B0_BASELINE", "description": "Control — same as strict_prod_v2 baseline" },
+      { "key": "B1_LONDON_ONLY_RELAXED", "description": "Expansion profile: add London to allowed_sessions" },
+      { "key": "B2_NY_ONLY_RELAXED", "description": "Expansion: New York only + min_hour_utc 0" },
+      { "key": "B3_OVERLAP_RELAXED", "description": "Expansion: NY+Overlap with min_hour_utc 0" },
+      { "key": "B4_FULL_SESSION_RELAXED", "description": "Pipeline filters.session false (full session filter off)" }
+    ]
+  },
+  "notes": "Ledger v1: B-matrix completed; no relax-candidate; B4 watchlist only."
+}
