@@ -13,6 +13,21 @@ It separates decision logic, execution, event logging, orchestration, analytics,
 This is not a trading bot, signal service, or profitability claim.
 It is an evaluation system for testing whether a strategy survives real operational constraints.
 
+Built to demonstrate backend engineering, data pipelines, event-driven architecture, deterministic analytics, and financial system design with strong engineering discipline.
+
+Relevant roles: Python Developer, Data Engineer, Backend Developer, FinTech Automation Engineer, Trading Infrastructure Developer.
+
+## What this demonstrates as an engineer
+
+- Event-driven architecture
+- Clean module boundaries
+- JSONL-based audit trail
+- Deterministic analytics
+- Reproducible research workflow
+- Risk-aware system design
+- CLI and demo usability
+- CI and testing discipline
+
 ## What this system is designed to answer
 
 QuantMetrics is built around questions that matter in systematic trading:
