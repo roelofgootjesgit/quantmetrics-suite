@@ -17,6 +17,16 @@ This module is part of the QuantMetrics suite.
 - Store validated edges and rejected hypotheses as knowledge files.
 - Keep a living research index for portfolio-level strategy learning.
 
+## Correlation with the total system
+
+`quantresearch` depends on consistent run correlation generated upstream:
+
+- links baseline and candidate by experiment IDs and run IDs
+- consumes analytics and event-derived metrics tied to `run_id`, `trace_id`, and decision/execution outcomes
+- turns correlated artifacts into explicit promotion/reject decisions
+
+In short: upstream modules produce correlated evidence; `quantresearch` converts that evidence into governance decisions.
+
 ---
 
 ## Where it sits

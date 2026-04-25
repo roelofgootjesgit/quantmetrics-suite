@@ -19,6 +19,21 @@ This module is part of the QuantMetrics suite.
 
 Design boundary: `quantbuild` decides, `quantbridge` executes.
 
+## Correlation with the total system
+
+`quantbuild` is the origin of most decision-chain correlation IDs used downstream:
+
+- emits `run_id`, `session_id`, `trace_id` for run/session/trace linkage
+- emits `decision_cycle_id` across `signal_detected`, `signal_evaluated`, `risk_guard_decision`, `trade_action`
+- emits `trade_id` when entering lifecycle/execution flow
+
+Those IDs are consumed by:
+
+- `quantbridge` for execution continuity
+- `quantlog` for immutable event correlation and validation
+- `quantanalytics` for deterministic funnel and guard attribution
+- `quantresearch` for baseline-vs-candidate decisions
+
 ---
 
 ## Architecture

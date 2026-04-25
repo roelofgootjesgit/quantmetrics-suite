@@ -23,6 +23,20 @@ Execution chain:
 decision -> risk gate -> router -> broker adapter -> broker API -> execution result
 ```
 
+## Correlation with the total system
+
+`quantbridge` executes decisions while preserving suite-level correlation keys:
+
+- consumes `decision_cycle_id` / `trade_id` from upstream decision flow
+- emits execution events with `order_ref`, `trade_id`, `run_id`, `session_id`, `trace_id`
+- keeps broker-specific IDs mapped to canonical event fields
+
+This enables:
+
+- `quantlog` to validate cross-event linkage and monotonic execution traces
+- `quantanalytics` to measure action -> filled outcomes and execution bottlenecks
+- `quantresearch` to compare outcome changes without losing execution context
+
 ---
 
 ## Repository layout

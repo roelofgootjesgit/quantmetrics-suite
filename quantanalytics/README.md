@@ -1,25 +1,41 @@
 # quantanalytics
 
-## SYSTEM IDENTITY
+Analysis module for the QuantMetrics Suite.
 
-This module is part of the QuantMetrics suite.
+`quantanalytics` is the read-only diagnostics layer that turns QuantLog event streams into deterministic evidence for strategy evaluation decisions.
+
+## System identity
+
 - Canonical name: `quantanalytics`
-- Role: Analysis Engine (read-only on QuantLog JSONL)
+- Suite role: Analysis Engine (downstream from `quantlog`)
+- Boundary: reads events, computes diagnostics, writes reports; never places orders or mutates source logs
 
-`quantanalytics` converts JSONL event streams into deterministic diagnostics and reports. It is downstream only: no broker calls, no order placement, and no log mutation.
+## Why this module exists
 
----
+`quantbuild` and `quantbridge` create decisions and execution events.
+`quantlog` stores those events as immutable JSONL.
+`quantanalytics` answers: what happened, where opportunity was lost, and whether observed results are stable enough to justify promotion.
 
-## Core responsibility
+Core outputs include:
 
-- Read event data from `quantlog`-compatible JSONL.
-- Generate text reports for funnel, no-trade reasons, performance, and regime behavior.
-- Produce optional key-findings markdown and run summaries.
-- Stay strictly read-only on source data.
+- funnel diagnostics (detected -> evaluated -> action -> filled -> closed)
+- no-trade and guard-related bottleneck insights
+- performance and regime summaries
+- key findings artifacts for human review
 
-Data flow: `quantbuild` / `quantbridge` -> `quantlog` -> `quantanalytics`.
+Data flow: `quantbuild` / `quantbridge` -> `quantlog` -> `quantanalytics` -> `quantresearch` / promotion decisions.
 
----
+## Correlation contract in the suite
+
+`quantanalytics` relies on the same correlation keys emitted upstream:
+
+- `run_id`: identifies one run artifact set
+- `session_id`: groups related runtime sessions inside a run
+- `trace_id`: links end-to-end execution traces
+- `decision_cycle_id`: links decision-chain events (`signal_detected` -> `trade_action`)
+- `trade_id` / `order_ref`: links execution and lifecycle events
+
+Without these keys, diagnostics can still run, but decision attribution quality drops.
 
 ## Repository layout
 
@@ -41,8 +57,6 @@ Package and CLI:
 - Package name: `quantmetrics-analytics`
 - Import: `quantmetrics_analytics`
 - CLI: `python -m quantmetrics_analytics.cli.run_analysis` or `quantmetrics-analytics`
-
----
 
 ## Quick start
 
@@ -78,22 +92,16 @@ quantanalytics/output_rapport/<input_stem>_YYYYMMDD_HHMMSSZ.txt
 quantanalytics/output_rapport/<input_stem>_YYYYMMDD_HHMMSSZ_KEY_FINDINGS.md
 ```
 
----
-
 ## Documentation
 
 - [docs/ANALYTICS_ARCHITECTURE.md](docs/ANALYTICS_ARCHITECTURE.md)
 - [docs/ANALYTICS_SPRINT_PLAN.md](docs/ANALYTICS_SPRINT_PLAN.md)
 - [docs/LIVE_VPS_AND_LOCAL_BACKTEST.md](docs/LIVE_VPS_AND_LOCAL_BACKTEST.md)
 
----
+## In the full QuantMetrics system
 
-## Suite repositories (GitHub)
+- Upstream modules produce decisions/events: `quantbuild`, `quantbridge`, `quantlog`
+- This module transforms those events into deterministic diagnostics
+- Downstream consumers use these artifacts for research and governance (`quantresearch`, promotion gates, run reviews)
 
-| Repo | Remote |
-| --- | --- |
-| `quantmetrics_os` | [roelofgootjesgit/quantmetrics_os](https://github.com/roelofgootjesgit/quantmetrics_os) |
-| `quantbuild` | [roelofgootjesgit/QuantBuild-Signal-Engine](https://github.com/roelofgootjesgit/QuantBuild-Signal-Engine) |
-| `quantbridge` | canonical module: `quantbridge` |
-| `quantlog` | canonical module: `quantlog` |
-| `quantanalytics` (**this**) | canonical module: `quantanalytics` |
+This module is intentionally analysis-only: it improves decision quality visibility, not trade execution.

@@ -23,6 +23,17 @@ Data flow: `quantbuild` / `quantbridge` -> `quantlog` -> `quantanalytics`.
 
 This repository is intentionally an event spine, not a BI platform.
 
+## Correlation with the total system
+
+`quantlog` is the canonical correlation layer across modules.
+It enforces and preserves identifiers emitted by producers:
+
+- `run_id`, `session_id`, `trace_id` for run/session/trace scope
+- `decision_cycle_id` for decision-chain integrity
+- `trade_id` and `order_ref` for execution/lifecycle linkage
+
+Because these fields are validated in one place, downstream modules can do deterministic replay, analytics, and promotion checks without bespoke glue logic.
+
 ---
 
 ## Core contracts
