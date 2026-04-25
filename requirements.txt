@@ -1,0 +1,4 @@
+-e ./quantbuild
+-e ./quantlog
+-e ./quantanalytics
+pytest
