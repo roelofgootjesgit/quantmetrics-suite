@@ -119,7 +119,10 @@ Voor **HYP-002** (NY sweep failure reclaim, V5A + expansion-block) is er een vas
   (vanuit `quantresearch/`; suite-root = ouder van deze map zodat `quantbuild/` bereikbaar is.)
 - Output: `runs/hyp002-v5a-expansion-block-closed-2026/metrics_bundle.json`
 - Mens-leesbare samenvatting (workflow + drempels + live-vereisten): `research_logs/HYP-002_EXP-002_closed_dossier.md`
+- **Ledger-experimentmap** (zelfde patroon als andere studies): `experiments/EXP-002/` met o.a. `experiment.json` en `links.json` (wijst naar `quantresearch/runs/<bundle_id>/`).
 - Manifest met run-lijst: `pipelines/hyp002_promotion_bundle.json`
+
+Validatie: `python -m quantresearch validate --experiment-id EXP-002` (na pipeline). Dossier-SAMENVOEGing: `python -m quantresearch dossier --experiment-id EXP-002`.
 
 Dit volgt dezelfde governance als hierboven: reproduceerbare cijfers eerst, daarna besluit en knowledge base.
 

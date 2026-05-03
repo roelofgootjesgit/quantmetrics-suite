@@ -1,8 +1,8 @@
 # HYP-002 — Gesloten research-dossier (EXP-002)
 
 **Status:** PROMOTION CANDIDATE — gevalideerd onder spread-stress en temporele splitsing.  
-**Automatisch gegenereerd:** `2026-05-03T18:42:39.640992Z` uit pipeline-metrics (`metrics_bundle.json`).  
-**Experiment:** `EXP-002` in `registry/experiments.json`.
+**Automatisch gegenereerd:** `2026-05-03T19:59:34.179048Z` uit pipeline-metrics (`metrics_bundle.json`).  
+**Experiment:** `EXP-002` in `registry/experiments.json` en ledger-map `experiments/EXP-002/` (validate: `python -m quantresearch validate --experiment-id EXP-002`).
 
 ---
 
@@ -85,4 +85,5 @@ HYP-002 baseline C=5, alle regimes
 ## Workflow (QuantResearch)
 
 - Bundel reproducible metrics: `python -m quantresearch hyp002-pipeline`  
+- Ledger-map: `experiments/EXP-002/` (`experiment.json`, `links.json`, markdown).  
 - Zie `docs/WORKFLOW_BACKTEST_NAAR_STRATEGIE.md` § HYP-002 gesloten dossier.

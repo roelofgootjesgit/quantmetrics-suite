@@ -60,7 +60,8 @@
       },
       "hyp002_metrics_bundle_path": "runs/hyp002-v5a-expansion-block-closed-2026",
       "hyp002_pipeline_manifest": "hyp002-v5a-expansion-block-closed-2026",
-      "research_log_closed_dossier": "research_logs/HYP-002_EXP-002_closed_dossier.md"
+      "research_log_closed_dossier": "research_logs/HYP-002_EXP-002_closed_dossier.md",
+      "experiment_ledger_folder": "experiments/EXP-002"
     }
   ]
 }

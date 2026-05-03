@@ -132,7 +132,7 @@ python -m quantresearch hyp002-pipeline
 # alleen metrics JSON, geen registry: ... hyp002-pipeline --no-registry
 ```
 
-Dit leest `pipelines/hyp002_promotion_bundle.json`, draait elke geliste QuantBuild-config (subprocess, `QUANTMETRICS_SUITE_ROOT` = suite root), schrijft `runs/<bundle_id>/metrics_bundle.json`, **upsert** `registry/experiments.json` (**EXP-002**), werkt **EDGE-002** in `confirmed_edges.json` bij, en overschrijft **`research_logs/HYP-002_EXP-002_closed_dossier.md`** (sluitingsverslag met drempels en live-vereisten; cijfers uit de bundle).
+Dit leest `pipelines/hyp002_promotion_bundle.json`, draait elke geliste QuantBuild-config (subprocess, `QUANTMETRICS_SUITE_ROOT` = suite root), schrijft `runs/<bundle_id>/metrics_bundle.json`, **upsert** `registry/experiments.json` (**EXP-002**), werkt **EDGE-002** in `confirmed_edges.json` bij, overschrijft **`research_logs/HYP-002_EXP-002_closed_dossier.md`**, en vult **`experiments/EXP-002/`** (ledger v1: `experiment.json`, `hypothesis.md`, `experiment_plan.md`, `results_summary.md`, `decision.md`, `links.json`) zodat `python -m quantresearch validate --experiment-id EXP-002` slaagt.
 
 ---
 

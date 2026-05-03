@@ -26,7 +26,7 @@ from pathlib import Path
 from typing import Any
 
 from quantresearch.experiment_registry import upsert_experiment
-from quantresearch.paths import registry_dir, repo_root
+from quantresearch.paths import experiments_dir, registry_dir, repo_root
 
 
 def _suite_root() -> Path:
@@ -143,11 +143,138 @@ def run_pipeline(
         (dest / "metrics_bundle.json").write_text(json.dumps(bundle, indent=2, default=str) + "\n", encoding="utf-8")
         dossier_path = repo_root() / "research_logs" / "HYP-002_EXP-002_closed_dossier.md"
         _write_closed_dossier(bundle, dossier_path)
+        vid = _variant_run_id(bundle)
+        _write_exp002_experiment_ledger_folder(suite_root, bundle, vid)
 
     if write_registry and not dry_run:
         _upsert_exp002(manifest, bundle, dest)
 
     return dest if not dry_run else manifest_path.parent
+
+
+def _variant_run_id(bundle: dict[str, Any]) -> str:
+    return f"{bundle.get('bundle_id', 'hyp002-bundle')}-{bundle['generated_at_utc'][:19].replace(':', '')}"
+
+
+def _write_exp002_experiment_ledger_folder(
+    suite_root: Path,
+    bundle: dict[str, Any],
+    variant_run_id: str,
+) -> Path:
+    """Ledger v1 layout under ``experiments/EXP-002/`` (validate + dossier CLI)."""
+    exp_dir = experiments_dir() / "EXP-002"
+    exp_dir.mkdir(parents=True, exist_ok=True)
+    bid = str(bundle.get("bundle_id", "hyp002-v5a-expansion-block-closed-2026"))
+    run_rel = f"quantresearch/runs/{bid}".replace("\\", "/")
+    suite_posix = str(suite_root.resolve()).replace("\\", "/")
+    gen = bundle.get("generated_at_utc", "")
+
+    by_id = {r["id"]: r for r in bundle.get("runs", [])}
+    variants = []
+    for r in bundle.get("runs", []):
+        rid = str(r.get("id", ""))
+        cfg = str(r.get("config_relative_to_quantbuild", ""))
+        lab = str(r.get("label", ""))
+        er = r.get("expectancy_r")
+        nt = r.get("trade_count")
+        variants.append(
+            {
+                "key": rid.upper(),
+                "description": f"{lab} | {cfg} | mean_r={_r3(er)!s} n={nt}",
+            }
+        )
+
+    exp_json: dict[str, Any] = {
+        "$schema": "../../schemas/experiment_ledger_v1.schema.json",
+        "experiment_id": "EXP-002",
+        "title": "HYP-002 NY sweep failure reclaim — V5A + expansion block (closed dossier)",
+        "status": "completed",
+        "created_at_utc": gen if gen else datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "completed_at_utc": gen if gen else None,
+        "matrix_type": "custom",
+        "baseline_run_id": None,
+        "canonical_artifact_path": run_rel,
+        "hypothesis_summary": (
+            "NY London sweep failure reclaim with C=2, N=3, M=6, expansion excluded; "
+            "expectancy under mock_spread 0.5 positive on full window and both temporal splits."
+        ),
+        "primary_metric": "expectancy_r",
+        "secondary_metrics": ["profit_factor", "trade_count", "max_drawdown"],
+        "promotion_decision": "PROMOTE",
+        "discovery_tier": "mixed",
+        "next_action": "none",
+        "next_experiment_id": None,
+        "suite": {
+            "suite_root": suite_posix,
+            "quantbuild_root": f"{suite_posix}/quantbuild",
+            "quantmetrics_os_root": f"{suite_posix}/quantmetrics_os",
+            "quantanalytics_root": f"{suite_posix}/quantanalytics",
+        },
+        "quantresearch": {
+            "pipeline": "quantresearch/pipelines/hyp002_promotion_bundle.json",
+            "metrics_bundle": f"{run_rel}/metrics_bundle.json",
+            "closed_dossier_md": "quantresearch/research_logs/HYP-002_EXP-002_closed_dossier.md",
+            "variant_run_id": variant_run_id,
+        },
+        "quantresearch_files": {
+            "hypothesis_md": "hypothesis.md",
+            "experiment_plan_md": "experiment_plan.md",
+            "results_summary_md": "results_summary.md",
+            "decision_md": "decision.md",
+            "links_json": "links.json",
+        },
+        "matrix_definition": {
+            "base_config": "configs/experiments/ny_sweep_reversion/HYP-002_V5A_expansion_block_5y_spread05.yaml",
+            "start_date": "2021-01-01",
+            "end_date": "2025-12-31",
+            "variants": variants,
+        },
+        "notes": "Evidence: QuantBuild subprocess bundle (no QuantOS matrix). Re-run: python -m quantresearch hyp002-pipeline",
+    }
+    (exp_dir / "experiment.json").write_text(json.dumps(exp_json, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+    (exp_dir / "hypothesis.md").write_text(
+        "# HYP-002 — Hypothese\n\n"
+        "Na een London liquidity sweep die als *failure* wordt geclassificeerd (beperkte continuation), "
+        "levert reclaim binnen M bars positieve expectancy wanneer expansion-regime trades worden uitgesloten "
+        "en continuation-cap C=2 (V5A) wordt toegepast.\n",
+        encoding="utf-8",
+    )
+    (exp_dir / "experiment_plan.md").write_text(
+        "# Experimentplan\n\n"
+        "1. Vaste manifest: `quantresearch/pipelines/hyp002_promotion_bundle.json`.\n"
+        "2. Per entry: QuantBuild-backtest (subprocess, `cwd=quantbuild`), metrics in bundle JSON.\n"
+        "3. `research_logs/HYP-002_EXP-002_closed_dossier.md` + registry EXP-002 + EDGE-002.\n"
+        "4. Deze map (`experiments/EXP-002/`) voor ledger validate / dossier.\n",
+        encoding="utf-8",
+    )
+    o5 = by_id.get("v5a_expblk_5y_spread05", {})
+    t1 = by_id.get("v5a_expblk_2021_2023_spread05", {})
+    t2 = by_id.get("v5a_expblk_2024_2025_spread05", {})
+    (exp_dir / "results_summary.md").write_text(
+        "# Resultaten (samenvatting)\n\n"
+        f"- **Overall mock_spread 0.5:** expectancy_r **{_r3(o5.get('expectancy_r'))}**, n={o5.get('trade_count')}\n"
+        f"- **2021–2023 @0.5:** {_r3(t1.get('expectancy_r'))}, n={t1.get('trade_count')}\n"
+        f"- **2024–2025 @0.5:** {_r3(t2.get('expectancy_r'))}, n={t2.get('trade_count')}\n\n"
+        f"Volledige metrics: `{run_rel}/metrics_bundle.json`.\n",
+        encoding="utf-8",
+    )
+    (exp_dir / "decision.md").write_text(
+        "# Besluit\n\n"
+        "## Final Decision\n\n"
+        "**PROMOTION CANDIDATE** — gevalideerd onder spread-stress (mock_spread 0.5) en temporele splitsing; "
+        "zie `results_summary.md` en het gesloten dossier in `research_logs/`.\n\n"
+        "Dit is geen live-tradingbewijs; volgende fase: OOS-data, slippage-model, sizing, paper trading (zie dossier).\n",
+        encoding="utf-8",
+    )
+    links = {
+        "quantos_run_dir": run_rel,
+        "paths_are_absolute": False,
+        "hyp002_metrics_bundle": f"{run_rel}/metrics_bundle.json",
+        "hyp002_closed_dossier": "quantresearch/research_logs/HYP-002_EXP-002_closed_dossier.md",
+    }
+    (exp_dir / "links.json").write_text(json.dumps(links, indent=2) + "\n", encoding="utf-8")
+    return exp_dir
 
 
 def _r3(value: Any) -> float | None:
@@ -183,7 +310,7 @@ def _write_closed_dossier(bundle: dict[str, Any], path: Path) -> None:
 
 **Status:** PROMOTION CANDIDATE — gevalideerd onder spread-stress en temporele splitsing.  
 **Automatisch gegenereerd:** `{gen}` uit pipeline-metrics (`metrics_bundle.json`).  
-**Experiment:** `EXP-002` in `registry/experiments.json`.
+**Experiment:** `EXP-002` in `registry/experiments.json` en ledger-map `experiments/EXP-002/` (validate: `python -m quantresearch validate --experiment-id EXP-002`).
 
 ---
 
@@ -266,6 +393,7 @@ HYP-002 baseline C=5, alle regimes
 ## Workflow (QuantResearch)
 
 - Bundel reproducible metrics: `python -m quantresearch hyp002-pipeline`  
+- Ledger-map: `experiments/EXP-002/` (`experiment.json`, `links.json`, markdown).  
 - Zie `docs/WORKFLOW_BACKTEST_NAAR_STRATEGIE.md` § HYP-002 gesloten dossier.
 """
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -312,7 +440,7 @@ def _upsert_exp002(manifest: dict[str, Any], bundle: dict[str, Any], bundle_dir:
 
     exp_mean = overall.get("expectancy_r")
     exp_n = overall.get("trade_count")
-    variant_run_id = f"{bundle.get('bundle_id', 'hyp002-bundle')}-{bundle['generated_at_utc'][:19].replace(':', '')}"
+    variant_run_id = _variant_run_id(bundle)
 
     record: dict[str, Any] = {
         "experiment_id": "EXP-002",
@@ -351,6 +479,7 @@ def _upsert_exp002(manifest: dict[str, Any], bundle: dict[str, Any], bundle_dir:
         "hyp002_metrics_bundle_path": bundle_dir.relative_to(repo_root()).as_posix(),
         "hyp002_pipeline_manifest": manifest.get("id"),
         "research_log_closed_dossier": "research_logs/HYP-002_EXP-002_closed_dossier.md",
+        "experiment_ledger_folder": "experiments/EXP-002",
     }
     upsert_experiment(record)
     _sync_edge002_from_bundle(bundle, variant_run_id)
@@ -394,6 +523,8 @@ def main(argv: list[str] | None = None) -> int:
     if not args.dry_run:
         dr = repo_root() / "research_logs" / "HYP-002_EXP-002_closed_dossier.md"
         print(f"OK: closed dossier -> {dr}")
+        exd = experiments_dir() / "EXP-002"
+        print(f"OK: ledger experiment folder -> {exd}")
     if not args.no_registry:
         print("OK: registry experiments.json + EDGE-002 (EXP-002)")
     return 0

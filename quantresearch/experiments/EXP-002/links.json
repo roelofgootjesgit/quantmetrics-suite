@@ -1,0 +1,6 @@
+{
+  "quantos_run_dir": "quantresearch/runs/hyp002-v5a-expansion-block-closed-2026",
+  "paths_are_absolute": false,
+  "hyp002_metrics_bundle": "quantresearch/runs/hyp002-v5a-expansion-block-closed-2026/metrics_bundle.json",
+  "hyp002_closed_dossier": "quantresearch/research_logs/HYP-002_EXP-002_closed_dossier.md"
+}
