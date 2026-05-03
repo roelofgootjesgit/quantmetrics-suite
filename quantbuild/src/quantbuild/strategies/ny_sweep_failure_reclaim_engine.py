@@ -26,6 +26,10 @@ from src.quantbuild.backtest.engine import (
     _setup_news_gate,
     _simulate_trade_price_levels,
 )
+from src.quantbuild.export.trade_r_series import (
+    assert_quantlog_inference_policy,
+    maybe_write_trade_r_series_fallback,
+)
 from src.quantbuild.config import _load_yaml_with_extends
 from src.quantbuild.data.sessions import session_from_timestamp
 from src.quantbuild.execution.signal_evaluated_payload import (
@@ -620,6 +624,7 @@ def run_ny_sweep_failure_reclaim_backtest(
 
     account_id = str(cfg.get("broker", {}).get("account_id") or "backtest")
     ql_emitter = _init_backtest_quantlog(cfg)
+    assert_quantlog_inference_policy(cfg)
 
     raw_signals = discover_failure_reclaim_signals(
         df,
@@ -652,6 +657,7 @@ def run_ny_sweep_failure_reclaim_backtest(
         logger.info("HYP-002 mock_spread (entry half-spread R-adjust): %.4f", mock_spread)
 
     trades: List[Trade] = []
+    trade_order_refs: List[str] = []
     daily_pnl_r: Dict[Any, float] = {}
     daily_trades: Dict[date, int] = {}
     cumulative_r = 0.0
@@ -1042,6 +1048,7 @@ def run_ny_sweep_failure_reclaim_backtest(
             session=current_session,
         )
         trades.append(t)
+        trade_order_refs.append(trade_ref)
         daily_trades[trade_date] = daily_trades.get(trade_date, 0) + 1
         pr = float(result["profit_r"])
         daily_pnl_r[trade_date] = daily_pnl_r.get(trade_date, 0.0) + pr
@@ -1075,6 +1082,8 @@ def run_ny_sweep_failure_reclaim_backtest(
             m.get("max_drawdown", 0),
             m.get("trade_count", 0),
         )
+
+    maybe_write_trade_r_series_fallback(cfg, trades, trade_order_refs)
 
     try:
         from src.quantbuild.integration.quantanalytics_post_run import invoke_quantanalytics_after_quantlog

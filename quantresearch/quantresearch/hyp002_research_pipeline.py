@@ -28,6 +28,7 @@ from typing import Any
 
 from quantresearch.experiment_registry import upsert_experiment
 from quantresearch.paths import experiments_dir, registry_dir, repo_root
+from quantresearch.inference_consumer import apply_inference_to_experiment, load_inference_report_from_dir
 from quantresearch.preregistration import (
     default_hyp002_preregistration_path,
     load_preregistration,
@@ -63,6 +64,7 @@ from src.quantbuild.backtest.metrics import compute_metrics
 
 cfg = load_config({config_path_posix!r})
 cfg.setdefault("quantlog", {{}})["enabled"] = False
+cfg.setdefault("quantlog", {{}})["inference_requires_quantlog"] = False
 cfg.setdefault("artifacts", {{}})["enabled"] = False
 cfg.setdefault("quantlog", {{}})["auto_analytics"] = False
 tr = run_backtest(cfg)
@@ -152,7 +154,7 @@ def run_pipeline(
         dossier_path = repo_root() / "research_logs" / "HYP-002_EXP-002_closed_dossier.md"
         _write_closed_dossier(bundle, dossier_path)
         vid = _variant_run_id(bundle)
-        _write_exp002_experiment_ledger_folder(suite_root, bundle, vid)
+        _write_exp002_experiment_ledger_folder(suite_root, bundle, vid, manifest)
 
     if write_registry and not dry_run:
         _upsert_exp002(manifest, bundle, dest)
@@ -181,6 +183,7 @@ def _write_exp002_experiment_ledger_folder(
     suite_root: Path,
     bundle: dict[str, Any],
     variant_run_id: str,
+    manifest: dict[str, Any] | None = None,
 ) -> Path:
     """Ledger v1 layout under ``experiments/EXP-002/`` (validate + dossier CLI)."""
     exp_dir = experiments_dir() / "EXP-002"
@@ -256,12 +259,22 @@ def _write_exp002_experiment_ledger_folder(
     exp_json["governance_status"] = "PROMOTE"
     exp_json["academic_status"] = "PENDING"
     exp_json["effective_status"] = "GOVERNANCE_ONLY — not academically validated"
+    inf_doc: dict[str, Any] | None = None
+    if manifest and bool(manifest.get("inference_consumer")):
+        inf_doc = load_inference_report_from_dir(exp_dir)
+    if inf_doc is not None and prereg:
+        upd = apply_inference_to_experiment("EXP-002", prereg, inf_doc)
+        exp_json["academic_status"] = upd["academic_status"]
+        exp_json["effective_status"] = upd["effective_status"]
+        if upd.get("inference_reason"):
+            exp_json["inference_reason"] = upd["inference_reason"]
     if prereg:
+        infer_stats = "applied" if inf_doc else "pending"
         exp_json["academic_protocol"] = {
             "version": 1,
             "preregistration_file": "preregistration.json",
             "schema": "schemas/hypothesis_preregistration_v1.schema.json",
-            "inferential_statistics": "pending",
+            "inferential_statistics": infer_stats,
             "protocol_doc": "docs/ACADEMIC_RESEARCH_PROTOCOL.md",
             "pre_registration_status": prereg.get("pre_registration_status"),
             "pre_registration_valid": prereg.get("pre_registration_valid"),

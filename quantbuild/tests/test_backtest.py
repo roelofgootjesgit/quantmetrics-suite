@@ -153,6 +153,9 @@ class TestBacktestQuantLog:
         assert closed_ev["payload"].get("exit_price") is not None
         assert closed_ev["payload"].get("exit") in ("SL", "TP", "TIMEOUT")
 
+        pnl_from_jsonl = [float(e["payload"]["pnl_r"]) for e in parsed if e["event_type"] == "trade_closed"]
+        assert pnl_from_jsonl == [float(t.profit_r) for t in trades]
+
         trade_ev = next(e for e in (json.loads(line) for line in lines) if e["event_type"] == "trade_executed")
         assert trade_ev["payload"].get("signal_id", "").startswith("sig_bt_")
         enter_ev = next(
@@ -164,6 +167,89 @@ class TestBacktestQuantLog:
         sf = [e for e in parsed if e["event_type"] == "signal_filtered"]
         if sf:
             assert all(e.get("decision_cycle_id") for e in sf), "signal_filtered should carry decision_cycle_id"
+
+    def test_inference_requires_quantlog_raises_when_quantlog_disabled(self, tmp_path, monkeypatch):
+        import src.quantbuild.backtest.engine as eng
+
+        df = _make_ohlcv(320)
+        precomputed = pd.Series("trend", index=df.index)
+
+        def fake_load_parquet(base_path, symbol, timeframe, start=None, end=None):
+            if timeframe == "15m":
+                return df
+            return pd.DataFrame()
+
+        def fake_run_sqe(data, direction, sqe_cfg, _precomputed_df=None):
+            out = pd.Series(False, index=data.index)
+            if direction == "LONG":
+                out.iloc[150] = True
+            return out
+
+        monkeypatch.setattr(eng, "load_parquet", fake_load_parquet)
+        monkeypatch.setattr(eng, "ensure_data", lambda **kwargs: df)
+        monkeypatch.setattr(eng, "run_sqe_conditions", fake_run_sqe)
+
+        cfg = {
+            "symbol": "XAUUSD",
+            "timeframes": ["15m"],
+            "data": {"base_path": str(tmp_path / "data")},
+            "backtest": {"default_period_days": 365, "tp_r": 2.0, "sl_r": 1.0, "session_mode": "extended"},
+            "risk": {"max_daily_loss_r": 99.0, "equity_kill_switch_pct": 99.0},
+            "strategy": {},
+            "quantlog": {
+                "enabled": False,
+                "inference_requires_quantlog": True,
+                "base_path": str(tmp_path / "ql"),
+            },
+            "news": {"enabled": False},
+        }
+        with pytest.raises(ValueError, match="inference_requires_quantlog"):
+            run_backtest(cfg, precomputed_regime=precomputed)
+
+    def test_trade_r_series_fallback_matches_trades(self, tmp_path, monkeypatch):
+        import src.quantbuild.backtest.engine as eng
+
+        df = _make_ohlcv(320)
+        precomputed = pd.Series("trend", index=df.index)
+
+        def fake_load_parquet(base_path, symbol, timeframe, start=None, end=None):
+            if timeframe == "15m":
+                return df
+            return pd.DataFrame()
+
+        def fake_run_sqe(data, direction, sqe_cfg, _precomputed_df=None):
+            out = pd.Series(False, index=data.index)
+            if direction == "LONG":
+                out.iloc[150] = True
+            return out
+
+        monkeypatch.setattr(eng, "load_parquet", fake_load_parquet)
+        monkeypatch.setattr(eng, "ensure_data", lambda **kwargs: df)
+        monkeypatch.setattr(eng, "run_sqe_conditions", fake_run_sqe)
+
+        ql_dir = tmp_path / "quantlog_bt"
+        cfg = {
+            "symbol": "XAUUSD",
+            "timeframes": ["15m"],
+            "data": {"base_path": str(tmp_path / "data")},
+            "backtest": {"default_period_days": 365, "tp_r": 2.0, "sl_r": 1.0, "session_mode": "extended"},
+            "risk": {"max_daily_loss_r": 99.0, "equity_kill_switch_pct": 99.0},
+            "strategy": {},
+            "quantlog": {
+                "enabled": False,
+                "inference_requires_quantlog": False,
+                "base_path": str(ql_dir),
+                "run_id": "bt_no_ql_series",
+            },
+            "news": {"enabled": False},
+        }
+
+        trades = run_backtest(cfg, precomputed_regime=precomputed)
+        assert len(trades) >= 1
+        series_path = ql_dir / "runs" / "bt_no_ql_series_trade_r_series.json"
+        assert series_path.is_file(), f"missing fallback {series_path}"
+        rows = json.loads(series_path.read_text(encoding="utf-8"))["trades"]
+        assert [float(r["pnl_r"]) for r in rows] == [float(t.profit_r) for t in trades]
 
 
 class TestSystemModeBacktest:

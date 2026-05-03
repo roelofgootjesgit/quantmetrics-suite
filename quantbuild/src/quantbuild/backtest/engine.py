@@ -36,6 +36,7 @@ from src.quantbuild.execution.signal_evaluated_payload import (
     new_decision_cycle_id,
 )
 from src.quantbuild.policy.system_mode import bypassed_filters_vs_production, resolve_effective_filters
+from src.quantbuild.export.trade_r_series import assert_quantlog_inference_policy, maybe_write_trade_r_series_fallback
 
 logger = logging.getLogger(__name__)
 
@@ -522,6 +523,7 @@ def run_backtest(cfg: Dict[str, Any], precomputed_regime: Optional[pd.Series] = 
     peak_r = 0.0
     kill_switch_triggered = False
     trades: List[Trade] = []
+    trade_order_refs: List[str] = []
     regime_skip_count = 0
     regime_session_skip_count = 0
     news_block_count = 0
@@ -529,6 +531,7 @@ def run_backtest(cfg: Dict[str, Any], precomputed_regime: Optional[pd.Series] = 
     sim_cache = _prepare_sim_cache(data)
 
     ql_emitter = _init_backtest_quantlog(cfg)
+    assert_quantlog_inference_policy(cfg)
     account_id = str(cfg.get("broker", {}).get("account_id") or "backtest")
     strategy_id_bt = "sqe_backtest"
 
@@ -876,6 +879,7 @@ def run_backtest(cfg: Dict[str, Any], precomputed_regime: Optional[pd.Series] = 
         )
         traded_session_direction[session_key] = traded_session_direction.get(session_key, 0) + 1
         trades.append(t)
+        trade_order_refs.append(trade_ref)
 
         cumulative_r += result["profit_r"]
         if cumulative_r > peak_r:
@@ -905,6 +909,8 @@ def run_backtest(cfg: Dict[str, Any], precomputed_regime: Optional[pd.Series] = 
             run_metrics.get("max_drawdown", 0),
             run_metrics.get("trade_count", 0),
         )
+
+    maybe_write_trade_r_series_fallback(cfg, trades, trade_order_refs)
 
     try:
         from src.quantbuild.integration.quantanalytics_post_run import invoke_quantanalytics_after_quantlog

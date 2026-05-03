@@ -30,6 +30,10 @@ from src.quantbuild.backtest.engine import (
     _setup_news_gate,
     _simulate_trade_price_levels,
 )
+from src.quantbuild.export.trade_r_series import (
+    assert_quantlog_inference_policy,
+    maybe_write_trade_r_series_fallback,
+)
 from src.quantbuild.execution.signal_evaluated_payload import (
     assert_signal_evaluated_payload_complete,
     build_signal_evaluated_payload,
@@ -608,6 +612,7 @@ def run_ny_sweep_backtest(
     account_id = str(cfg.get("broker", {}).get("account_id") or "backtest")
     strategy_id_bt = "ny_sweep_reversion"
     ql_emitter = _init_backtest_quantlog(cfg)
+    assert_quantlog_inference_policy(cfg)
     funnel_on = funnel_logging and ql_emitter is not None
 
     raw_signals = discover_setups(
@@ -640,6 +645,7 @@ def run_ny_sweep_backtest(
     sim_cache = _prepare_sim_cache(df)
 
     trades: List[Trade] = []
+    trade_order_refs: List[str] = []
     daily_pnl_r: Dict[Any, float] = {}
     daily_trades: Dict[date, int] = {}
     cumulative_r = 0.0
@@ -950,6 +956,7 @@ def run_ny_sweep_backtest(
             session=current_session,
         )
         trades.append(t)
+        trade_order_refs.append(trade_ref)
         daily_trades[trade_date] = daily_trades.get(trade_date, 0) + 1
         pr = float(result["profit_r"])
         daily_pnl_r[trade_date] = daily_pnl_r.get(trade_date, 0.0) + pr
@@ -989,6 +996,8 @@ def run_ny_sweep_backtest(
             m.get("max_drawdown", 0),
             m.get("trade_count", 0),
         )
+
+    maybe_write_trade_r_series_fallback(cfg, trades, trade_order_refs)
 
     try:
         from src.quantbuild.integration.quantanalytics_post_run import invoke_quantanalytics_after_quantlog

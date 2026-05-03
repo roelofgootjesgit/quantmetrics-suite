@@ -89,7 +89,10 @@ def collect(
                 continue
             if p.suffix.lower() not in {".txt", ".md", ".json"}:
                 continue
-            shutil.copy2(p, analytics_dir / p.name)
+            dest_name = p.name
+            if p.name.endswith("_inference_report.json"):
+                dest_name = "inference_report.json"
+            shutil.copy2(p, analytics_dir / dest_name)
             analytics_copied += 1
             if analytics_copied >= 40:
                 break

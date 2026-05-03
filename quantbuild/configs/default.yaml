@@ -42,6 +42,8 @@ logging:
 
 quantlog:
   enabled: true
+  # When true, ``enabled: false`` raises at backtest start (official inferential runs must emit JSONL).
+  inference_requires_quantlog: false
   # After backtest: run QuantAnalytics on this tree (``output_rapport/`` in quantanalytics). Off: auto_analytics: false or QUANTMETRICS_ANALYTICS_AUTO=0.
   auto_analytics: true
   # Canonical stack location — QuantAnalytics discovers <quantbuild>/data/quantlog_events by default (env QUANTMETRICS_QUANTLOG_DIR overrides).

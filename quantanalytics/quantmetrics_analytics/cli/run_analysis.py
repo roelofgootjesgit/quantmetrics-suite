@@ -24,12 +24,15 @@ from quantmetrics_analytics.datasets.guard_decisions import risk_guard_events_to
 from quantmetrics_analytics.ingestion.jsonl import load_events_from_paths
 from quantmetrics_analytics.processing.normalize import events_to_dataframe
 
-_VALID_REPORTS = frozenset({"summary", "no-trade", "funnel", "performance", "regime", "research"})
+_VALID_REPORTS = frozenset(
+    {"summary", "no-trade", "funnel", "performance", "regime", "research", "inference"}
+)
 
 
 def _parse_reports(spec: str) -> list[str]:
     s = spec.strip().lower()
     if s == "all":
+        # "inference" is opt-in (scipy-heavy); use --reports inference explicitly.
         return ["summary", "no-trade", "funnel", "performance", "regime", "research"]
     parts = [p.strip().lower() for p in spec.split(",") if p.strip()]
     bad = [p for p in parts if p not in _VALID_REPORTS]
@@ -236,9 +239,41 @@ def run(stdout=sys.stdout, argv: list[str] | None = None) -> int:
         metavar="LIST",
         help=(
             "Comma-separated sections or 'all'. "
-            "Choices: summary, no-trade, funnel, performance, regime, research "
-            "(research = ANALYTICS_OUTPUT_GAPS-style diagnostics)."
+            "Choices: summary, no-trade, funnel, performance, regime, research, inference "
+            "(research = ANALYTICS_OUTPUT_GAPS-style diagnostics; inference = per-trade R report JSON)."
         ),
+    )
+    parser.add_argument(
+        "--experiment-id",
+        default="",
+        metavar="ID",
+        help="For inference reports: experiment label stored in JSON (default empty).",
+    )
+    parser.add_argument(
+        "--bootstrap-tier",
+        choices=("standard", "high"),
+        default="standard",
+        help="Inference: standard=10k bootstrap resamples, high=50k.",
+    )
+    parser.add_argument(
+        "--inference-require-jsonl",
+        action="store_true",
+        help="Inference: fail if R series comes from trade_r_series.json fallback (not trade_closed JSONL).",
+    )
+    parser.add_argument("--inference-alpha", type=float, default=0.05, help="Inference alpha (default 0.05).")
+    parser.add_argument(
+        "--inference-minimum-n",
+        type=int,
+        default=300,
+        metavar="N",
+        help="Inference minimum sample size before running tests (default 300).",
+    )
+    parser.add_argument(
+        "--inference-minimum-effect-r",
+        type=float,
+        default=0.028,
+        metavar="R",
+        help="Inference economic gate: mean R must be >= this (default 0.028).",
     )
     parser.add_argument(
         "--output",
@@ -365,6 +400,40 @@ def run(stdout=sys.stdout, argv: list[str] | None = None) -> int:
             return 3
     df = events_to_dataframe(events)
 
+    inference_meta: str = ""
+    if "inference" in reports:
+        from quantmetrics_analytics.analysis.inference_report import (
+            inference_require_jsonl_from_env,
+            run_inference_for_events,
+        )
+
+        require_jsonl = bool(getattr(args, "inference_require_jsonl", False)) or inference_require_jsonl_from_env()
+        try:
+            inference_path, inv_res, r_src = run_inference_for_events(
+                events,
+                paths,
+                run_id_explicit=run_id_filter,
+                experiment_id=str(getattr(args, "experiment_id", "") or "").strip() or "unknown",
+                output_dir=_output_rapport_dir(),
+                precision_tier=str(getattr(args, "bootstrap_tier", "standard")),
+                alpha=float(getattr(args, "inference_alpha", 0.05)),
+                minimum_n=int(getattr(args, "inference_minimum_n", 300)),
+                minimum_effect_size_r=float(getattr(args, "inference_minimum_effect_r", 0.028)),
+                require_jsonl_trade_closed=require_jsonl,
+            )
+        except Exception as exc:
+            print(f"Inference failed: {exc}", file=sys.stderr)
+            return 4
+        p_disp = inv_res.p_value if inv_res.p_value is not None else "n/a"
+        inference_meta = (
+            f"Inference (Pijler 2)\n"
+            f"- Report: {inference_path}\n"
+            f"- R source: {r_src}\n"
+            f"- n={inv_res.n} mean_r={inv_res.mean_r:.6f} p={p_disp} "
+            f"stat_verdict={inv_res.statistical_verdict} econ_verdict={inv_res.economic_verdict}\n"
+        )
+        print(f"Inference report written: {inference_path}", file=sys.stderr)
+
     export_path = getattr(args, "export_decisions_tsv", None)
     if export_path is not None:
         dec = trade_actions_to_decisions_df(events)
@@ -422,7 +491,8 @@ def run(stdout=sys.stdout, argv: list[str] | None = None) -> int:
         print(f"Run summary Markdown written to: {md_dest}", file=sys.stderr)
 
     blocks: list[str] = []
-    for name in reports:
+    report_names = [n for n in reports if n != "inference"]
+    for name in report_names:
         if name == "summary":
             blocks.append(format_event_summary(df))
         elif name == "no-trade":
@@ -436,6 +506,9 @@ def run(stdout=sys.stdout, argv: list[str] | None = None) -> int:
         elif name == "research":
             summ = _ensure_run_summary()
             blocks.append(format_extended_report_text(summ))
+
+    if inference_meta:
+        blocks.append(inference_meta.rstrip())
 
     text = "\n".join(blocks)
 
