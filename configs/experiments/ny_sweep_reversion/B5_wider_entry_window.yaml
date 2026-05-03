@@ -1,0 +1,20 @@
+# Fase 3 — B5_WIDER_ENTRY_WINDOW: 13:30–16:00 UTC — edge localized to open vs broader window.
+
+extends: ./ny_sweep_reversion_v1.yaml
+
+experiment:
+  id: B5_WIDER_ENTRY_WINDOW
+  phase: 3
+  intent: "Widen NY setup and trade-allowed windows; London reference unchanged."
+
+sessions:
+  ny_setup_window:
+    start_utc: "13:30"
+    end_utc: "16:00"
+
+  trade_allowed_window:
+    start_utc: "13:30"
+    end_utc: "16:00"
+
+analytics_tags:
+  experiment_variant: B5_wider_entry_window

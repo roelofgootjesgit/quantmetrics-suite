@@ -1,0 +1,44 @@
+# 5 jaar (1825d) + A0 high-sample spec: meer trades, log + auto QuantAnalytics.
+# Research: QUANTMETRICS_SUITE_ROOT / configs/experiments/ny_sweep_reversion/A0_high_sample.yaml
+
+symbol: XAUUSD
+strategy:
+  name: ny_sweep_reversion
+timeframes:
+  - 15m
+  - 1h
+
+data:
+  base_path: data/market_cache
+
+backtest:
+  engine: ny_sweep_reversion
+  default_period_days: 1825
+  ny_sweep_reversion_config: configs/experiments/ny_sweep_reversion/A0_high_sample.yaml
+
+system_mode: EDGE_DISCOVERY
+filters:
+  regime: false
+  news: false
+  spread: false
+  session: false
+  position_limit: false
+
+news:
+  enabled: false
+
+risk:
+  max_daily_loss_r: 10.0
+
+quantlog:
+  enabled: true
+  auto_analytics: true
+  # Één JSONL per run_id — vereist voor collect naar quantmetrics_os/runs (collect_run_artifact.py)
+  consolidated_run_file: true
+
+# Bundel QuantLog + config + recente QuantAnalytics-files onder quantmetrics_os/runs/<experiment_id>/<role>/
+artifacts:
+  enabled: true
+  experiment_id: EXP-NY-SWEEP-A0-5Y-2026
+  role: single
+  bundle_analytics: true

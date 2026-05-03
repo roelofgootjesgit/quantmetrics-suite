@@ -1,0 +1,119 @@
+# Canonical NY Sweep Reversion spec (candidate). Downstream experiments extend this file.
+# Hypothesis is stated only in measurable session/setup terms — no subjective discretion labels.
+
+strategy:
+  id: NY_SWEEP_REVERSION_V1
+  name: "NY Sweep Reversion"
+  instrument: XAUUSD
+  entry_timeframe: M15
+  bias_timeframe: H1
+  mode: BACKTEST_CANDIDATE
+
+hypothesis:
+  description: >
+    During the NY trade window, XAUUSD may sweep the London session high/low,
+    show M15 displacement, form an FVG, retest the FVG midpoint at 50%, and revert.
+
+sessions:
+  london_reference:
+    start_utc: "07:00"
+    end_utc: "12:00"
+
+  ny_setup_window:
+    start_utc: "13:30"
+    end_utc: "14:30"
+
+  trade_allowed_window:
+    start_utc: "13:30"
+    end_utc: "15:30"
+
+setup:
+  sweep:
+    enabled: true
+    reference: london_high_low
+    bullish_condition:
+      type: sweep_london_low
+      rule: "low < london_low AND close > london_low"
+    bearish_condition:
+      type: sweep_london_high
+      rule: "high > london_high AND close < london_high"
+
+  displacement:
+    enabled: true
+    timeframe: M15
+    min_body_to_range_ratio: 0.70
+    min_range_atr_multiple: 1.50
+    atr_period: 14
+
+  fair_value_gap:
+    enabled: true
+    timeframe: M15
+    min_gap_points: 5
+    entry_level: 0.50
+    require_after_displacement: true
+
+bias:
+  h1_structure:
+    enabled: true
+    bullish_rule: "higher_high_and_higher_low"
+    bearish_rule: "lower_low_and_lower_high"
+
+entry:
+  type: limit
+  level: fvg_midpoint
+  allow_market_orders: false
+  expire_if_not_filled_bars: 4
+
+invalidation:
+  before_entry:
+    rule: "m15_close_outside_fvg_zone"
+    action: cancel_setup
+
+stop_loss:
+  type: sweep_extreme_with_buffer
+  buffer_points: 5
+
+take_profit:
+  model: partials
+  tp1:
+    r_multiple: 1.5
+    close_pct: 0.50
+  tp2:
+    r_multiple: 3.0
+    close_pct: 0.50
+
+break_even:
+  enabled: true
+  trigger_r: 1.0
+  move_sl_to: entry_price
+
+risk:
+  risk_per_trade_pct: 1.0
+  # Cap: max dit aantal fills per UTC-kalenderdag (meestal 0, 1 of 2 als er setups zijn — geen minimum).
+  max_trades_per_day: 2
+  max_daily_loss_pct: 2.0
+  max_open_trades: 1
+  stop_after_consecutive_losses: 2
+
+filters:
+  spread:
+    enabled: true
+    max_points: 40
+
+  news:
+    enabled: true
+    block_events:
+      - NFP
+      - FOMC
+      - CPI
+      - FOMC_MINUTES
+
+  volatility:
+    enabled: false
+    note: "Test later. Do not enable in first baseline/candidate comparison."
+
+analytics_tags:
+  strategy_family: liquidity_sweep
+  setup_type: ny_sweep_reversion
+  entry_model: fvg_limit_midpoint
+  exit_model: partial_1_5r_3r_be

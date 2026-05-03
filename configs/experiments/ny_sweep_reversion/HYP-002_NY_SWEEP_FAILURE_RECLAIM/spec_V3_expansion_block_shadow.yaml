@@ -1,0 +1,23 @@
+# HYP-002 V3 — expansion uitgesloten + shadow bij overlap-block.
+# Alle sweep_failure-parameters gelijk aan baseline; alleen filter + execution-policy wijzigen.
+
+extends: ./spec.yaml
+
+variant:
+  id: V3_EXPANSION_BLOCK_SHADOW
+
+regime_filter:
+  exclude:
+    - expansion
+  allowed:
+    - trend
+    - compression
+
+execution:
+  max_concurrent_positions: 1
+  overlap_policy: block_and_shadow_log
+
+parameters:
+  c_max_continuation_points: 5.0
+  n_failure_window_bars: 3
+  m_reclaim_window_bars: 6

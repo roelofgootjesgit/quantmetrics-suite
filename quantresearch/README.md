@@ -121,6 +121,19 @@ write_research_index()
 
 **5.** Optional: build a research log with `quantresearch.research_log_builder` (`build_research_log_markdown`, `write_research_log`).
 
+**6.** **HYP-002 (NY sweep failure reclaim)** — sluit het dossier in de research-DB na QuantBuild-configs in de suite:
+
+```bash
+# Vanaf quantmetrics-suite root; quantbuild als sibling van quantresearch
+cd quantresearch
+python -m quantresearch hyp002-pipeline
+# of: quantresearch-hyp002-pipeline   (na pip install -e .)
+# dry-run: python -m quantresearch hyp002-pipeline --dry-run
+# alleen metrics JSON, geen registry: ... hyp002-pipeline --no-registry
+```
+
+Dit leest `pipelines/hyp002_promotion_bundle.json`, draait elke geliste QuantBuild-config (subprocess, `QUANTMETRICS_SUITE_ROOT` = suite root), schrijft `runs/<bundle_id>/metrics_bundle.json`, **upsert** `registry/experiments.json` (**EXP-002**), werkt **EDGE-002** in `confirmed_edges.json` bij, en overschrijft **`research_logs/HYP-002_EXP-002_closed_dossier.md`** (sluitingsverslag met drempels en live-vereisten; cijfers uit de bundle).
+
 ---
 
 ## Documentation

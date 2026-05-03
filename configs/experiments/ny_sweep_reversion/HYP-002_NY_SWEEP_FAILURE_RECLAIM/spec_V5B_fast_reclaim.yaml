@@ -1,0 +1,11 @@
+# HYP-002 V5B — snellere reclaim (M=3); C en N gelijk aan baseline.
+
+extends: ./spec.yaml
+
+variant:
+  id: HYP-002_V5B_FAST_RECLAIM
+
+parameters:
+  c_max_continuation_points: 5.0
+  n_failure_window_bars: 3
+  m_reclaim_window_bars: 3

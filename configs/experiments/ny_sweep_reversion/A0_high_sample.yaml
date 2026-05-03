@@ -1,0 +1,31 @@
+# A0-variant: meer setups voor onderzoek — bredere trade-window (zoals B5), wat lossere disp/FVG, langere limit-expiry.
+# Engine gebruikt standaard sweep_search_window = trade_allowed_window (volledige middag NY).
+
+extends: ./A0_raw_setup.yaml
+
+experiment:
+  id: A0_HIGH_SAMPLE
+  intent: "Hogere n: brede window + mildere filters; nog steeds A0 (geen H1 bias, news, fixed 2R)."
+
+sessions:
+  trade_allowed_window:
+    start_utc: "13:30"
+    end_utc: "16:00"
+
+setup:
+  displacement:
+    min_body_to_range_ratio: 0.62
+    min_range_atr_multiple: 1.25
+  fair_value_gap:
+    min_gap_points: 2.5
+
+entry:
+  expire_if_not_filled_bars: 8
+
+# Ruwe hypothese-test: niet halverwege backtest stoppen na 2 losses (canonieke intake blijft stricter).
+risk:
+  # `max_trades_per_day` erft van v1 (2); blijft de harde bovengrens per UTC-dag.
+  stop_after_consecutive_losses: 999
+
+analytics_tags:
+  experiment_variant: A0_high_sample

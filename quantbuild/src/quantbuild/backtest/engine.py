@@ -215,6 +215,97 @@ def _simulate_trade(data: pd.DataFrame, i: int, direction: str, tp_r: float, sl_
     }
 
 
+def _simulate_trade_price_levels(
+    data: pd.DataFrame,
+    entry_i: int,
+    direction: str,
+    entry_price: float,
+    sl_price: float,
+    tp_price: float,
+    _cache: dict | None = None,
+) -> dict:
+    """Forward simulate exit using absolute SL/TP prices (e.g. liquidity sweep + fixed-R multiples)."""
+    if _cache is not None:
+        close_arr, high_arr, low_arr, ts_arr = (
+            _cache["close"],
+            _cache["high"],
+            _cache["low"],
+            _cache["ts"],
+        )
+    else:
+        close_arr = data["close"].values
+        high_arr = data["high"].values
+        low_arr = data["low"].values
+        ts_arr = data.index
+
+    n = len(close_arr)
+    sl = float(sl_price)
+    tp = float(tp_price)
+    entry_price = float(entry_price)
+
+    exit_ts = ts_arr[entry_i]
+    exit_price = entry_price
+    result = "TIMEOUT"
+    exit_bar_idx = entry_i
+    max_favorable = 0.0
+    max_adverse = 0.0
+
+    for j in range(entry_i + 1, n):
+        lo, hi = float(low_arr[j]), float(high_arr[j])
+
+        if direction == "LONG":
+            favorable = hi - entry_price
+            adverse = entry_price - lo
+            if lo <= sl:
+                exit_price, result, exit_ts, exit_bar_idx = sl, "LOSS", ts_arr[j], j
+                max_adverse = max(max_adverse, adverse)
+                break
+            if hi >= tp:
+                exit_price, result, exit_ts, exit_bar_idx = tp, "WIN", ts_arr[j], j
+                max_favorable = max(max_favorable, favorable)
+                break
+        else:
+            favorable = entry_price - lo
+            adverse = hi - entry_price
+            if hi >= sl:
+                exit_price, result, exit_ts, exit_bar_idx = sl, "LOSS", ts_arr[j], j
+                max_adverse = max(max_adverse, adverse)
+                break
+            if lo <= tp:
+                exit_price, result, exit_ts, exit_bar_idx = tp, "WIN", ts_arr[j], j
+                max_favorable = max(max_favorable, favorable)
+                break
+
+        max_favorable = max(max_favorable, favorable)
+        max_adverse = max(max_adverse, adverse)
+
+        if j == n - 1:
+            exit_price = float(close_arr[j])
+            exit_ts = ts_arr[j]
+            exit_bar_idx = j
+            result = "TIMEOUT"
+
+    risk = abs(entry_price - sl)
+    mae_r = (max_adverse / risk) if risk else 0.0
+    mfe_r = (max_favorable / risk) if risk else 0.0
+    profit_usd = (exit_price - entry_price) if direction == "LONG" else (entry_price - exit_price)
+    profit_r = calculate_rr(entry_price, exit_price, sl, direction)
+
+    return {
+        "entry_price": entry_price,
+        "exit_price": exit_price,
+        "sl": sl,
+        "tp": tp,
+        "exit_ts": exit_ts,
+        "exit_bar_idx": exit_bar_idx,
+        "profit_usd": profit_usd,
+        "profit_r": profit_r,
+        "result": result,
+        "mae_r": mae_r,
+        "mfe_r": mfe_r,
+    }
+
+
 def _setup_news_gate(cfg: Dict[str, Any]):
     """Initialize NewsGate + NewsHistory for backtest if news is enabled."""
     if not cfg.get("news", {}).get("enabled", False):
@@ -354,6 +445,34 @@ def run_backtest(cfg: Dict[str, Any], precomputed_regime: Optional[pd.Series] = 
             data["regime"] = regime_series
         except (ImportError, Exception) as e:
             logger.debug("Regime detection skipped: %s", e)
+
+    if str((cfg.get("backtest") or {}).get("engine", "")).lower() == "ny_sweep_reversion":
+        from src.quantbuild.strategies.ny_sweep_reversion_engine import run_ny_sweep_backtest
+
+        return run_ny_sweep_backtest(
+            cfg,
+            data,
+            start=start,
+            end=end,
+            base_path=base_path,
+            symbol=symbol,
+            tf=tf,
+            regime_series=regime_series,
+        )
+
+    if str((cfg.get("backtest") or {}).get("engine", "")).lower() == "ny_sweep_failure_reclaim":
+        from src.quantbuild.strategies.ny_sweep_failure_reclaim_engine import run_ny_sweep_failure_reclaim_backtest
+
+        return run_ny_sweep_failure_reclaim_backtest(
+            cfg,
+            data,
+            start=start,
+            end=end,
+            base_path=base_path,
+            symbol=symbol,
+            tf=tf,
+            regime_series=regime_series,
+        )
 
     # NewsGate setup (loads historical news if available)
     news_gate, _news_history = _setup_news_gate(cfg)

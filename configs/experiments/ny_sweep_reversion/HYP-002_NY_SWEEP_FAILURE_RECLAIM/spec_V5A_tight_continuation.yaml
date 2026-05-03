@@ -1,0 +1,11 @@
+# HYP-002 V5A — strengere continuation-cap (C=2); verder gelijk aan baseline (geen regime-filter).
+
+extends: ./spec.yaml
+
+variant:
+  id: HYP-002_V5A_TIGHT_CONTINUATION
+
+parameters:
+  c_max_continuation_points: 2.0
+  n_failure_window_bars: 3
+  m_reclaim_window_bars: 6

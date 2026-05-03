@@ -1,0 +1,15 @@
+# Fase 3 — B4_NO_NEWS_FILTER: ablation — news block list vs sample quality.
+
+extends: ./ny_sweep_reversion_v1.yaml
+
+experiment:
+  id: B4_NO_NEWS_FILTER
+  phase: 3
+  intent: "Full candidate except macro news blocking disabled."
+
+filters:
+  news:
+    enabled: false
+
+analytics_tags:
+  experiment_variant: B4_no_news_filter

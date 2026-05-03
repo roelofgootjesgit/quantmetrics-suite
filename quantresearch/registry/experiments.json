@@ -18,7 +18,49 @@
       "strategy_version": "strict_prod_v2",
       "result": "positive",
       "decision": "promote_for_next_research_stage",
-      "tags": ["regime", "expansion", "baseline_vs_variant"]
+      "tags": [
+        "regime",
+        "expansion",
+        "baseline_vs_variant"
+      ]
+    },
+    {
+      "experiment_id": "EXP-002",
+      "title": "HYP-002 NY sweep failure reclaim — V5A + expansion block (closed dossier)",
+      "status": "promoted",
+      "date_created": "2026-05-03",
+      "hypothesis": "NY London sweep failure reclaim: C=2, N=3, M=6, expansion regime excluded; positive expectancy under mock_spread 0.5 and stable temporal split (2021–2023 / 2024–2025).",
+      "baseline_run_id": "hyp002-baseline-reference-not-bundled",
+      "variant_run_id": "hyp002-v5a-expansion-block-closed-2026-2026-05-03T184239",
+      "baseline_config": "quantbuild/configs/experiments/ny_sweep_reversion/HYP-002_5y_baseline.yaml",
+      "variant_config": "quantbuild/configs/experiments/ny_sweep_reversion/HYP-002_V5A_expansion_block_5y_spread05.yaml",
+      "data_window": {
+        "start": "2021-01-01",
+        "end": "2025-12-31"
+      },
+      "strategy_version": "ny_sweep_failure_reclaim_V5A_expansion_block",
+      "result": "positive",
+      "decision": "PROMOTION_CANDIDATE_VALIDATED",
+      "tags": [
+        "HYP-002",
+        "ny_sweep_failure_reclaim",
+        "V5A",
+        "expansion_block",
+        "spread_stress",
+        "temporal_split",
+        "pipeline_bundle"
+      ],
+      "hyp002_metrics_summary": {
+        "mean_r_overall_spread05": 0.10175348390820477,
+        "n_overall_spread05": 439,
+        "mean_r_2021_2023_spread05": 0.07140258033198105,
+        "n_2021_2023_spread05": 246,
+        "mean_r_2024_2025_spread05": 0.08236418060586843,
+        "n_2024_2025_spread05": 186
+      },
+      "hyp002_metrics_bundle_path": "runs/hyp002-v5a-expansion-block-closed-2026",
+      "hyp002_pipeline_manifest": "hyp002-v5a-expansion-block-closed-2026",
+      "research_log_closed_dossier": "research_logs/HYP-002_EXP-002_closed_dossier.md"
     }
   ]
 }

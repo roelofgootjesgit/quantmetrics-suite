@@ -19,3 +19,4 @@ include = ["quantresearch*"]
 
 [project.scripts]
 quantresearch-cli = "quantresearch.cli:main"
+quantresearch-hyp002-pipeline = "quantresearch.hyp002_research_pipeline:main"

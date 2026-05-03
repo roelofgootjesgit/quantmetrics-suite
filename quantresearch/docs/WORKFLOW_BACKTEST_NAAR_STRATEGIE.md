@@ -111,6 +111,18 @@ write_comparison_artifacts(cmp)
 
 Resultaat: `comparisons/EXP-001_comparison.json` en `.md` met delta + **automatische decision hint** (rule-based).
 
+### HYP-002 gesloten dossier (bundel + registry + log)
+
+Voor **HYP-002** (NY sweep failure reclaim, V5A + expansion-block) is er een vaste pipeline die QuantBuild-configs draait, `metrics_bundle.json` schrijft, **EXP-002** in `registry/experiments.json` upsert, **EDGE-002** in `registry/confirmed_edges.json` bijwerkt, en een **sluitingsdossier** overschrijft:
+
+- `python -m quantresearch hyp002-pipeline`  
+  (vanuit `quantresearch/`; suite-root = ouder van deze map zodat `quantbuild/` bereikbaar is.)
+- Output: `runs/hyp002-v5a-expansion-block-closed-2026/metrics_bundle.json`
+- Mens-leesbare samenvatting (workflow + drempels + live-vereisten): `research_logs/HYP-002_EXP-002_closed_dossier.md`
+- Manifest met run-lijst: `pipelines/hyp002_promotion_bundle.json`
+
+Dit volgt dezelfde governance als hierboven: reproduceerbare cijfers eerst, daarna besluit en knowledge base.
+
 ### Stap F — Research log (mens-leesbaar)
 
 Gebruik `quantresearch.research_log_builder`:

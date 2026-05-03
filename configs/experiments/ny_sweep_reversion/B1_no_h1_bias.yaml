@@ -1,0 +1,15 @@
+# Fase 3 — B1_NO_H1_BIAS: ablation — does H1 structure add edge or only reduce n?
+
+extends: ./ny_sweep_reversion_v1.yaml
+
+experiment:
+  id: B1_NO_H1_BIAS
+  phase: 3
+  intent: "Full candidate except H1 bias gate disabled."
+
+bias:
+  h1_structure:
+    enabled: false
+
+analytics_tags:
+  experiment_variant: B1_no_h1_bias

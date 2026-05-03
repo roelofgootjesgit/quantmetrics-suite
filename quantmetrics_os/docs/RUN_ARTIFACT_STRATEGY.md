@@ -104,9 +104,13 @@ runs/
         guard_attribution.json
         guard_attribution.md
 
-    compare/
-      guard_compare.json
-      guard_compare.md
+    comparisons/
+      baseline_vs_candidate_001/
+        comparison_report.md
+        metrics.json
+      guard_compare/
+        guard_compare.json
+        guard_compare.md
 
     research/
       research_log.md
@@ -237,6 +241,16 @@ Uitschakelen: **`artifacts.enabled: false`** of env **`QUANTMETRICS_ARTIFACTS=0`
 4. **Compare** — niveau B:
 
 ```bash
+cd quantmetrics_os
+python scripts/compare_runs.py \
+  --baseline-jsonl runs/EXP-001/baseline/quantlog_events.jsonl \
+  --candidate-jsonl runs/EXP-001/variant/quantlog_events.jsonl \
+  --output-dir runs/EXP-001/comparisons/baseline_vs_candidate_001
+```
+
+5. **Guard attribution compare** (optioneel, causale guard-focus):
+
+```bash
 quantmetrics-guard-attribution-compare \
   --baseline-run-id … \
   --variant-run-id … \
@@ -246,7 +260,7 @@ quantmetrics-guard-attribution-compare \
 
 (gebruik jouw echte consolidated JSONL-locatie voor `--dir` / `--jsonl`.)
 
-5. **Research digest** — rol alle gebundelde runs op in één verslag voor QuantResearch:
+6. **Research digest** — rol alle gebundelde runs op in één verslag voor QuantResearch:
 
 ```bash
 cd quantmetrics_os
@@ -257,7 +271,7 @@ Schrijft naar **`research/runs_digest.md`** (Markdown met tabel + per-run KEY_FI
 
 **QuantOS-orchestrator:** `python quantmetrics.py backtest -c …` (vanuit `orchestrator/`) draait dit script **standaard** na een geslaagde backtest. Overslaan: `--no-research-digest`.
 
-6. **Eigen notities** — waar nodig nog `research/research_log.md` / `research/decision.json` voor hypotheses en finale beslissing (handmatig).
+7. **Eigen notities** — waar nodig nog `research/research_log.md` / `research/decision.json` voor hypotheses en finale beslissing (handmatig).
 
 ---
 

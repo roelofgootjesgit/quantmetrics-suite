@@ -1,0 +1,30 @@
+{
+  "id": "hyp002-v5a-expansion-block-closed-2026",
+  "description": "HYP-002 gesloten dossier — V5A + expansion-block: spread-stress (0.5) + temporele splits + referentie 5y @0.2",
+  "hypothesis_id": "HYP-002",
+  "engine": "ny_sweep_failure_reclaim",
+  "spec_reference": "configs/experiments/ny_sweep_reversion/HYP-002_NY_SWEEP_FAILURE_RECLAIM/spec_V5A_expansion_block.yaml",
+  "quantbuild_configs_relative": "configs/experiments/ny_sweep_reversion",
+  "runs": [
+    {
+      "id": "v5a_expblk_5y_spread05",
+      "label": "V5A + expansion-block, 5y rolling, mock_spread 0.5",
+      "config_file": "HYP-002_V5A_expansion_block_5y_spread05.yaml"
+    },
+    {
+      "id": "v5a_expblk_2021_2023_spread05",
+      "label": "V5A + expansion-block, 2021–2023, mock_spread 0.5",
+      "config_file": "HYP-002_V5A_expansion_block_2021_2023_spread05.yaml"
+    },
+    {
+      "id": "v5a_expblk_2024_2025_spread05",
+      "label": "V5A + expansion-block, 2024–2025, mock_spread 0.5",
+      "config_file": "HYP-002_V5A_expansion_block_2024_2025_spread05.yaml"
+    },
+    {
+      "id": "v5a_expblk_5y_spread02",
+      "label": "V5A + expansion-block, 5y rolling, default mock_spread (0.2)",
+      "config_file": "HYP-002_V5A_expansion_block_5y.yaml"
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+# Fase 2 — A1_FULL_CANDIDATE: full intake rules as registered candidate.
+
+extends: ./ny_sweep_reversion_v1.yaml
+
+experiment:
+  id: A1_FULL_CANDIDATE
+  phase: 2
+  intent: "H1 bias, news, spread, BE, partial TPs — matches ny_sweep_reversion_v1."
+
+analytics_tags:
+  experiment_variant: A1_full_candidate

@@ -1,0 +1,13 @@
+# HYP-002 V5A (C=2) + expansion uitgesloten; gelijk aan V3-filter maar V5A-parameters.
+
+extends: ./spec_V5A_tight_continuation.yaml
+
+variant:
+  id: HYP-002_V5A_EXPANSION_BLOCK
+
+regime_filter:
+  exclude:
+    - expansion
+  allowed:
+    - trend
+    - compression

@@ -1,0 +1,18 @@
+# Fase 3 — B3_FIXED_2R_EXIT: compare partial exits vs single full exit at 2R.
+
+extends: ./ny_sweep_reversion_v1.yaml
+
+experiment:
+  id: B3_FIXED_2R_EXIT
+  phase: 3
+  intent: "Same gates as candidate; single TP at 2R instead of TP1/TP2 partials."
+
+take_profit:
+  model: fixed_r
+  r_multiple: 2.0
+  tp1: null
+  tp2: null
+
+analytics_tags:
+  exit_model: fixed_2r
+  experiment_variant: B3_fixed_2r_exit

@@ -1,0 +1,35 @@
+# Dedicated NY Sweep Reversion engine (London levels + sweep → disp → FVG, limit at mid).
+# Research spec: QUANTMETRICS_SUITE_ROOT / configs/experiments/ny_sweep_reversion/A0_raw_setup.yaml
+
+symbol: XAUUSD
+strategy:
+  name: ny_sweep_reversion
+timeframes:
+  - 15m
+  - 1h
+
+data:
+  base_path: data/market_cache
+
+backtest:
+  engine: ny_sweep_reversion
+  default_period_days: 365
+  ny_sweep_reversion_config: configs/experiments/ny_sweep_reversion/A0_raw_setup.yaml
+
+system_mode: EDGE_DISCOVERY
+filters:
+  regime: false
+  news: false
+  spread: false
+  session: false
+  position_limit: false
+
+news:
+  enabled: false
+
+risk:
+  max_daily_loss_r: 10.0
+
+quantlog:
+  enabled: true
+  auto_analytics: true

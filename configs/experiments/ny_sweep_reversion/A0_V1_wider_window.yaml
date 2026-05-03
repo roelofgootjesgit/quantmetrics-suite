@@ -1,0 +1,16 @@
+# V1_WIDER_WINDOW — alleen sweep/trade-venster verbreden (hypothesis-domein wijzigt).
+# Sweep-definitie (low/close vs London) identiek aan A0_high_sample.
+
+extends: ./A0_high_sample.yaml
+
+experiment:
+  id: A0_V1_WIDER_WINDOW
+  intent: "Meer M15-bars in venster → meer sweep-kansen; 12:00–18:00 UTC vs 13:30–16:00."
+
+sessions:
+  trade_allowed_window:
+    start_utc: "12:00"
+    end_utc: "18:00"
+
+analytics_tags:
+  experiment_variant: V1_WIDER_WINDOW

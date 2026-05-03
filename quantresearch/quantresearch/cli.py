@@ -45,6 +45,19 @@ def _cmd_dossier(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_hyp002_pipeline(args: argparse.Namespace) -> int:
+    from quantresearch.hyp002_research_pipeline import main as hyp002_main
+
+    argv: list[str] = []
+    if str(getattr(args, "manifest", "") or "").strip():
+        argv.extend(["--manifest", str(args.manifest).strip()])
+    if args.dry_run:
+        argv.append("--dry-run")
+    if args.no_registry:
+        argv.append("--no-registry")
+    return hyp002_main(argv)
+
+
 def _cmd_mark_completed(args: argparse.Namespace) -> int:
     ts = str(getattr(args, "completed_at_utc", "") or "").strip()
     mark_experiment_completed(args.experiment_id, completed_at_utc=ts or None)
@@ -85,6 +98,20 @@ def main(argv: list[str] | None = None) -> int:
         help="Path to quantmetrics_os/runs/<experiment_id>/ (absolute or under suite root)",
     )
     p_link.set_defaults(func=_cmd_link_artifacts)
+
+    p_h2 = sub.add_parser(
+        "hyp002-pipeline",
+        help="Run HYP-002 QuantBuild bundle (V5A+expansion-block), write quantresearch/runs/…/metrics_bundle.json, upsert EXP-002",
+    )
+    p_h2.add_argument(
+        "--manifest",
+        type=str,
+        default="",
+        help="Path to pipelines/hyp002_promotion_bundle.json (default: package default)",
+    )
+    p_h2.add_argument("--dry-run", action="store_true")
+    p_h2.add_argument("--no-registry", action="store_true")
+    p_h2.set_defaults(func=_cmd_hyp002_pipeline)
 
     p_done = sub.add_parser(
         "mark-completed",

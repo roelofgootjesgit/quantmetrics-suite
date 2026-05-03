@@ -1,0 +1,14 @@
+# Fase 3 — B2_NO_BREAK_EVEN: ablation — BE vs expectancy.
+
+extends: ./ny_sweep_reversion_v1.yaml
+
+experiment:
+  id: B2_NO_BREAK_EVEN
+  phase: 3
+  intent: "Full candidate except break-even management disabled."
+
+break_even:
+  enabled: false
+
+analytics_tags:
+  experiment_variant: B2_no_break_even

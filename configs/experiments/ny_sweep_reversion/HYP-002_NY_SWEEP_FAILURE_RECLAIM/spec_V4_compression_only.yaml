@@ -1,0 +1,13 @@
+# HYP-002 V4 — alleen compression-regime; verder identiek aan V3 (shadow bij overlap, research risk).
+
+extends: ./spec_V3_expansion_block_shadow.yaml
+
+variant:
+  id: V4_COMPRESSION_ONLY
+
+regime_filter:
+  exclude:
+    - trend
+    - expansion
+  allowed:
+    - compression

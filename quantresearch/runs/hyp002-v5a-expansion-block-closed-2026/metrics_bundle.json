@@ -1,0 +1,100 @@
+{
+  "bundle_id": "hyp002-v5a-expansion-block-closed-2026",
+  "generated_at_utc": "2026-05-03T18:42:39.640992Z",
+  "manifest_path": "C:/Users/Gebruiker/quantmetrics-suite/quantresearch/pipelines/hyp002_promotion_bundle.json",
+  "quantbuild_root": "C:\\Users\\Gebruiker\\quantmetrics-suite\\quantbuild",
+  "suite_root": "C:\\Users\\Gebruiker\\quantmetrics-suite",
+  "hypothesis_id": "HYP-002",
+  "engine": "ny_sweep_failure_reclaim",
+  "spec_reference": "configs/experiments/ny_sweep_reversion/HYP-002_NY_SWEEP_FAILURE_RECLAIM/spec_V5A_expansion_block.yaml",
+  "runs": [
+    {
+      "id": "v5a_expblk_5y_spread05",
+      "label": "V5A + expansion-block, 5y rolling, mock_spread 0.5",
+      "config_relative_to_quantbuild": "configs/experiments/ny_sweep_reversion/HYP-002_V5A_expansion_block_5y_spread05.yaml",
+      "metrics": {
+        "total_trades": 439,
+        "trade_count": 439,
+        "wins": 165,
+        "losses": 274,
+        "win_rate": 37.58542141230068,
+        "win_rate_01": 0.37585421412300685,
+        "profit_factor": 1.1630283921011018,
+        "expectancy": 0.10175348390820477,
+        "expectancy_r": 0.10175348390820477,
+        "total_profit_r": 44.66977943570189,
+        "net_pnl": 784.1160000000039,
+        "max_drawdown": -14.117572851945807,
+        "avg_holding_hours": 31.138952164009112
+      },
+      "expectancy_r": 0.10175348390820477,
+      "trade_count": 439
+    },
+    {
+      "id": "v5a_expblk_2021_2023_spread05",
+      "label": "V5A + expansion-block, 2021\u20132023, mock_spread 0.5",
+      "config_relative_to_quantbuild": "configs/experiments/ny_sweep_reversion/HYP-002_V5A_expansion_block_2021_2023_spread05.yaml",
+      "metrics": {
+        "total_trades": 246,
+        "trade_count": 246,
+        "wins": 90,
+        "losses": 155,
+        "win_rate": 36.58536585365854,
+        "win_rate_01": 0.36585365853658536,
+        "profit_factor": 1.1135929496106507,
+        "expectancy": 0.07140258033198105,
+        "expectancy_r": 0.07140258033198105,
+        "total_profit_r": 17.565034761667338,
+        "net_pnl": 189.21899999999528,
+        "max_drawdown": -17.302754672860313,
+        "avg_holding_hours": 37.95630081300813
+      },
+      "expectancy_r": 0.07140258033198105,
+      "trade_count": 246
+    },
+    {
+      "id": "v5a_expblk_2024_2025_spread05",
+      "label": "V5A + expansion-block, 2024\u20132025, mock_spread 0.5",
+      "config_relative_to_quantbuild": "configs/experiments/ny_sweep_reversion/HYP-002_V5A_expansion_block_2024_2025_spread05.yaml",
+      "metrics": {
+        "total_trades": 186,
+        "trade_count": 186,
+        "wins": 68,
+        "losses": 117,
+        "win_rate": 36.55913978494624,
+        "win_rate_01": 0.3655913978494624,
+        "profit_factor": 1.128251601181527,
+        "expectancy": 0.08236418060586843,
+        "expectancy_r": 0.08236418060586843,
+        "total_profit_r": 15.31973759269153,
+        "net_pnl": 389.73500000000536,
+        "max_drawdown": -11.539700812757195,
+        "avg_holding_hours": 25.438172043010752
+      },
+      "expectancy_r": 0.08236418060586843,
+      "trade_count": 186
+    },
+    {
+      "id": "v5a_expblk_5y_spread02",
+      "label": "V5A + expansion-block, 5y rolling, default mock_spread (0.2)",
+      "config_relative_to_quantbuild": "configs/experiments/ny_sweep_reversion/HYP-002_V5A_expansion_block_5y.yaml",
+      "metrics": {
+        "total_trades": 439,
+        "trade_count": 439,
+        "wins": 165,
+        "losses": 274,
+        "win_rate": 37.58542141230068,
+        "win_rate_01": 0.37585421412300685,
+        "profit_factor": 1.1875752394119203,
+        "expectancy": 0.11707429521381824,
+        "expectancy_r": 0.11707429521381824,
+        "total_profit_r": 51.39561559886621,
+        "net_pnl": 849.9660000000256,
+        "max_drawdown": -13.45485276137631,
+        "avg_holding_hours": 31.138952164009112
+      },
+      "expectancy_r": 0.11707429521381824,
+      "trade_count": 439
+    }
+  ]
+}

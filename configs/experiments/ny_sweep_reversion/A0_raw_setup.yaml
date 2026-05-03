@@ -1,0 +1,34 @@
+# Fase 1 — A0_RAW_SETUP: measure the raw setup (minimal overlays).
+# First run this before A1_FULL_CANDIDATE.
+
+extends: ./ny_sweep_reversion_v1.yaml
+
+experiment:
+  id: A0_RAW_SETUP
+  phase: 1
+  intent: "Sweep + displacement + FVG only; isolate edge from bias/news/management."
+
+bias:
+  h1_structure:
+    enabled: false
+
+break_even:
+  enabled: false
+
+take_profit:
+  model: fixed_r
+  r_multiple: 2.0
+  # Explicit nulls: deep-merge would otherwise keep partials from ny_sweep_reversion_v1.yaml
+  tp1: null
+  tp2: null
+
+filters:
+  spread:
+    enabled: false
+
+  news:
+    enabled: false
+
+analytics_tags:
+  exit_model: fixed_2r_no_be
+  experiment_variant: A0_raw_setup

@@ -1,0 +1,54 @@
+# HYP-002 eerste run — 5 jaar, vaste parameters, geen displacement/FVG in engine.
+# Research: configs/experiments/ny_sweep_reversion/HYP-002_NY_SWEEP_FAILURE_RECLAIM/spec.yaml
+
+symbol: XAUUSD
+strategy:
+  name: ny_sweep_failure_reclaim
+
+timeframes:
+  - 15m
+  - 1h
+
+data:
+  base_path: data/market_cache
+
+backtest:
+  engine: ny_sweep_failure_reclaim
+  default_period_days: 1825
+  ny_sweep_failure_reclaim_config: configs/experiments/ny_sweep_reversion/HYP-002_NY_SWEEP_FAILURE_RECLAIM/spec.yaml
+
+system_mode: EDGE_DISCOVERY
+filters:
+  regime: false
+  news: false
+  spread: false
+  session: false
+  position_limit: false
+
+news:
+  enabled: false
+
+# EDGE_DISCOVERY research: geen harde run-stop — volledige mechanisme over 5 jaar.
+risk:
+  equity_kill_switch_pct: 0.0
+  max_daily_loss_r: 999.0
+  stop_after_consecutive_losses: 999
+
+ny_sweep_failure_reclaim:
+  overrides:
+    execution:
+      overlap_policy: block_and_shadow_log
+    risk:
+      max_trades_per_day: 999
+      stop_after_consecutive_losses: 999
+
+quantlog:
+  enabled: true
+  auto_analytics: true
+  consolidated_run_file: true
+
+artifacts:
+  enabled: true
+  experiment_id: EXP-NY-SWEEP-HYP002-5Y-2026
+  role: single
+  bundle_analytics: true

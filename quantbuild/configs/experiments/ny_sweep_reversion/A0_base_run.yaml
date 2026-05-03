@@ -1,0 +1,39 @@
+# Executable SQE backtest proxy for research experiment A0_RAW_SETUP.
+# Spec: ../configs/experiments/ny_sweep_reversion/A0_raw_setup.yaml (suite root)
+#
+# Limits vs research YAML: engine uses named sessions (UTC extended NY ≈ 12:00–16:00),
+# not exact 13:30–15:30 windows; no BE/partials in simulator — fixed tp_r/sl_r only.
+
+extends: ../../strict_prod_v2.yaml
+
+experiment:
+  id: A0_RAW_SETUP
+  research_config_ref: ../../../../configs/experiments/ny_sweep_reversion/A0_raw_setup.yaml
+
+system_mode: EDGE_DISCOVERY
+
+filters:
+  session: true
+  regime: false
+  spread: false
+  news: false
+  position_limit: true
+  cooldown: false
+  structure_h1_gate: false
+
+strategy:
+  structure_use_h1_gate: false
+
+news:
+  enabled: false
+
+backtest:
+  session_filter:
+    - New York
+  session_mode: extended
+  tp_r: 2.0
+  sl_r: 1.0
+  default_period_days: 365
+
+risk:
+  max_trades_per_session: 2

@@ -1,0 +1,34 @@
+# HYP-002 — NY Sweep Failure Reclaim (research, eerste run)
+# HYP-001 engine/spec blijft onaangetast; eigen parameters v1.0 — niet tunen vóór verdict.
+
+hypothesis:
+  id: HYP-002
+  label: NY_SWEEP_FAILURE_RECLAIM
+  description: >
+    Sweep van London high/low zonder same-bar reclaim; failure = weinig continuation
+    voorbij het niveau binnen N M15-bars; entry op eerste reclaim-close binnen M bars.
+
+parameters:
+  c_max_continuation_points: 5.0
+  n_failure_window_bars: 3
+  m_reclaim_window_bars: 6
+
+sessions:
+  london_reference:
+    start_utc: "07:00"
+    end_utc: "12:00"
+  trade_allowed_window:
+    start_utc: "13:30"
+    end_utc: "16:00"
+
+stop_loss:
+  type: sweep_extreme_with_buffer
+  buffer_points: 5.0
+
+take_profit:
+  model: fixed_r
+  r_multiple: 2.0
+
+risk:
+  max_trades_per_day: 2
+  stop_after_consecutive_losses: 999
