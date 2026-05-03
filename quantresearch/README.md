@@ -134,6 +134,8 @@ python -m quantresearch hyp002-pipeline
 
 Dit leest `pipelines/hyp002_promotion_bundle.json`, draait elke geliste QuantBuild-config (subprocess, `QUANTMETRICS_SUITE_ROOT` = suite root), schrijft `runs/<bundle_id>/metrics_bundle.json`, **upsert** `registry/experiments.json` (**EXP-002**), werkt **EDGE-002** in `confirmed_edges.json` bij, overschrijft **`research_logs/HYP-002_EXP-002_closed_dossier.md`**, en vult **`experiments/EXP-002/`** (ledger v1: `experiment.json`, `hypothesis.md`, `experiment_plan.md`, `results_summary.md`, `decision.md`, `links.json`) zodat `python -m quantresearch validate --experiment-id EXP-002` slaagt.
 
+**Academische protocol-laag (governance vs. inferentie):** zie [docs/ACADEMIC_RESEARCH_PROTOCOL.md](docs/ACADEMIC_RESEARCH_PROTOCOL.md) en `pipelines/hyp002_preregistration.json` → `experiments/EXP-002/preregistration.json` na pipeline. HYP-002 staat daar als **`retrospective_reconstruction`** / `pre_registration_valid: false` (geen echte pre-reg); `validate_preregistration_v1` eist temporele integriteit pas bij `pre_registration_valid: true`.
+
 ---
 
 ## Documentation

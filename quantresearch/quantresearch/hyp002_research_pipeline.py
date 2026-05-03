@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import os
 import subprocess
 import sys
@@ -27,6 +28,13 @@ from typing import Any
 
 from quantresearch.experiment_registry import upsert_experiment
 from quantresearch.paths import experiments_dir, registry_dir, repo_root
+from quantresearch.preregistration import (
+    default_hyp002_preregistration_path,
+    load_preregistration,
+    validate_preregistration_v1,
+)
+
+logger = logging.getLogger(__name__)
 
 
 def _suite_root() -> Path:
@@ -156,6 +164,19 @@ def _variant_run_id(bundle: dict[str, Any]) -> str:
     return f"{bundle.get('bundle_id', 'hyp002-bundle')}-{bundle['generated_at_utc'][:19].replace(':', '')}"
 
 
+def _load_hyp002_preregistration_for_ledger(bundle: dict[str, Any]) -> dict[str, Any] | None:
+    p = default_hyp002_preregistration_path()
+    if not p.is_file():
+        logger.warning("HYP-002 preregistration file missing: %s", p)
+        return None
+    data = load_preregistration(p)
+    run_start = str(bundle.get("generated_at_utc") or "").strip() or None
+    errs = validate_preregistration_v1(data, run_start_utc=run_start)
+    if errs:
+        raise ValueError("hyp002_preregistration.json invalid: " + "; ".join(errs))
+    return data
+
+
 def _write_exp002_experiment_ledger_folder(
     suite_root: Path,
     bundle: dict[str, Any],
@@ -231,42 +252,109 @@ def _write_exp002_experiment_ledger_folder(
         },
         "notes": "Evidence: QuantBuild subprocess bundle (no QuantOS matrix). Re-run: python -m quantresearch hyp002-pipeline",
     }
+    prereg = _load_hyp002_preregistration_for_ledger(bundle)
+    exp_json["governance_status"] = "PROMOTE"
+    exp_json["academic_status"] = "PENDING"
+    exp_json["effective_status"] = "GOVERNANCE_ONLY — not academically validated"
+    if prereg:
+        exp_json["academic_protocol"] = {
+            "version": 1,
+            "preregistration_file": "preregistration.json",
+            "schema": "schemas/hypothesis_preregistration_v1.schema.json",
+            "inferential_statistics": "pending",
+            "protocol_doc": "docs/ACADEMIC_RESEARCH_PROTOCOL.md",
+            "pre_registration_status": prereg.get("pre_registration_status"),
+            "pre_registration_valid": prereg.get("pre_registration_valid"),
+        }
+        (exp_dir / "preregistration.json").write_text(
+            json.dumps(prereg, indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
+
     (exp_dir / "experiment.json").write_text(json.dumps(exp_json, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
-    (exp_dir / "hypothesis.md").write_text(
+    hyp_body = (
         "# HYP-002 — Hypothese\n\n"
+        "## Verhaal (mechanisme)\n\n"
         "Na een London liquidity sweep die als *failure* wordt geclassificeerd (beperkte continuation), "
         "levert reclaim binnen M bars positieve expectancy wanneer expansion-regime trades worden uitgesloten "
-        "en continuation-cap C=2 (V5A) wordt toegepast.\n",
-        encoding="utf-8",
+        "en continuation-cap C=2 (V5A) wordt toegepast.\n"
     )
+    if prereg:
+        notes_line = prereg.get("notes", "").strip()
+        hyp_body += (
+            "\n## Pre-registratie (v1)\n\n"
+            f"- **Status:** `{prereg.get('pre_registration_status')}` — `pre_registration_valid` = "
+            f"**{prereg.get('pre_registration_valid')}** (geen wetenschappelijke pre-reg zolang retrospectief).\n"
+            f"- **Eerlijkheidsnotitie (`note`):** {prereg.get('note', '')}\n\n"
+            "Machine-leesbaar: `preregistration.json` (kopie van `pipelines/hyp002_preregistration.json`).\n\n"
+            f"- **Timestamp (UTC):** `{prereg['pre_registration_timestamp_utc']}`\n"
+            f"- **locked_at_utc:** `{prereg.get('locked_at_utc', 'n/a')}`\n"
+            f"- **alpha:** {prereg['alpha']}\n"
+            f"- **minimum_n:** {prereg['minimum_n']}\n"
+            f"- **minimum_effect_size_r:** {prereg['minimum_effect_size_r']}\n"
+            f"- **target_power:** {prereg.get('target_power', 'n/a')}\n\n"
+            "### H0 (nulhypothese)\n\n"
+            f"{prereg['null_hypothesis_H0']}\n\n"
+            "### H1 (alternatief)\n\n"
+            f"{prereg['alternative_hypothesis_H1']}\n\n"
+            "### Testplan\n\n"
+            f"{prereg['test_plan_summary']}\n\n"
+        )
+        if notes_line:
+            hyp_body += f"\n*{notes_line}*\n"
+    (exp_dir / "hypothesis.md").write_text(hyp_body, encoding="utf-8")
+
     (exp_dir / "experiment_plan.md").write_text(
         "# Experimentplan\n\n"
         "1. Vaste manifest: `quantresearch/pipelines/hyp002_promotion_bundle.json`.\n"
-        "2. Per entry: QuantBuild-backtest (subprocess, `cwd=quantbuild`), metrics in bundle JSON.\n"
-        "3. `research_logs/HYP-002_EXP-002_closed_dossier.md` + registry EXP-002 + EDGE-002.\n"
-        "4. Deze map (`experiments/EXP-002/`) voor ledger validate / dossier.\n",
+        "2. Pre-registratie: `pipelines/hyp002_preregistration.json` → `preregistration.json` (zie `docs/ACADEMIC_RESEARCH_PROTOCOL.md`).\n"
+        "3. Per entry: QuantBuild-backtest (subprocess, `cwd=quantbuild`), metrics in bundle JSON.\n"
+        "4. `research_logs/HYP-002_EXP-002_closed_dossier.md` + registry EXP-002 + EDGE-002.\n"
+        "5. Deze map (`experiments/EXP-002/`) voor ledger validate / dossier.\n"
+        "6. **Factorial / factor-isolatie:** manifest bevat meerdere runs; strikte 2^k-factorisatie is roadmap (aparte configs per factor).\n",
         encoding="utf-8",
     )
     o5 = by_id.get("v5a_expblk_5y_spread05", {})
     t1 = by_id.get("v5a_expblk_2021_2023_spread05", {})
     t2 = by_id.get("v5a_expblk_2024_2025_spread05", {})
-    (exp_dir / "results_summary.md").write_text(
+    rs = (
         "# Resultaten (samenvatting)\n\n"
+        "## Descriptief (aggregaten)\n\n"
         f"- **Overall mock_spread 0.5:** expectancy_r **{_r3(o5.get('expectancy_r'))}**, n={o5.get('trade_count')}\n"
         f"- **2021–2023 @0.5:** {_r3(t1.get('expectancy_r'))}, n={t1.get('trade_count')}\n"
         f"- **2024–2025 @0.5:** {_r3(t2.get('expectancy_r'))}, n={t2.get('trade_count')}\n\n"
-        f"Volledige metrics: `{run_rel}/metrics_bundle.json`.\n",
-        encoding="utf-8",
+        f"Volledige metrics: `{run_rel}/metrics_bundle.json`.\n\n"
+        "## Inferentie (academische laag — nog niet geautomatiseerd)\n\n"
+        "| Statistiek | Status |\n"
+        "|------------|--------|\n"
+        "| p-waarde (o.a. mean R vs 0 / vs drempel) | **pending** — vereist per-trade R-reeks |\n"
+        "| 95% CI op mean R | **pending** |\n"
+        "| Cohen d (trade-R) | **pending** |\n"
+        "| Bootstrap CI | **pending** |\n"
+        "| std / skew / kurtosis van R | **pending** |\n\n"
+        "Zie `docs/ACADEMIC_RESEARCH_PROTOCOL.md`.\n"
     )
-    (exp_dir / "decision.md").write_text(
+    (exp_dir / "results_summary.md").write_text(rs, encoding="utf-8")
+
+    dec = (
         "# Besluit\n\n"
         "## Final Decision\n\n"
-        "**PROMOTION CANDIDATE** — gevalideerd onder spread-stress (mock_spread 0.5) en temporele splitsing; "
-        "zie `results_summary.md` en het gesloten dossier in `research_logs/`.\n\n"
-        "Dit is geen live-tradingbewijs; volgende fase: OOS-data, slippage-model, sizing, paper trading (zie dossier).\n",
-        encoding="utf-8",
+        "Zie ook **twee gescheiden statusvelden** in `experiment.json`: `governance_status`, `academic_status`, "
+        "`effective_status`.\n\n"
+        "### Gate A — Governance (descriptief)\n\n"
+        "**`governance_status`: PROMOTE** — interne criteria gehaald (aggregaten, spread-stress, temporele split). "
+        "Zie `results_summary.md` en `research_logs/HYP-002_EXP-002_closed_dossier.md`.\n\n"
+        "### Gate B — Academisch (inferentie)\n\n"
+        "**`academic_status`: PENDING** — geen p-waarde / bootstrap-CI / Cohen d op per-trade R; "
+        "`preregistration.json` is **retrospectief** (`pre_registration_valid: false`). "
+        "Geen `PROMOTE_FULL` zolang Gate B niet PASS is (zie `docs/ACADEMIC_RESEARCH_PROTOCOL.md`).\n\n"
+        "### Effectieve status\n\n"
+        "**`effective_status`:** `GOVERNANCE_ONLY — not academically validated`\n\n"
+        "Architectuurregel: promoveer nooit naar fases die academische eisen stellen zonder expliciete PASS op beide gates.\n\n"
+        "Dit is geen live-tradingbewijs; volgende fase: OOS-data, slippage-model, sizing, paper trading.\n"
     )
+    (exp_dir / "decision.md").write_text(dec, encoding="utf-8")
     links = {
         "quantos_run_dir": run_rel,
         "paths_are_absolute": False,

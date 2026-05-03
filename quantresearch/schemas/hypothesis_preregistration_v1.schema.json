@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://quantresearch.local/schemas/hypothesis_preregistration_v1.schema.json",
+  "title": "Pre-registered hypothesis block (v1)",
+  "type": "object",
+  "required": [
+    "version",
+    "hypothesis_id",
+    "pre_registration_timestamp_utc",
+    "pre_registration_status",
+    "pre_registration_valid",
+    "note",
+    "null_hypothesis_H0",
+    "alternative_hypothesis_H1",
+    "alpha",
+    "minimum_n",
+    "minimum_effect_size_r",
+    "test_plan_summary"
+  ],
+  "properties": {
+    "version": { "type": "integer", "const": 1 },
+    "hypothesis_id": { "type": "string", "minLength": 1 },
+    "pre_registration_timestamp_utc": { "type": "string", "minLength": 10 },
+    "locked_at_utc": {
+      "type": "string",
+      "minLength": 10,
+      "description": "When the hypothesis was locked for a true pre-reg; must precede run_start for pre_registration_valid true"
+    },
+    "pre_registration_status": {
+      "type": "string",
+      "enum": ["retrospective_reconstruction", "locked_before_run"]
+    },
+    "pre_registration_valid": { "type": "boolean" },
+    "note": { "type": "string", "minLength": 1 },
+    "null_hypothesis_H0": { "type": "string", "minLength": 1 },
+    "alternative_hypothesis_H1": { "type": "string", "minLength": 1 },
+    "alpha": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+    "target_power": { "type": "number", "minimum": 0, "maximum": 1 },
+    "minimum_n": { "type": "integer", "minimum": 1 },
+    "minimum_effect_size_r": { "type": "number" },
+    "test_plan_summary": { "type": "string", "minLength": 1 },
+    "data_window": {
+      "type": "object",
+      "properties": {
+        "start": { "type": "string" },
+        "end": { "type": "string" },
+        "symbol": { "type": "string" },
+        "timeframe": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "notes": { "type": "string" }
+  },
+  "additionalProperties": true
+}

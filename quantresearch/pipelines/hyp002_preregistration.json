@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "hypothesis_id": "HYP-002",
+  "pre_registration_timestamp_utc": "2026-05-03T12:00:00Z",
+  "locked_at_utc": "2026-05-04T10:00:00Z",
+  "pre_registration_status": "retrospective_reconstruction",
+  "pre_registration_valid": false,
+  "note": "Filed after EXP-002 completion. HYP-002 is NOT pre-registered. This file serves as template/baseline for future experiments only. minimum_n and effect thresholds were not chosen independently of observed outcomes (HARKing risk if mislabeled as pre-registration).",
+  "null_hypothesis_H0": "Expectancy per trade (R) is at or below zero under the stated backtest: XAUUSD M15, ny_sweep_failure_reclaim V5A + expansion-block, broker.mock_spread 0.5, calendar window 2021-01-01 to 2025-12-31.",
+  "alternative_hypothesis_H1": "Expectancy per trade (R) is strictly greater than +0.028 (pre-specified economic floor aligned with internal promotion gate).",
+  "alpha": 0.05,
+  "target_power": 0.8,
+  "minimum_n": 300,
+  "minimum_effect_size_r": 0.028,
+  "test_plan_summary": "Planned inferential layer (not yet automated in pipeline): one-sided test of mean R > 0; bootstrap 95% CI on mean R; Cohen d on per-trade R; Wilcoxon signed-rank vs 0 if non-Gaussian; rolling expectancy stability. Requires persisted per-trade R series from QuantBuild/QuantLog.",
+  "data_window": {
+    "start": "2021-01-01",
+    "end": "2025-12-31",
+    "symbol": "XAUUSD",
+    "timeframe": "15m"
+  },
+  "notes": "Governance verdict (PROMOTION CANDIDATE) used descriptive gates on aggregated metrics. Academic PASS on statistical_significance is pending implementation of Pijler 2 outputs."
+}

@@ -124,6 +124,8 @@ Voor **HYP-002** (NY sweep failure reclaim, V5A + expansion-block) is er een vas
 
 Validatie: `python -m quantresearch validate --experiment-id EXP-002` (na pipeline). Dossier-SAMENVOEGing: `python -m quantresearch dossier --experiment-id EXP-002`.
 
+**Academische strengte (pre-reg + inferentie-roadmap):** [ACADEMIC_RESEARCH_PROTOCOL.md](ACADEMIC_RESEARCH_PROTOCOL.md).
+
 Dit volgt dezelfde governance als hierboven: reproduceerbare cijfers eerst, daarna besluit en knowledge base.
 
 ### Stap F — Research log (mens-leesbaar)
