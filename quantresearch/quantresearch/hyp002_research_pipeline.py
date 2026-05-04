@@ -29,6 +29,12 @@ from typing import Any
 from quantresearch.experiment_registry import upsert_experiment
 from quantresearch.paths import experiments_dir, registry_dir, repo_root
 from quantresearch.inference_consumer import apply_inference_to_experiment, load_inference_report_from_dir
+from quantresearch.ledger_inference_markdown import (
+    render_effective_status_paragraph,
+    render_gate_b_section,
+    render_inference_results_table,
+)
+from quantresearch.markdown_renderer import write_research_index
 from quantresearch.preregistration import (
     default_hyp002_preregistration_path,
     load_preregistration,
@@ -259,17 +265,19 @@ def _write_exp002_experiment_ledger_folder(
     exp_json["governance_status"] = "PROMOTE"
     exp_json["academic_status"] = "PENDING"
     exp_json["effective_status"] = "GOVERNANCE_ONLY — not academically validated"
-    inf_doc: dict[str, Any] | None = None
-    if manifest and bool(manifest.get("inference_consumer")):
-        inf_doc = load_inference_report_from_dir(exp_dir)
-    if inf_doc is not None and prereg:
-        upd = apply_inference_to_experiment("EXP-002", prereg, inf_doc)
+    inf_md: dict[str, Any] | None = load_inference_report_from_dir(exp_dir)
+    if manifest and bool(manifest.get("inference_consumer")) and inf_md is not None and prereg:
+        upd = apply_inference_to_experiment("EXP-002", prereg, inf_md)
         exp_json["academic_status"] = upd["academic_status"]
         exp_json["effective_status"] = upd["effective_status"]
         if upd.get("inference_reason"):
             exp_json["inference_reason"] = upd["inference_reason"]
     if prereg:
-        infer_stats = "applied" if inf_doc else "pending"
+        infer_stats = (
+            "applied"
+            if (bool(manifest and manifest.get("inference_consumer")) and inf_md is not None and prereg)
+            else "pending"
+        )
         exp_json["academic_protocol"] = {
             "version": 1,
             "preregistration_file": "preregistration.json",
@@ -338,18 +346,26 @@ def _write_exp002_experiment_ledger_folder(
         f"- **2021–2023 @0.5:** {_r3(t1.get('expectancy_r'))}, n={t1.get('trade_count')}\n"
         f"- **2024–2025 @0.5:** {_r3(t2.get('expectancy_r'))}, n={t2.get('trade_count')}\n\n"
         f"Volledige metrics: `{run_rel}/metrics_bundle.json`.\n\n"
-        "## Inferentie (academische laag — nog niet geautomatiseerd)\n\n"
-        "| Statistiek | Status |\n"
-        "|------------|--------|\n"
-        "| p-waarde (o.a. mean R vs 0 / vs drempel) | **pending** — vereist per-trade R-reeks |\n"
-        "| 95% CI op mean R | **pending** |\n"
-        "| Cohen d (trade-R) | **pending** |\n"
-        "| Bootstrap CI | **pending** |\n"
-        "| std / skew / kurtosis van R | **pending** |\n\n"
-        "Zie `docs/ACADEMIC_RESEARCH_PROTOCOL.md`.\n"
+        "## Inferentie (academische laag)\n\n"
+        + render_inference_results_table(inf_md)
+        + "\n"
     )
     (exp_dir / "results_summary.md").write_text(rs, encoding="utf-8")
 
+    pr_valid = bool(prereg.get("pre_registration_valid")) if prereg else None
+    pr_status = str(prereg.get("pre_registration_status") or "") if prereg else None
+    gate_b = render_gate_b_section(
+        academic_status=str(exp_json.get("academic_status", "PENDING")),
+        effective_status=str(exp_json.get("effective_status", "")),
+        inference_reason=str(exp_json.get("inference_reason") or "").strip() or None,
+        pre_registration_valid=pr_valid,
+        pre_registration_status=pr_status or None,
+        inference=inf_md,
+    )
+    eff_para = render_effective_status_paragraph(
+        str(exp_json.get("effective_status", "")),
+        str(exp_json.get("academic_status", "PENDING")),
+    )
     dec = (
         "# Besluit\n\n"
         "## Final Decision\n\n"
@@ -359,13 +375,9 @@ def _write_exp002_experiment_ledger_folder(
         "**`governance_status`: PROMOTE** — interne criteria gehaald (aggregaten, spread-stress, temporele split). "
         "Zie `results_summary.md` en `research_logs/HYP-002_EXP-002_closed_dossier.md`.\n\n"
         "### Gate B — Academisch (inferentie)\n\n"
-        "**`academic_status`: PENDING** — geen p-waarde / bootstrap-CI / Cohen d op per-trade R; "
-        "`preregistration.json` is **retrospectief** (`pre_registration_valid: false`). "
-        "Geen `PROMOTE_FULL` zolang Gate B niet PASS is (zie `docs/ACADEMIC_RESEARCH_PROTOCOL.md`).\n\n"
-        "### Effectieve status\n\n"
-        "**`effective_status`:** `GOVERNANCE_ONLY — not academically validated`\n\n"
-        "Architectuurregel: promoveer nooit naar fases die academische eisen stellen zonder expliciete PASS op beide gates.\n\n"
-        "Dit is geen live-tradingbewijs; volgende fase: OOS-data, slippage-model, sizing, paper trading.\n"
+        + gate_b
+        + "\n"
+        + eff_para
     )
     (exp_dir / "decision.md").write_text(dec, encoding="utf-8")
     links = {
@@ -375,6 +387,12 @@ def _write_exp002_experiment_ledger_folder(
         "hyp002_closed_dossier": "quantresearch/research_logs/HYP-002_EXP-002_closed_dossier.md",
     }
     (exp_dir / "links.json").write_text(json.dumps(links, indent=2) + "\n", encoding="utf-8")
+
+    try:
+        write_research_index()
+    except Exception:
+        logger.warning("write_research_index failed after EXP-002 ledger write", exc_info=True)
+
     return exp_dir
 
 

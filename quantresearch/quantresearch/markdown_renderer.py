@@ -2,12 +2,29 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any
 
 from quantresearch.edge_registry import load_confirmed, load_rejected
 from quantresearch.experiment_registry import list_experiments
-from quantresearch.paths import repo_root
+from quantresearch.paths import experiments_dir, repo_root
+
+
+def _ledger_academic_status(experiment_id: str) -> str:
+    """`academic_status` from ``experiments/<id>/experiment.json`` when present."""
+    p = experiments_dir() / experiment_id / "experiment.json"
+    if not p.is_file():
+        return "—"
+    try:
+        raw = p.read_text(encoding="utf-8")
+        data = json.loads(raw)
+    except (OSError, json.JSONDecodeError, UnicodeDecodeError):
+        return "—"
+    ac = data.get("academic_status")
+    if ac is None or str(ac).strip() == "":
+        return "—"
+    return str(ac).strip()
 
 
 def render_research_index(
@@ -27,8 +44,8 @@ def render_research_index(
         "",
         "## Experiments",
         "",
-        "| ID | Date | Title | Result | Status |",
-        "|----|------|-------|--------|--------|",
+        "| ID | Date | Title | Result | Status | Academic |",
+        "|----|------|-------|--------|--------|----------|",
     ]
 
     for exp in sorted(experiments, key=lambda e: e.get("experiment_id", "")):
@@ -37,7 +54,8 @@ def render_research_index(
         title = str(exp.get("title", "")).replace("|", "\\|")
         result = exp.get("result", "")
         status = exp.get("status", "")
-        lines.append(f"| {eid} | {ds} | {title} | {result} | {status} |")
+        academic = _ledger_academic_status(str(eid))
+        lines.append(f"| {eid} | {ds} | {title} | {result} | {status} | {academic} |")
 
     lines.extend(["", "## Confirmed edges", ""])
 
