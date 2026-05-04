@@ -8,14 +8,20 @@
 
 Volledige metrics: `quantresearch/runs/hyp002-v5a-expansion-block-closed-2026/metrics_bundle.json`.
 
-## Inferentie (academische laag — nog niet geautomatiseerd)
+## Inferentie (academische laag)
 
-| Statistiek | Status |
+| Statistiek | Waarde |
 |------------|--------|
-| p-waarde (o.a. mean R vs 0 / vs drempel) | **pending** — vereist per-trade R-reeks |
-| 95% CI op mean R | **pending** |
-| Cohen d (trade-R) | **pending** |
-| Bootstrap CI | **pending** |
-| std / skew / kurtosis van R | **pending** |
+| Bron | QuantAnalytics `inference_report.json` (schema `inference_v1`) |
+| n (trade_closed) | 439 |
+| mean_r (descriptief) | 0.117074 |
+| std_r / median_r | 1.441169 / -1.000000 |
+| Test gebruikt | wilcoxon_signed_rank |
+| p-waarde (two-sided vs H0 median R=0) | 3.82871e-05 (PASS bij α=0.05) |
+| 95% CI mean R (bootstrap) | [-0.018153, 0.252362] — method: bootstrap_bca |
+| Economische gate | ci_95_lower -0.018153 vs floor 0.028 → **FAIL** (`ci_95_lower >= minimum_effect_size_r`) |
+| Cohen's d (trade-R) | 0.081236 (negligible) |
+| Statistisch verdict | **PASS** |
+| Economisch verdict | **FAIL** |
 
-Zie `docs/ACADEMIC_RESEARCH_PROTOCOL.md`.
+Zie `docs/ACADEMIC_RESEARCH_PROTOCOL.md` en `experiment.json` voor governance vs academische status.

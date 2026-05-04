@@ -1,7 +1,7 @@
 # HYP-002 — Gesloten research-dossier (EXP-002)
 
 **Status:** PROMOTION CANDIDATE — gevalideerd onder spread-stress en temporele splitsing.  
-**Automatisch gegenereerd:** `2026-05-03T20:14:42.220896Z` uit pipeline-metrics (`metrics_bundle.json`).  
+**Automatisch gegenereerd:** `2026-05-04T07:56:08.551659Z` uit pipeline-metrics (`metrics_bundle.json`).  
 **Experiment:** `EXP-002` in `registry/experiments.json` en ledger-map `experiments/EXP-002/` (validate: `python -m quantresearch validate --experiment-id EXP-002`).
 
 ---

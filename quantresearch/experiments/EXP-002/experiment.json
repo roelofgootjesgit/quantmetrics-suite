@@ -3,8 +3,8 @@
   "experiment_id": "EXP-002",
   "title": "HYP-002 NY sweep failure reclaim — V5A + expansion block (closed dossier)",
   "status": "completed",
-  "created_at_utc": "2026-05-03T20:14:42.220896Z",
-  "completed_at_utc": "2026-05-03T20:14:42.220896Z",
+  "created_at_utc": "2026-05-04T07:56:08.551659Z",
+  "completed_at_utc": "2026-05-04T07:56:08.551659Z",
   "matrix_type": "custom",
   "baseline_run_id": null,
   "canonical_artifact_path": "quantresearch/runs/hyp002-v5a-expansion-block-closed-2026",
@@ -29,7 +29,7 @@
     "pipeline": "quantresearch/pipelines/hyp002_promotion_bundle.json",
     "metrics_bundle": "quantresearch/runs/hyp002-v5a-expansion-block-closed-2026/metrics_bundle.json",
     "closed_dossier_md": "quantresearch/research_logs/HYP-002_EXP-002_closed_dossier.md",
-    "variant_run_id": "hyp002-v5a-expansion-block-closed-2026-2026-05-03T201442"
+    "variant_run_id": "hyp002-v5a-expansion-block-closed-2026-2026-05-04T075608"
   },
   "quantresearch_files": {
     "hypothesis_md": "hypothesis.md",
@@ -63,13 +63,14 @@
   },
   "notes": "Evidence: QuantBuild subprocess bundle (no QuantOS matrix). Re-run: python -m quantresearch hyp002-pipeline",
   "governance_status": "PROMOTE",
-  "academic_status": "PENDING",
-  "effective_status": "GOVERNANCE_ONLY — not academically validated",
+  "academic_status": "FAIL",
+  "effective_status": "GOVERNANCE_ONLY",
+  "inference_reason": "economic_gate=ci_95_lower(-0.018153)<minimum_effect_size_r(0.028)",
   "academic_protocol": {
     "version": 1,
     "preregistration_file": "preregistration.json",
     "schema": "schemas/hypothesis_preregistration_v1.schema.json",
-    "inferential_statistics": "pending",
+    "inferential_statistics": "applied",
     "protocol_doc": "docs/ACADEMIC_RESEARCH_PROTOCOL.md",
     "pre_registration_status": "retrospective_reconstruction",
     "pre_registration_valid": false

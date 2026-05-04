@@ -1,0 +1,45 @@
+{
+  "schema_version": "inference_v1",
+  "generated_at_utc": "2026-05-03T20:45:57.313604Z",
+  "run_id": "qb_run_20260503T181925Z_5581cd91",
+  "experiment_id": "EXP-002",
+  "bootstrap_precision_tier": "standard",
+  "r_source": "trade_closed_jsonl",
+  "sample": {
+    "n": 439,
+    "mean_r": 0.11707429521381824,
+    "std_r": 1.4411693723431769,
+    "median_r": -1.0
+  },
+  "normality": {
+    "shapiro_wilk_p": 4.284253487149388e-30,
+    "note": "Shapiro-Wilk only for 3 <= n <= 5000; null above 5000."
+  },
+  "hypothesis_test": {
+    "test_used": "wilcoxon_signed_rank",
+    "h0_median_r": 0.0,
+    "p_value": 3.8287135314637765e-05,
+    "alpha": 0.05,
+    "significant_at_alpha": true
+  },
+  "confidence_interval": {
+    "method": "bootstrap_bca",
+    "level": 0.95,
+    "bootstrap_iterations": 10000,
+    "bootstrap_seed": 42,
+    "lower": -0.01815348244113806,
+    "upper": 0.25236171526889006,
+    "ci_95_lower": -0.01815348244113806,
+    "ci_95_upper": 0.25236171526889006
+  },
+  "effect_size": {
+    "cohens_d": 0.08123562536127785,
+    "interpretation": "negligible"
+  },
+  "verdict": {
+    "statistical_significance": "PASS",
+    "economic_significance": "FAIL",
+    "minimum_effect_size_used": 0.028,
+    "economic_rule": "ci_95_lower >= minimum_effect_size_r"
+  }
+}

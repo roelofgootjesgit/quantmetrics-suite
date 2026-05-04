@@ -7,7 +7,7 @@ _Auto-generated from `registry/`. Regenerate with `write_research_index()` after
 | ID | Date | Title | Result | Status | Academic |
 |----|------|-------|--------|--------|----------|
 | EXP-001 | 2026-04-22 | Expansion-only regime test | positive | completed | — |
-| EXP-002 | 2026-05-03 | HYP-002 NY sweep failure reclaim — V5A + expansion block (closed dossier) | positive | promoted | PENDING |
+| EXP-002 | 2026-05-03 | HYP-002 NY sweep failure reclaim — V5A + expansion block (closed dossier) | positive | promoted | FAIL |
 
 ## Confirmed edges
 
